@@ -18,6 +18,16 @@ test('closer staging leaves the existing phone layout and playable desktop floor
     assert.equal(wide.floorY,606);assert.equal(wide.bossX,640);
     assert.equal(wide.bossHeight,372);assert.equal(wide.bossFloorY-wide.bossHeight,138);
 });
+test('landscape phones keep a readable boss and ground above the touch dock',()=>{
+    for(const [width,height] of [[844,390],[800,360],[932,430]]) {
+        const dockTop=height-148;
+        const layout=trumptopusArenaLayout(width,height,{dockTop});
+        assert(layout.floorY<=dockTop-8);
+        assert(layout.bossHeight>=160);
+        assert(layout.bossFloorY-layout.bossHeight>=32);
+        assert.equal(layout.floorY-layout.bossFloorY,8);
+    }
+});
 test('wide-screen staging reduces the worst possible rear-elbow to contact span, not the attack reach',()=>{
     const width=1280,current=trumptopusArenaLayout(width,678);
     const old={floorY:606,bossFloorY:446,bossX:921.6,bossHeight:308};

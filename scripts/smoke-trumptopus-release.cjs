@@ -200,6 +200,8 @@ async function main() {
             await page.evaluate(()=>{window.previousFinalePlayer=prototypeScene.player;});
             await page.setViewportSize({width:844,height:390});
             await wait(()=>prototypeScene.sceneSize.width===844&&!prototypeScene.finaleResizePending&&prototypeScene.player!==window.previousFinalePlayer&&prototypeScene.player?.body&&prototypeScene.playerContactGeometry&&prototypeScene.isGrounded);
+            assert(await page.evaluate(()=>prototypeScene.stageLayout.bossHeight>=160&&prototypeScene.floorY<=390-148-8),
+                'Landscape boss or player floor is hidden by the touch dock');
             await page.screenshot({path:path.join(output,`${name}-landscape-recovery.png`)});
             await page.evaluate(()=>{window.previousFinalePlayer=prototypeScene.player;});
             await page.setViewportSize({width,height});

@@ -170,10 +170,31 @@ function inspectEndingLayout() {
     return {width,height,texts,clipped,overlaps};
 }
 
+function campaignRewardSnapshot() {
+    let achievementCoins=0;
+    for(const [id,record] of Object.entries(GameState.get('achievements')||{})) {
+        for(const [tier,claimed] of Object.entries(record.claimed||{})) {
+            if(claimed)achievementCoins+=window.AchievementSystem?.definitions[id]?.tiers[tier]?.rewards.coins||0;
+        }
+    }
+    return {coins:GameState.get('player.cosmicCoins'),items:GameState.get('inventory.items'),
+        run:GameState.get('story.projectBeacon.trumptopus'),achievementCoins};
+}
+
+function assertCampaignRewardsUnchanged(before,after) {
+    // Sanctuary can automatically claim earned achievements. Only documented
+    // achievement grants may explain a wallet increase; the boss receipt and
+    // inventory must remain exactly the same, including across page reloads.
+    assert.equal(after.coins-before.coins,after.achievementCoins-before.achievementCoins);
+    assert.deepEqual(after.items,before.items);
+    assert.deepEqual(after.run,before.run);
+}
+
 async function completeCampaignEnding(page,output,name,{priority='prepare_homecoming',exerciseRecovery=false,allowPreparedFilms=false,restoreAfterReload=null}={}) {
     const choice=ENDING_CHOICES[priority];
     assert(choice,`Unknown ending priority: ${priority}`);
     const layouts=[];
+    let epilogueRewards=null;
     async function layout(stage) {
         if(!exerciseRecovery)return;
         const result=await page.evaluate(inspectEndingLayout);
@@ -183,7 +204,7 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
         assert.deepEqual(result.overlaps,[],`Overlapping text at ${stage}`);
     }
     await page.getByRole('button',{name:'Repair the ship',exact:true}).waitFor();
-    const before=await page.evaluate(()=>({coins:GameState.get('player.cosmicCoins'),items:GameState.get('inventory.items'),run:GameState.get('story.projectBeacon.trumptopus')}));
+    const before=await page.evaluate(campaignRewardSnapshot);
     assert.equal(before.run.status,'won');assert.equal(before.items.find(i=>i.id==='super_blast').quantity,1);
     if (!allowPreparedFilms) assert.equal(await page.getByRole('button',{name:'Watch',exact:true}).count(),0,'Unapproved finale film offered Watch');
     await page.screenshot({path:path.join(output,`${name}-result.png`)});
@@ -216,11 +237,12 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
         await layout('epilogue-before-refresh');
         const pending=await page.evaluate(()=>GameState.get('story.projectBeacon.finale'));
         assert.equal(pending.priority,priority);assert.equal(pending.epilogueSeen,false);
+        epilogueRewards=await page.evaluate(campaignRewardSnapshot);
+        assertCampaignRewardsUnchanged(before,epilogueRewards);
         await page.reload();
         if (restoreAfterReload) await restoreAfterReload();
         await page.getByRole('button',{name:'Finish the story',exact:true}).waitFor();
-        assert.equal(await page.evaluate(()=>GameState.get('player.cosmicCoins')),before.coins);
-        assert.deepEqual(await page.evaluate(()=>GameState.get('inventory.items')),before.items);
+        assertCampaignRewardsUnchanged(epilogueRewards,await page.evaluate(campaignRewardSnapshot));
         await page.getByRole('button',{name:'Finish the story',exact:true}).click();
         await page.waitForFunction(()=>window.game.scene.isActive('VictoryScene'));
         assert.equal(await page.evaluate(()=>GameState.get('story.projectBeacon.finale.priority')),priority);
@@ -253,7 +275,8 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
     }
     await clickSceneText(page,'SANCTUARY');
     await page.waitForFunction(()=>window.game.scene.isActive('HubWorldScene'),null,{timeout:20000});
-    return {before,resumed,ending,layouts,choiceBackChecked:exerciseRecovery,epilogueRefreshChecked:exerciseRecovery,
+    return {before,resumed,ending,epilogueRewards,layouts,choiceBackChecked:exerciseRecovery,epilogueRefreshChecked:exerciseRecovery,
         newGamePlusCancelled:exerciseRecovery,actualSanctuaryRepair:true,actualEndingChoice:true,returnedToHub:true};
 }
-module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint,ENDING_CHOICES,inspectEndingLayout,seedPriorCampaignRoutes};
+module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint,ENDING_CHOICES,inspectEndingLayout,seedPriorCampaignRoutes,
+    campaignRewardSnapshot,assertCampaignRewardsUnchanged};

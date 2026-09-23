@@ -1,4 +1,5 @@
 const vm = require('node:vm');
+const {assertCampaignRewardsUnchanged}=require('../lib/trumptopus-campaign-proof.cjs');
 const {sceneTextPoint,createCampaignProofHtml,completeCampaignEnding,ENDING_CHOICES,inspectEndingLayout,seedPriorCampaignRoutes} = require('../lib/trumptopus-campaign-proof.cjs');
 
 function setup() {
@@ -12,6 +13,15 @@ function setup() {
     const locate = vm.runInNewContext(`(${sceneTextPoint.toString()})`,{window,innerWidth:390,innerHeight:844});
     return {locate,scene,label,zone};
 }
+
+test('ending recovery allows recorded achievement coins, never duplicate finale rewards',()=>{
+    const before={coins:2503,achievementCoins:0,items:[{id:'super_blast',quantity:1}],run:{status:'won',receipt:'one'}};
+    const after={...before,coins:2653,achievementCoins:150};
+    expect(()=>assertCampaignRewardsUnchanged(before,after)).not.toThrow();
+    expect(()=>assertCampaignRewardsUnchanged(before,{...after,coins:5153})).toThrow();
+    expect(()=>assertCampaignRewardsUnchanged(before,{...after,run:{status:'won',receipt:'two'}})).toThrow();
+    expect(()=>assertCampaignRewardsUnchanged(before,{...after,items:[{id:'super_blast',quantity:2}]})).toThrow();
+});
 
 test('does not click a new page label until its real hit area is live',()=>{
     const {locate,scene,zone}=setup();

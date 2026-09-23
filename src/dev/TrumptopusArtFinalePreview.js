@@ -3,13 +3,17 @@ import TrumptopusCutoutRig from './TrumptopusCutoutRig.js';
 import { trumptopusArenaLayout,chooseAllyLanding,anticipatedPlayerBounds,constrainAllyStrike,allySweepLeapDuration,sampleAllyLeap,trumptopusBanishment } from './TrumptopusPresentation.js';
 import { getTrumptopusAttackPose } from '../systems/TrumptopusAttackPose.js';
 import TrumptopusArenaStage from './TrumptopusArenaStage.js';
+import { getMobileControlLayout } from '../systems/MobileControlLayout.js';
 
 // Private artwork adapter. The encounter, controls and reward flow still own
 // gameplay; the supplied character consumes their existing committed poses.
 export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview {
     configurePrototypeWorld() {
         super.configurePrototypeWorld();
-        this.stageLayout=trumptopusArenaLayout(this.scale.width,this.scale.height);
+        const dockTop=this.detectMobile()
+            ?getMobileControlLayout({width:this.scale.width,height:this.scale.height,safeArea:this.getSafeAreaInsets()}).dockTop
+            :null;
+        this.stageLayout=trumptopusArenaLayout(this.scale.width,this.scale.height,{dockTop});
         this.floorY=this.stageLayout.floorY;this.levelHeight=this.floorY+50;
         this.allyLeap=null;this.sweepLeapDone=false;
     }

@@ -1,7 +1,14 @@
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const smooth=value=>{const p=clamp(value,0,1);return p*p*(3-2*p);};
 
-export function trumptopusArenaLayout(width,height) {
+export function trumptopusArenaLayout(width,height,{dockTop=null}={}) {
+    if(width>height&&height<520) {
+        // Short landscape screens need a shared ground plane, not the tall
+        // rear ledge used in portrait. Keep both actors above touch controls.
+        const floorY=Math.round(Math.min(height-72,dockTop??height-148)-8);
+        const bossFloorY=floorY-8;
+        return {floorY,bossFloorY,bossX:width*.72,bossHeight:Math.min(260,bossFloorY-32)};
+    }
     const floorY=Math.round(height-(width<600?180:72));
     // Private wide-screen comparison: a central, lower rear ledge shortens
     // the reach without moving the player's floor or committed attack palms.
