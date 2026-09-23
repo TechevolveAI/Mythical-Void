@@ -26,7 +26,8 @@ async function main() {
     browser = await chromium.launch({
         ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' }),
         headless: !nativeOpenGL,
-        args: smokeRendererArgs({ SMOKE_HARDWARE_ACCELERATED_CAPTURE: '1', ...process.env })
+        args: [...smokeRendererArgs({ SMOKE_HARDWARE_ACCELERATED_CAPTURE: '1', ...process.env }),
+            '--enable-webgl', '--ignore-gpu-blocklist']
     });
     const views = (process.env.FINALE_RELEASE_VIEWS || 'phone,desktop').split(',');
     assert(views.every(view=>['phone','desktop'].includes(view)), 'Unknown release viewport');
@@ -114,7 +115,7 @@ async function main() {
         if(nativeOpenGL) {
             console.log('[smoke-renderer]',JSON.stringify(renderer));
             assert(renderer.webgl&&renderer.name&&!/swiftshader/i.test(renderer.name),
-                'Native OpenGL smoke did not receive its required WebGL renderer');
+                `Native OpenGL smoke did not receive its required WebGL renderer: ${JSON.stringify(renderer)}`);
         }
         const state = () => page.evaluate(() => prototypeScene.getProofState());
         const wait = predicate => page.waitForFunction(predicate, null, {timeout:20000});

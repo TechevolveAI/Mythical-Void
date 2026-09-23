@@ -28,7 +28,8 @@ test('all rendering paths remain muted and preserve completion timing and viewpo
     expect(runner).toContain("trumptopus ? 'scripts/smoke-trumptopus-release.cjs' : 'scripts/smoke-secondary-journeys.js'");
     const finale = fs.readFileSync(path.join(root, 'scripts/smoke-trumptopus-release.cjs'), 'utf8');
     expect(finale).toContain("require('./lib/smoke-renderer-policy.cjs')");
-    expect(finale).toContain("args: smokeRendererArgs({ SMOKE_HARDWARE_ACCELERATED_CAPTURE: '1', ...process.env })");
+    expect(finale).toContain("...smokeRendererArgs({ SMOKE_HARDWARE_ACCELERATED_CAPTURE: '1', ...process.env })");
+    expect(finale).toContain("'--enable-webgl', '--ignore-gpu-blocklist'");
     expect(finale).toContain('headless: !nativeOpenGL');
     expect(finale).toContain('renderer.webgl&&renderer.name&&!/swiftshader/i.test(renderer.name)');
     expect(finale).toContain("['phone', 390, 844], ['desktop', 1280, 720]");

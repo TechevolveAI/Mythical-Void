@@ -45,7 +45,7 @@ async function runCase(name, mode, testCase, width, height) {
         const passed = trumptopus ? JSON.parse(fs.readFileSync(path.join(capture,'report.json'))).passed === true
             : text.includes(`[smoke-result] ${mode}:${testCase}:pass`);
         if (code !== 0 || !passed) {
-            throw new Error(`${name} failed; ${logPath}\n${text.slice(-5000)}`);
+            throw new Error(`${name} failed; ${logPath}\n${text.length>7000?text.slice(0,2500)+'\n...\n'+text.slice(-4500):text}`);
         }
         for (const line of text.split('\n')) {
             if (line.startsWith('[smoke-renderer]') || line.startsWith('[guardian-opening]')) console.log(line);
