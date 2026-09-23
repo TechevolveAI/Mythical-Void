@@ -351,12 +351,17 @@ function buildPrompt(momentId, stage) {
     const moment = resolveMomentDefinition(momentId);
     if (!moment) return null;
     const shared = videoMomentConfig.sharedPrompt;
+    // Only developer-authored realm text crosses the provider boundary. Never
+    // interpolate the supplied suffix, player location or save history.
+    const rescueId = moment.prefix === 'guardian_rescue_' ? momentId.slice(moment.prefix.length) : null;
+    const location = Object.hasOwn(videoMomentConfig.rescueLocations || {}, rescueId)
+        ? videoMomentConfig.rescueLocations[rescueId] : moment.location;
     return [
         `PROMPT VERSION // ${videoMomentConfig.promptVersion}`,
         shared.identity,
         `The reference depicts the creature at its ${stage} life stage.`,
         shared.continuity,
-        `LOCATION // ${moment.location}.`,
+        `LOCATION // ${location}.`,
         `ACTION // ${moment.action}`,
         shared.motion,
         shared.world,

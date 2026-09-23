@@ -1544,13 +1544,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
     drawCaveBeacon(graphics, x, supportY, activated) {
         graphics.clear();
-        const color = activated ? 0x8FE3CF : 0x4A4268;
+        const color = activated ? 0x8FE3CF : 0xF2C94C;
 
         // A living fissure, not a console or map marker. Its branching light
         // physically grows out of the same surface the player crosses.
         graphics.fillStyle(0x071116, 0.9);
         graphics.fillEllipse(x, supportY - 5, 76, 18);
-        graphics.lineStyle(activated ? 7 : 4, color, activated ? 0.95 : 0.72);
+        graphics.lineStyle(activated ? 7 : 4, color, 0.95);
         graphics.beginPath();
         graphics.moveTo(x, supportY - 7);
         graphics.lineTo(x - 8, supportY - 34);
@@ -1560,7 +1560,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         graphics.lineStyle(3, color, activated ? 0.8 : 0.5);
         graphics.lineBetween(x - 7, supportY - 35, x - 25, supportY - 49);
         graphics.lineBetween(x + 3, supportY - 61, x + 23, supportY - 76);
-        graphics.fillStyle(activated ? 0xF2C94C : 0x62E0D2, 0.96);
+        graphics.fillStyle(activated ? 0x8FE3CF : 0xF2C94C, 0.96);
         graphics.fillEllipse(x - 3, supportY - 97, activated ? 22 : 16, activated ? 30 : 22);
     }
 
@@ -6045,9 +6045,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             'ECHO PASS',
             'LIVING CHAMBER',
             'GUARDIAN THRESHOLD'
-        ][this.beaconAnchorsActivated] || 'GUARDIAN THRESHOLD';
+        ][this.getNextOrderedRouteSignal?.()?.index ?? this.beaconAnchorsActivated] || 'GUARDIAN THRESHOLD';
         const current = Math.min(this.beaconAnchorsActivated + 1, 3);
-        const pulse = 'FOLLOW THE CYAN LIGHT →';
+        const pulse = this.getOrderedRouteCompassText?.().replace('CLUE', 'GOLD LIGHT') || 'FIND THE GOLD LIGHT';
         const title = this.isCompactObjectiveHUD
             ? `PULSE ${current}/3`
             : `PULSE ${current}/3 // ${nextAnchor}`;

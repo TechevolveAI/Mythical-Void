@@ -64,7 +64,7 @@ const DEBRIEF_PREVIEW_CONTEXTS = Object.freeze({
 
 const EXPEDITION_CHECKPOINT_PATH =
     'story.projectBeacon.expeditionCheckpoint';
-const EXPEDITION_CHECKPOINT_VERSION = 1;
+const EXPEDITION_CHECKPOINT_VERSION = 2;
 const EXPEDITION_CHECKPOINTS_BY_GATE = Object.freeze({
     mythical_forest: {
         sceneKey: 'MythicalForestLevel',
@@ -1722,7 +1722,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const signal = config?.checkpoints?.[checkpointIndex];
 
         if (
-            checkpoint?.version !== EXPEDITION_CHECKPOINT_VERSION ||
+            ![1, EXPEDITION_CHECKPOINT_VERSION].includes(checkpoint?.version) ||
             checkpoint?.sceneKey !== config?.sceneKey ||
             checkpoint?.levelId !== config?.levelId ||
             !signal ||
@@ -1739,7 +1739,9 @@ export default class HubWorldScene extends Phaser.Scene {
             sceneKey: config.sceneKey,
             checkpointId: signal[0],
             label: signal[1],
-            current: checkpointIndex + 1,
+            current: Number.isInteger(checkpoint.routeSignalMask)
+                ? config.checkpoints.filter((_, index) => checkpoint.routeSignalMask & (1 << index)).length
+                : checkpointIndex + 1,
             total: config.checkpoints.length
         };
     }

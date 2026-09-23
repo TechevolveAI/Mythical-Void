@@ -1307,7 +1307,7 @@ class ReefLevel extends PlatformerLevelScene {
             'DRIFT CURRENT',
             'TRAVELER CURRENT',
             'PASSAGE CURRENT'
-        ][this.beaconAnchorsActivated] || 'PASSAGE CURRENT';
+        ][this.getNextOrderedRouteSignal?.()?.index ?? this.beaconAnchorsActivated] || 'PASSAGE CURRENT';
         const current = Math.min(this.beaconAnchorsActivated + 1, 3);
         const drive = this.shipPartCollected
             ? 'DIMENSIONAL DRIVE // SECURED'
@@ -1668,8 +1668,8 @@ class ReefLevel extends PlatformerLevelScene {
         passageProgress = 0
     ) {
         graphics.clear();
-        const color = activated ? 0x8FE3CF : 0x3D5266;
-        const core = activated ? 0xF2C94C : 0x8FE3CF;
+        const color = activated ? 0x8FE3CF : 0xF2C94C;
+        const core = color;
         const opening = Phaser.Math.Clamp(Number(passageProgress) || 0, 0, 1);
 
         // A current bloom grows from the shelf so the objective belongs to

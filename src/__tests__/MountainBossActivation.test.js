@@ -49,7 +49,7 @@ test('the entire physical summit, including a jump past the old entry strip, sta
     overlap();
     expect(s.isPlayerGroundedOnTraversalSupport).toHaveBeenCalledWith('peak-titan-gate');
     expect(s.startBossFight).toHaveBeenCalledTimes(1);
-    expect(s.getTraversalSupportCheckpoint).toHaveBeenCalledWith('peak-titan-gate', 4820);
+    expect(s.getTraversalSupportCheckpoint).toHaveBeenCalledWith('peak-titan-gate', 5040);
     expect(gate.destroy).toHaveBeenCalledTimes(1);
     expect(s.titanGate).toBeNull();
     overlap();

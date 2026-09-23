@@ -130,9 +130,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossTargetScale = 1;
         this.bossArenaY = null;
         this.bossHealth = 0;
-        // Six clean katana hits are enough to teach the rescue fight without
+        // Six earned recovery openings teach the rescue fight without
         // making the first guardian more durable than late-game bosses.
-        this.bossMaxHealth = 18;
+        this.bossMaxHealth = 24;
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
@@ -1129,7 +1129,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 : `GUARDIAN AHEAD\nCLEAR THE PURPLE CORRUPTION\n${optional}`;
         }
 
-        const nextMoment = getForestHelpMoment(this.beaconAnchorsActivated);
+        const nextMoment = getForestHelpMoment(this.getNextOrderedRouteSignal()?.index ?? this.beaconAnchorsActivated);
         const current = Math.min(this.beaconAnchorsActivated + 1, 3);
         const compass = typeof this.getOrderedRouteCompassText === 'function'
             ? this.getOrderedRouteCompassText()
@@ -2244,8 +2244,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         );
         this.checkpointAnchors.forEach(checkpoint => {
             const complete = checkpoint.activated === true;
-            const next = !complete &&
-                checkpoint.index === this.beaconAnchorsActivated;
+            const next = !complete;
             this.drawBeaconCheckpoint(
                 checkpoint.visual,
                 checkpoint.x,
@@ -2257,7 +2256,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpoint.actionPrompt
                 ?.setText?.(
                     complete
-                        ? `FOREST HELPED // ${checkpoint.index + 1} OF 3`
+                        ? 'THIS ROOT IS WELL'
                         : next
                             ? checkpoint.storyMoment.objective.toUpperCase()
                             : `ANOTHER WOUNDED PLACE AHEAD`
@@ -6238,6 +6237,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         this.boss.isRecovering = true;
+        this.forestRecoveryDamage = 0;
         this.bossAttackPoseTween?.stop?.();
         this.bossAttackPoseTween = this.tweens.add({
             targets: this.boss, angle: 0, duration: 250, ease: 'Sine.easeOut'
@@ -6502,10 +6502,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (!this.boss?.active || this.bossDefeated || !this.bossEntranceComplete ||
             !this.bossFightActive || this.bossPhaseTransitioning ||
             !this.boss.isRecovering || !this.bossPhaseAttackCount ||
+            (this.forestRecoveryDamage || 0) >= 4 ||
             this.time.now < this.forestBossNextHitAt || !Number.isFinite(amount) || amount <= 0) return false;
 
         const recoveryBonus = this.boss.isRecovering ? 1 : 0;
-        const finalAmount = Math.min(3, amount) + recoveryBonus;
+        const finalAmount = Math.min(4 - (this.forestRecoveryDamage || 0), Math.min(3, amount) + recoveryBonus);
+        this.forestRecoveryDamage = (this.forestRecoveryDamage || 0) + finalAmount;
+        if (this.forestRecoveryDamage >= 4) this.bossInstructionText?.setText?.('GOOD HIT! GET READY');
         this.forestBossNextHitAt = this.time.now + 400;
         this.forestBossHits++;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);

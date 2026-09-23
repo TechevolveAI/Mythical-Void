@@ -183,7 +183,7 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain(
             'beginTitanCombat(camera = this.cameras.main)'
         );
-        expect(source).toContain('openingGraceMs: 3000');
+        expect(source).toContain('openingGraceMs: 1200');
         expect(source).toContain(
             'this.bossTargetScale = MOUNTAIN_ASCENT.displayHeight / Math.max(1, this.boss.height);'
         );
@@ -198,7 +198,7 @@ describe('guardian encounter pacing contracts', () => {
             /beginTitanCombat[\s\S]*camera\.panEffect\?\.reset\?\.\(\);[\s\S]*camera\.stopFollow\(\);/
         );
         expect(source).not.toContain('this.releaseTitanOpeningCameraFraming();');
-        expect(source).toContain('this.player.x - camera.width * 0.32');
+        expect(source).toContain('Math.min(bossBounds.left, playerBounds.left, astronautBounds.left)');
         expect(source).toContain('this.clearGuardianGateState();');
         expect(source).toMatch(
             /beginTitanCombat[\s\S]*this\.physics\.resume\(\);[\s\S]*this\.showPlatformerMobileControls\(\);[\s\S]*this\.startTitanAttackLoop\(\);/
@@ -268,7 +268,7 @@ describe('guardian encounter pacing contracts', () => {
     test.each([
         ['MythicalForestLevel.js', 'this.boss.isRecovering ? 1 : 0'],
         ['CrystalCavesLevel.js', 'this.boss.isRecovering ? 1 : 0'],
-        ['VoidPeaksLevel.js', 'this.time.now < this.titanRecoveryUntil ? 1 : 0'],
+        ['VoidPeaksLevel.js', 'this.time.now >= this.titanRecoveryUntil'],
         ['AuroraDepthsLevel.js', 'this.time.now < this.bossRecoveryUntil ? 1 : 0']
     ])('%s recovery cue provides bonus stabilization damage', (fileName, contract) => {
         expect(readLevel(fileName)).toContain(contract);

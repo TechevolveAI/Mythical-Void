@@ -72,6 +72,7 @@ import {
 } from '../systems/RescuedResidents.js';
 import { getSanctuaryCommunitySnapshot } from '../systems/SanctuaryCommunity.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
+import { nextStoryVideo, showStoryVideoNotice } from '../ui/StoryVideoNotice.js';
 import {
     FEND_COMMONS_PRIORITIES,
     formatFendCultureObjective,
@@ -15053,112 +15054,20 @@ class GameScene extends Phaser.Scene {
 
     maybeShowCreatureVideoReadyNotice({ attempt = 0 } = {}) {
         if (this._isShuttingDown || !this.sys?.isActive?.()) return false;
-        const mediaService = window.CompanionMediaService ||
-            companionMediaService;
-        const ready = mediaService?.getUnviewedGeneratedVideos?.()?.[0];
+        const service = window.CompanionMediaService || companionMediaService;
+        const ready = nextStoryVideo(service);
         if (!ready || this.creatureVideoReadyNotice) return false;
         if (this.isLivingPortraitNoticeBlocked()) {
             if (attempt >= 12) return false;
             this.creatureVideoNoticeTimer?.remove?.();
-            this.creatureVideoNoticeTimer = this.time.delayedCall(
-                1500,
-                () => this.maybeShowCreatureVideoReadyNotice({
-                    attempt: attempt + 1
-                })
-            );
+            this.creatureVideoNoticeTimer = this.time.delayedCall(1500,
+                () => this.maybeShowCreatureVideoReadyNotice({ attempt: attempt + 1 }));
             return false;
         }
-
-        const { width, height } = this.scale;
-        const compact = width < 620;
-        const panelWidth = Math.min(compact ? width - 24 : 430, 430);
-        const panelHeight = compact ? 92 : 98;
-        const noticeY = Math.max(160, Math.min(height * 0.24, 200));
-        const container = this.add.container(width / 2, noticeY)
-            .setScrollFactor(0)
-            .setDepth(15910)
-            .setAlpha(0);
-        const panel = this.add.graphics();
-        panel.fillStyle(0x081312, 0.98);
-        panel.fillRoundedRect(
-            -panelWidth / 2,
-            -panelHeight / 2,
-            panelWidth,
-            panelHeight,
-            7
-        );
-        panel.lineStyle(2, 0xF2C14E, 1);
-        panel.strokeRoundedRect(
-            -panelWidth / 2,
-            -panelHeight / 2,
-            panelWidth,
-            panelHeight,
-            7
-        );
-        panel.setInteractive(
-            new Phaser.Geom.Rectangle(
-                -panelWidth / 2,
-                -panelHeight / 2,
-                panelWidth,
-                panelHeight
-            ),
-            Phaser.Geom.Rectangle.Contains
-        );
-        const left = -panelWidth / 2 + 20;
-        const title = this.add.text(
-            left,
-            -26,
-            'CREATURE STORY SCENE READY',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: compact ? '13px' : '15px',
-                fontStyle: 'bold',
-                color: '#F2C14E'
-            }
-        );
-        const copy = this.add.text(left, 0, ready.label, {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: compact ? '12px' : '13px',
-            color: '#F4F4F4',
-            wordWrap: { width: panelWidth - 40 }
+        this.creatureVideoReadyNotice = showStoryVideoNotice(this, service, ready, {
+            onClose: () => { this.creatureVideoReadyNotice = null; }
         });
-        const action = this.add.text(
-            panelWidth / 2 - 20,
-            29,
-            'TAP TO WATCH',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: '10px',
-                fontStyle: 'bold',
-                color: '#8FE3CF'
-            }
-        ).setOrigin(1, 0.5);
-        container.add([panel, title, copy, action]);
-
-        let dismissed = false;
-        const dismiss = ({ openArchive = false } = {}) => {
-            if (dismissed) return;
-            dismissed = true;
-            this.tweens.killTweensOf(container);
-            container.destroy?.(true);
-            this.creatureVideoReadyNotice = null;
-            if (openArchive) {
-                this.openCreatureProfile({
-                    initialIdentityArchiveChapter: 'shared_journey'
-                });
-            }
-        };
-        panel.on('pointerup', () => dismiss({ openArchive: true }));
-        this.tweens.add({
-            targets: container,
-            alpha: 1,
-            y: noticeY + 8,
-            duration: 280,
-            ease: 'Sine.easeOut'
-        });
-        this.creatureVideoReadyNotice = { container, destroy: dismiss };
-        window.AudioManager?.playAchievement?.();
-        return true;
+        return Boolean(this.creatureVideoReadyNotice);
     }
 
     destroyCreatureVideoReadyNotice() {

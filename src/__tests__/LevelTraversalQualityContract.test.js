@@ -3059,7 +3059,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("finalVoid: 'finalSignalReady'");
         expect(smoke).toContain('remainingZones: signals.filter');
         expect(smoke).toContain('emphasizedSignals: signals.filter');
-        expect(smoke).toContain('accepted an out-of-order route signal');
+        expect(smoke).toContain('rejected an available out-of-order route signal');
         expect(smoke).toContain("'story.projectBeacon.expeditionCheckpoint'");
         expect(smoke).toContain('persistedCheckpoint?.sceneKey !== sceneName');
         expect(smoke).toContain("'auroraDepths',\n            'finalVoid'");
@@ -3212,7 +3212,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('routeChoiceRuntime?.passed !== true');
         expect(smoke).toContain('const checkpointBefore = scene.checkpointPosition');
         expect(smoke).toContain(
-            'JSON.stringify(outOfOrderGuard.checkpointAfter) !=='
+            '!outOfOrderGuard?.allowed'
         );
         expect(smoke).toContain(
             'JSON.stringify(airborneRejected.checkpointAfter) !=='

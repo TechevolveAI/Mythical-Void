@@ -9,10 +9,11 @@ const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
 const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain-cosmic.webp';
 
 const TITAN_ARENA = Object.freeze({
-    playerEntryX: 4820,
+    playerEntryX: 5040,
     introFocusX: 4740,
-    bossX: MOUNTAIN_ASCENT.faceX,
-    openingGraceMs: 3000
+    bossX: 4890,
+    combatHeight: 225,
+    openingGraceMs: 1200
 });
 
 const TITAN_ATTACK_WINDOWS = Object.freeze({
@@ -22,7 +23,7 @@ const TITAN_ATTACK_WINDOWS = Object.freeze({
     singularity: 3000
 });
 const TITAN_ATTACK_WINDUP = 700;
-const TITAN_RECOVERY_WINDOW = 650;
+const TITAN_RECOVERY_WINDOW = 1800;
 const TITAN_PHASE_RECOVERY = 1300;
 const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;
 
@@ -138,7 +139,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.boss = null;
         this.bossTargetScale = 1;
         this.bossHealth = 0;
-        this.bossMaxHealth = 15;
+        this.bossMaxHealth = 24;
         this.bossPhase = 1;
         this.titanAttackIndex = 0;
         this.bossAttackTimer = null;
@@ -181,6 +182,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.titanRecoveryDamage = 0;
+        this.titanAttacksCompleted = 0;
+        this.titanLastHitAt = -Infinity;
         this.titanOpeningCameraFraming = false;
         this.bossPressureText = null;
         this.peakEncounterRhythm = [];
@@ -245,6 +249,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.titanRecoveryDamage = 0;
+        this.titanAttacksCompleted = 0;
+        this.titanLastHitAt = -Infinity;
         this.titanOpeningCameraFraming = false;
         this.bossAttackPreview = [
             'gravityCrush',
@@ -1233,16 +1240,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     drawSignalRelay(graphics, x, y, activated) {
         graphics.clear();
-        const color = activated ? 0x8FE3CF : 0xDBB678;
+        const color = activated ? 0x8FE3CF : 0xF2C94C;
 
         graphics.fillStyle(color, activated ? 0.22 : 0.1);
         graphics.fillCircle(x, y - 35, 42);
-        graphics.lineStyle(4, color, activated ? 1 : 0.7);
+        graphics.lineStyle(4, color, 1);
         graphics.lineBetween(x, y + 20, x, y - 38);
         graphics.lineBetween(x, y + 20, x - 18, y + 38);
         graphics.lineBetween(x, y + 20, x + 18, y + 38);
         graphics.strokeCircle(x, y - 44, 18);
-        graphics.fillStyle(activated ? 0xF2C94C : color, 0.95);
+        graphics.fillStyle(color, 0.95);
         graphics.fillCircle(x, y - 44, 7);
 
         if (activated) {
@@ -2124,9 +2131,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     getTitanOpeningCameraCenterX(camera = this.cameras?.main) {
         if (!camera || !this.player || !this.boss) return 0;
-
+        const bossBounds = this.boss.getBounds();
+        const playerBounds = this.player.getBounds();
+        const astronautBounds = this.astronautFollower?.sprite?.getBounds?.() || playerBounds;
         return Phaser.Math.Clamp(
-            Math.max((this.player.x + this.boss.x) / 2, this.player.x - camera.width * 0.32),
+            (Math.min(bossBounds.left, playerBounds.left, astronautBounds.left) +
+                Math.max(bossBounds.right, playerBounds.right, astronautBounds.right)) / 2,
             camera.width / 2,
             Math.max(camera.width / 2, this.levelWidth - camera.width / 2)
         );
@@ -2230,6 +2240,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
         this.physics.pause();
         this.hidePlatformerMobileControls();
+        this.astronautFollower?.setContextualFormation?.({ x: 62, y: 0 }, 'mountain-guardian');
         this.stageTitanArenaEntry();
         this.cameras.main.stopFollow();
         this.cameras.main.pan(
@@ -2292,28 +2303,46 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.createTitanTexture();
 
         this.boss = this.physics.add.sprite(
-            TITAN_ARENA.bossX,
+            MOUNTAIN_ASCENT.faceX,
             MOUNTAIN_ASCENT.faceY,
             COSMIC_TITAN_TEXTURE
         );
         this.boss.setImmovable(true);
-        this.boss.setCollideWorldBounds(true);
+        this.boss.setCollideWorldBounds(false);
         this.boss.body.setAllowGravity(false);
         this.boss.setOrigin(MOUNTAIN_ASCENT.originX, MOUNTAIN_ASCENT.originY);
         this.bossTargetScale = MOUNTAIN_ASCENT.displayHeight / Math.max(1, this.boss.height);
         this.boss.body.setSize(
-            this.boss.width * 0.20,
-            this.boss.height * 0.20
+            this.boss.width * 0.34,
+            this.boss.height * 0.82
         );
         this.boss.body.setOffset(
-            this.boss.width * 0.39,
-            this.boss.height * 0.2
+            this.boss.width * 0.32,
+            this.boss.height * 0.14
         );
         this.boss.setScale(this.bossTargetScale);
         this.boss.health = this.bossMaxHealth;
-        this.boss.setDepth(190);
+        this.boss.setDepth(900);
         this.mountainBody?.setVisible(false);
         this.mountainName?.setVisible(false);
+
+        // The climb remains solid terrain; the awakened character leaves it.
+        const endScale = TITAN_ARENA.combatHeight / this.boss.height;
+        this.tweens.add({
+            targets: this.boss, x: TITAN_ARENA.bossX,
+            y: MOUNTAIN_ASCENT.summitY - TITAN_ARENA.combatHeight * (0.97 - MOUNTAIN_ASCENT.originY),
+            scaleX: endScale, scaleY: endScale, angle: -7,
+            duration: 900, ease: 'Cubic.easeOut',
+            onComplete: () => {
+                if (!this.boss?.active || this.bossDefeated) return;
+                this.boss.setOrigin(MOUNTAIN_ASCENT.originX, 0.97);
+                this.boss.setPosition(TITAN_ARENA.bossX, MOUNTAIN_ASCENT.summitY);
+                this.boss.setAngle(0);
+                this.bossTargetScale = endScale;
+                this.boss.body.updateFromGameObject();
+                window.FeedbackManager?.cameraShake?.(this, 180, 0.004);
+            }
+        });
 
         this.bossHealth = this.bossMaxHealth;
         this.createBossHealthBar();
@@ -2358,6 +2387,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossCombatReady = true;
         this.bossCombatReadyAt = this.time.now;
         this.titanAttackLocked = false;
+        camera.panEffect?.reset?.();
+        camera.centerOn(this.getTitanOpeningCameraCenterX(camera), Math.max(camera.height / 2, this.player.y));
         this.titanOpeningCameraFraming =
             this.isMobile || camera.width <= 480;
         if (this.titanOpeningCameraFraming) {
@@ -2366,6 +2397,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             camera.scrollX = this.getTitanOpeningCameraCenterX(camera) -
                 camera.width / 2;
         } else {
+            camera.scrollX = this.getTitanOpeningCameraCenterX(camera) - camera.width / 2;
             camera.startFollow(
                 this.player,
                 true,
@@ -2378,9 +2410,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.targetCameraLeadX = -this.cameraLeadAmount;
         }
         this.physics.resume();
+        this.input?.keyboard?.resetKeys?.();
+        this.resetJoystick?.();
+        this.releaseAllPlatformerActionButtons?.();
+        this.clearVirtualJumpInput?.();
         this.showPlatformerMobileControls();
         this.bossSubtitle?.setText?.(
-            'Dodge the lasers. Strike between bursts!'
+            'Dodge the snow. Strike while the peaks are quiet!'
         );
 
         this.bossAttackPreviewTimer = this.time.delayedCall(
@@ -2576,6 +2612,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         telegraph.lineStyle(2, color, 0.65);
         telegraph.fillStyle(color, 0.9);
         telegraph.setDepth(915);
+        if (attack === 'voidPunch') {
+            telegraph.strokeCircle(Phaser.Math.Clamp(target.x, 4814, 5166), MOUNTAIN_ASCENT.summitY - 14, 46);
+        }
         if (attack === 'starRain' || attack === 'singularity') {
             telegraph.fillStyle(0xFFB968, 0.4);
             telegraph.fillRect(MOUNTAIN_ASCENT.summitX, MOUNTAIN_ASCENT.summitY - 8, MOUNTAIN_ASCENT.summitWidth, 8);
@@ -2612,6 +2651,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800;
         const attackTarget = { x: this.player.x, y: this.player.y };
         this.titanAttackLocked = true;
+        this.titanRecoveryUntil = 0;
+        this.tweens.add({
+            targets: this.boss,
+            x: Phaser.Math.Clamp(this.boss.x + (this.player.x > this.boss.x ? 42 : -42), 4870, 5010),
+            angle: this.player.x > this.boss.x ? 5 : -5,
+            duration: TITAN_ATTACK_WINDUP, ease: 'Sine.easeInOut'
+        });
         this.broadcastTitanWarning(attack, attackTarget);
 
         this.titanAttackUnlockTimer?.remove?.();
@@ -2620,6 +2666,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             () => {
                 if (!this.titanPhaseRecoveryTimer && !this.bossDefeated) {
                     this.titanAttackLocked = false;
+                    this.bossSubtitle?.setText?.('Watch the snowy peaks');
                 }
                 this.titanAttackUnlockTimer = null;
             }
@@ -2628,10 +2675,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     broadcastTitanWarning(attack, attackTarget) {
         const warnings = {
-            gravityCrush: 'Laser! Move off the line',
-            starRain: 'Low wave! Jump over it',
-            voidPunch: 'Left, right, left! Keep moving',
-            singularity: 'Dodge, then jump!'
+            gravityCrush: 'Snow burst! Step aside',
+            starRain: 'Rolling snowball! Jump!',
+            voidPunch: 'Snow grenade! Leave the landing spot',
+            singularity: 'Snow burst, then jump!'
         };
 
         this.bossSubtitle?.setText?.(warnings[attack] || 'NETWORK WARNING // PRESSURE SURGE');
@@ -2646,14 +2693,21 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.scheduleBossTimer(recoveryDelay, () => {
                 if (!this.bossDefeated) {
                     this.clearBossEncounterEffects();
+                    this.titanAttacksCompleted += 1;
+                    this.titanRecoveryDamage = 0;
                     this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
-                    this.bossSubtitle?.setText?.('Your turn! Strike the face');
+                    this.bossSubtitle?.setText?.('Your turn! Strike now');
+                    this.tweens.add({ targets: this.boss, angle: 0, duration: 250 });
                 }
             });
         });
     }
 
     executeTitanAttack(attack, attackTarget) {
+        if (attack === 'voidPunch') {
+            this.fireMountainSnowGrenade(attackTarget);
+            return;
+        }
         mountainAttackPlan(attack).forEach(({ at, kind }) => {
             this.scheduleBossTimer(at, () => {
                 if (kind === 'groundWave') this.fireMountainGroundWave();
@@ -2664,11 +2718,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     fireMountainGroundWave() {
         if (!this.boss?.active || this.bossDefeated || !this.player?.body) return null;
-        const wave = this.trackBossEffect(this.add.rectangle(
-            MOUNTAIN_ASCENT.summitX + 10, MOUNTAIN_ASCENT.summitY - 10, 24, 20, 0xFFF0C6
-        ).setStrokeStyle(3, 0xFF854D).setDepth(910));
+        const direction = this.player.x >= this.boss.x ? 1 : -1;
+        const wave = this.trackBossEffect(this.add.circle(
+            this.boss.x + direction * 62, MOUNTAIN_ASCENT.summitY - 26, 26, 0xE8F9FF
+        ).setStrokeStyle(4, 0x81CFE0).setDepth(910));
         this.physics.add.existing(wave);
-        wave.body.setAllowGravity(false).setVelocityX(235);
+        wave.body.setAllowGravity(false).setCircle(26).setVelocityX(direction * 180);
+        this.tweens.add({ targets: wave, angle: direction * 720, duration: 1800 });
         let retired = false;
         let overlap;
         const retire = () => {
@@ -2686,6 +2742,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     getMountainAttackEmitters(attack) {
+        if (attack === 'voidPunch') return ['summit'];
         return [...new Set(mountainAttackPlan(attack)
             .map(shot => shot.kind).filter(kind => kind !== 'groundWave'))];
     }
@@ -2694,11 +2751,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (!this.boss?.active || this.bossDefeated || !this.player?.body) return null;
         const origin = mountainEmitter(this.boss, kind);
         const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
-        const bolt = this.trackBossEffect(this.add.rectangle(origin.x, origin.y, 30, 7, 0xFFFFFF)
-            .setStrokeStyle(2, 0xFF964A).setRotation(angle).setDepth(910));
+        const bolt = this.trackBossEffect(this.add.circle(origin.x, origin.y, 8, 0xF0FCFF)
+            .setStrokeStyle(2, 0x79C7DD).setDepth(910));
         this.physics.add.existing(bolt);
-        bolt.body.setAllowGravity(false).setCircle(6, 9, -2.5);
-        bolt.body.setVelocity(Math.cos(angle) * 390, Math.sin(angle) * 390);
+        bolt.body.setAllowGravity(false).setCircle(8);
+        bolt.body.setVelocity(Math.cos(angle) * 255, Math.sin(angle) * 255);
         let retired = false;
         let overlap;
         const retire = () => {
@@ -2713,6 +2770,37 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }));
         this.scheduleBossTimer(2400, retire);
         return bolt;
+    }
+
+    fireMountainSnowGrenade(target) {
+        const origin = mountainEmitter(this.boss);
+        const landingX = Phaser.Math.Clamp(target.x, MOUNTAIN_ASCENT.summitX + 34, 5166);
+        const landingY = MOUNTAIN_ASCENT.summitY - 14;
+        const snow = this.trackBossEffect(this.add.circle(origin.x, origin.y, 14, 0xEAFBFF)
+            .setStrokeStyle(3, 0x82CDDC).setDepth(910));
+        const progress = { t: 0 };
+        this.tweens.add({ targets: progress, t: 1, duration: 1000,
+            onUpdate: () => {
+                if (!snow.active) return;
+                snow.setPosition(origin.x + (landingX - origin.x) * progress.t,
+                    origin.y + (landingY - origin.y) * progress.t - Math.sin(Math.PI * progress.t) * 72);
+            }
+        });
+        this.scheduleBossTimer(1000, () => {
+            this.releaseBossEffect(snow);
+            if (this.bossDefeated || !this.player?.body) return;
+            const burst = this.trackBossEffect(this.add.circle(landingX, landingY, 46, 0xD8F7FF, 0.7)
+                .setStrokeStyle(3, 0xFFFFFF).setDepth(910));
+            this.physics.add.existing(burst);
+            burst.body.setAllowGravity(false).setCircle(46);
+            const overlap = this.trackBossEffect(this.physics.add.overlap(this.player, burst, () => this.takeDamage(1)));
+            this.tweens.add({ targets: burst, alpha: 0.15, duration: 650 });
+            this.scheduleBossTimer(650, () => {
+                this.releaseBossEffect(overlap);
+                this.releaseBossEffect(burst);
+            });
+        });
+        return snow;
     }
 
     keepMountainArenaGrounded() {
@@ -2746,7 +2834,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         phaseRing.setPosition(this.boss.x, this.boss.y).setDepth(914).setScale(0.35);
         this.bossSubtitle?.setText?.('The peaks are shifting. Catch your breath!');
         window.FeedbackManager?.cameraShake?.(this, 350, 0.018);
-        // The mountain is also walkable terrain; phases must not move its footing.
+        // Arena terrain stays independent of the awakened character.
         this.tweens.add({
             targets: phaseRing,
             scaleX: 2.4,
@@ -2761,16 +2849,22 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.titanPhaseRecoveryTimer = null;
             if (!this.boss?.active || this.bossDefeated) return;
             this.titanAttackLocked = false;
-            this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
-            this.bossSubtitle?.setText?.('Your turn! Strike the face');
+            this.titanRecoveryUntil = 0;
+            this.performTitanAttack();
         });
     }
 
     damageBoss(amount) {
         if (!this.boss?.active || this.bossDefeated) return false;
-
-        const recoveryBonus = this.time.now < this.titanRecoveryUntil ? 1 : 0;
-        const finalAmount = amount + recoveryBonus;
+        if (!this.bossCombatReady || !this.titanAttacksCompleted ||
+            this.time.now >= this.titanRecoveryUntil || this.titanPhaseRecoveryTimer ||
+            this.titanRecoveryDamage >= 4 || this.time.now - this.titanLastHitAt < 350 ||
+            !Number.isFinite(amount) || amount <= 0) return false;
+        const recoveryBonus = 1;
+        const finalAmount = Math.min(4 - this.titanRecoveryDamage, Math.min(3, amount) + recoveryBonus);
+        this.titanRecoveryDamage += finalAmount;
+        this.titanLastHitAt = this.time.now;
+        if (this.titanRecoveryDamage >= 4) this.bossSubtitle?.setText?.('Good hit! Get ready');
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.boss.health = this.bossHealth;
         this.updateBossHealthBar();
@@ -2788,7 +2882,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.time.delayedCall(90, () => this.boss?.clearTint?.());
 
         const healthRatio = this.bossHealth / this.bossMaxHealth;
-        const nextPhase = healthRatio <= 0.15 ? 4 : healthRatio <= 0.4 ? 3 : healthRatio <= 0.7 ? 2 : 1;
+        const nextPhase = healthRatio <= 0.5 ? 3 : 1;
         if (this.bossHealth > 0 && nextPhase > this.bossPhase) {
             this.enterTitanPhase(nextPhase);
         }
@@ -2805,6 +2899,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] Cosmic Titan restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.astronautFollower?.setContextualFormation?.(null);
         // The final hit owns progression; presentation can be interrupted safely.
         this.completeLevelProgression({
             achievementLevelId: 'voidPeaks',

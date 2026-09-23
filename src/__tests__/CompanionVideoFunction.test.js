@@ -6,6 +6,15 @@ const VIDEO_ID = '824363b2-d374-4b44-bf7f-1d7a177fa074';
 const PORTRAIT_REF = `portrait-job-v1:${PORTRAIT_ID}`;
 const VIDEO_REF = `video-job-v1:${VIDEO_ID}`;
 
+test('rescue prompts use authored realm locations, never arbitrary moment suffixes', () => {
+    const peak = videoFunction._internal.buildPrompt('guardian_rescue_cosmic_titan', 'baby');
+    expect(peak).toContain('summit of Void Peaks');
+    expect(peak).not.toContain('Mythical Forest');
+    const cave = videoFunction._internal.buildPrompt('guardian_rescue_crystal_golem', 'baby');
+    expect(cave).toContain('Crystal Caves');
+    expect(videoFunction._internal.buildPrompt('guardian_rescue_private_untrusted_text', 'baby')).not.toContain('private_untrusted_text');
+});
+
 function createAdminClient(videoOverrides = {}, portraitOverrides = {}) {
     const portrait = {
         id: PORTRAIT_ID,
@@ -353,7 +362,7 @@ describe('creature story-video Netlify function', () => {
 
         expect(response.statusCode).toBe(202);
         const providerBody = JSON.parse(providerFetch.mock.calls[1][1].body);
-        expect(providerBody.input.prompt).toContain('newly opened rescue enclosure');
+        expect(providerBody.input.prompt).toContain('Mythical Forest after the Elder Treant battle');
         expect(providerBody.input.prompt).not.toContain('must-not-be-used');
     });
 

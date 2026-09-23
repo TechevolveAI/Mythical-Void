@@ -350,8 +350,8 @@ describe('release test gate', () => {
         expect(source).toContain('routeCompletion.routeReady !== true');
         expect(source).toContain('routeCompletion.remainingZones !== 0');
         expect(source).toContain('routeCompletion.checkpointIndex !== 2');
-        expect(source).toContain('accepted an out-of-order route signal');
-        expect(source).toContain('outOfOrderGuard?.activatedCount !== 0');
+        expect(source).toContain('rejected an available out-of-order route signal');
+        expect(source).toContain('!outOfOrderGuard?.allowed');
         expect(source).toContain('persistedCheckpoint?.id !== routeCompletion.checkpointId');
     });
 

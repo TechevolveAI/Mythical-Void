@@ -390,7 +390,7 @@ class CompanionMediaService {
             assetRef: /^portrait-job-v1:[0-9a-f-]{36}$/i.test(
                 record.assetRef || ''
             ) ? record.assetRef.toLowerCase() : null,
-            renderMode: renderMode === 'generated_video'
+            renderMode: renderMode === 'generated_video' || previous?.renderMode === 'generated_video'
                 ? 'generated_video'
                 : 'motion_still',
             firstViewedAt: previous?.firstViewedAt || now,

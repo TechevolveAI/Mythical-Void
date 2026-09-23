@@ -49,7 +49,7 @@ describe('late guardian pacing contracts', () => {
         expect(attack).toContain(
             'TITAN_ATTACK_WINDUP + attackWindow + TITAN_RECOVERY_WINDOW'
         );
-        expect(warning).toContain('Your turn! Strike the face');
+        expect(warning).toContain('Your turn! Strike now');
     });
 
     test('Cosmic Titan phase changes cancel pressure and provide a safe reset', () => {

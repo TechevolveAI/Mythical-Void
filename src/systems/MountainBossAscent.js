@@ -30,8 +30,11 @@ export function mountainStepRise(body, step, recentlyGrounded) {
 export function mountainEmitter(sprite, kind = 'summit') {
     const point = kind === 'left' ? { x: 0.13, y: 0.015 }
         : kind === 'right' ? { x: 0.885, y: 0.035 } : { x: 0.49, y: 0.10 };
+    const x = (point.x - (sprite.originX ?? MOUNTAIN_ASCENT.originX)) * sprite.displayWidth;
+    const y = (point.y - (sprite.originY ?? MOUNTAIN_ASCENT.originY)) * sprite.displayHeight;
+    const angle = sprite.rotation || 0;
     return {
-        x: sprite.x + (point.x - MOUNTAIN_ASCENT.originX) * sprite.displayWidth,
-        y: sprite.y + (point.y - MOUNTAIN_ASCENT.originY) * sprite.displayHeight
+        x: sprite.x + x * Math.cos(angle) - y * Math.sin(angle),
+        y: sprite.y + x * Math.sin(angle) + y * Math.cos(angle)
     };
 }
