@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import TrumptopusCutoutRig from './TrumptopusCutoutRig.js';
 import { sampleTrumptopusFilm } from './TrumptopusFilmTimeline.js';
 import { paintVoidTear } from './TrumptopusVoidTearMaterial.js';
-import { STONE_SOURCE } from './TrumptopusStoneMaterial.js';
 export { Phaser };
 
 // Offline private film stage. No gameplay scene registration, saves or services.
@@ -31,10 +30,9 @@ export default class TrumptopusFilmScene extends Phaser.Scene {
             ctx.beginPath(); ctx.moveTo(0, 52); ctx.lineTo(138, 27); ctx.lineTo(251, 39);
             ctx.lineTo(402, 10); ctx.lineTo(572, 25); ctx.lineTo(735, 0); ctx.lineTo(750, 32);
             ctx.lineTo(760, 155); ctx.lineTo(760, 420); ctx.lineTo(0, 420); ctx.lineTo(0, 42); ctx.closePath(); ctx.clip();
-            const c = STONE_SOURCE;
-            for (let row = 0; row < 5; row++) {
-                ctx.drawImage(source, c.x + row * 15, c.y, c.width - 60, c.height, 0, row * 84, 760, 85);
-            }
+            // Lower-left foreground is entirely rock, outside the baked-in
+            // character. Its deeper crop avoids repeating the gameplay lip.
+            ctx.drawImage(source, 0, 800, 150, 208, 0, 0, 760, 420);
             const depth = ctx.createLinearGradient(0, 0, 0, 420);
             depth.addColorStop(0, 'rgba(155,173,192,.28)');
             depth.addColorStop(.15, 'rgba(9,12,19,.08)');

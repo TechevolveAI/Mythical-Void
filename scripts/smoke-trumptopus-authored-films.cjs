@@ -120,7 +120,7 @@ async function main() {
                 Object.assign(evidence,{layout,pauseResume:true,naturalEnd:true,replay:true,noRefetch:true,skipAfterReplay:true});
             }
             if(beat==='arrival') {
-                if(mode!=='delayed')await page.getByRole('button',{name:'Face Trumptopus',exact:true}).click();
+                // Closing the arrival player already hands into combat; no second confirmation.
                 await page.waitForFunction(()=>prototypeScene.sys.settings.key==='TrumptopusPrototype'&&prototypeScene.isGrounded);
                 const x=await page.evaluate(()=>prototypeScene.player.x);
                 await page.keyboard.down('ArrowRight');await page.waitForFunction(x=>prototypeScene.player.x>x+15,x);await page.keyboard.up('ArrowRight');
