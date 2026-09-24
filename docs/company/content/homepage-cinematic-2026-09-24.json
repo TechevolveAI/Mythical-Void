@@ -1,0 +1,22 @@
+{
+  "kind": "AI-created story cinematic, not gameplay",
+  "edition": "Opening story delivery V4, Option B, website 720p",
+  "websiteUseRequestedBy": "Kevin",
+  "websiteUseRequestedOn": "2026-09-24",
+  "approvalEvidence": "Kevin reported the finished trailer published on YouTube and shared on LinkedIn, then requested immediate mobile homepage visibility. This uses that existing final film, unchanged.",
+  "youtubeUrl": "https://www.youtube.com/watch?v=k900qJVe_uY",
+  "mediaPath": "public/cinematic/through-the-void-v4-720p.mp4",
+  "mediaSha256": "8e22d08b21b2515c428927a553e560ef53643077e55bd3002af4cae3f1618e7c",
+  "posterPath": "public/marketing/through-the-void-poster.jpg",
+  "posterSha256": "ae724012dc46ef1ee0d6225642a381a76221ce752c77920543b4cb47fd51e13c",
+  "durationSeconds": 73.375,
+  "mediaBytes": 28009857,
+  "resolution": "1280x720",
+  "delivery": "First-party poster; native player and video source created only on a visitor click. Starts muted, plays inline, English captions and a YouTube fallback link.",
+  "boundaries": [
+    "Does not reopen or approve any withdrawn gameplay or press media.",
+    "Does not claim cinematic creatures or scenery are captured gameplay.",
+    "No game source, game saves, analytics consent or hosting settings changed.",
+    "No new generation credits used."
+  ]
+}
