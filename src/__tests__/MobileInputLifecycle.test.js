@@ -178,6 +178,31 @@ describe('MobileInputLifecycle behavior', () => {
     });
 
     describe.each(INPUTS)('%s ownership', source => {
+        test('refreshes and a toolbar resize preserve the owner until a real release', () => {
+            const h = setup(source);
+            const thumb = h.controls.joystickThumb;
+            const originalY = h.controls.joystickCenterY;
+            h.start();
+            h.drag(0, 35);
+            const held = h.vector();
+            for (let i = 0; i < 8; i += 1) h.scene.scale.emit('resize');
+            h.resize(390, 800);
+            jest.advanceTimersByTime(1000);
+            h.drag(0, 35);
+            expect(h.vector()).toEqual(held);
+            expect(h.controls.activePointerId).toBe(0);
+            expect(thumb.destroy).not.toHaveBeenCalled();
+            h.send('up', 0, 0, 0);
+            expect(h.vector()).toEqual({ x: 0, y: 0 });
+            expect(thumb.destroy).toHaveBeenCalledTimes(1);
+            expect(h.controls.joystickCenterY).toBeLessThan(originalY);
+            h.start(1);
+            h.drag(-35, 0, 1);
+            expect(h.vector().x).toBeLessThan(-0.8);
+            h.send('cancel', 1, 0, 0);
+            expect(h.vector()).toEqual({ x: 0, y: 0 });
+        });
+
         test.each([
             ['down', 0, 35, 0, 1],
             ['left', -35, 0, -1, 0],

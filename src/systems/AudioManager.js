@@ -2408,6 +2408,11 @@ class AudioManager {
                 // Phaser's update emits UNLOCKED and releases sounds queued before the gesture.
                 this.phaserSound.unlocked = true;
             }
+            // A scene can request its soundtrack while hidden. Unlocking the
+            // context alone cannot play music whose nodes were never created.
+            if (this.audioContext?.state === 'running' && !this.musicPlaying && this.requestedArea) {
+                this.playAreaMusic(this.requestedArea);
+            }
             if (!this.audioUnlocked) this.rearmAudioAfterInterruption();
             return this.audioUnlocked;
         });

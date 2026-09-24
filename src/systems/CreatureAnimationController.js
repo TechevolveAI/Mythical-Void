@@ -292,6 +292,17 @@ class CreatureAnimationController {
     // Animation Implementations
     // ==========================================
 
+    positionAnimation(axis, offset) {
+        // Physics owns world position. Express idle motion as tissue deformation
+        // on playable creatures, retaining positional motion for display sprites.
+        if (this.sprite?.body) {
+            const scale = axis === 'x' ? 'scaleX' : 'scaleY';
+            const base = axis === 'x' ? this.baseScaleX : this.baseScaleY;
+            return { [scale]: base * (1 + offset * (axis === 'x' ? 1 : -1) / 100) };
+        }
+        return { [axis]: (axis === 'x' ? this.baseX : this.baseY) + offset };
+    }
+
     playYawnAnimation() {
         if (this.isDestroyed || !this.sprite) return;
 
@@ -334,10 +345,10 @@ class CreatureAnimationController {
         const tween = this.scene.tweens.chain({
             targets: this.sprite,
             tweens: [
-                { y: this.baseY - 15, scaleX: this.baseScaleX * 0.9, scaleY: this.baseScaleY * 1.1, duration: 150, ease: 'Quad.easeOut' },
-                { y: this.baseY, scaleX: this.baseScaleX * 1.05, scaleY: this.baseScaleY * 0.95, duration: 150, ease: 'Bounce.easeOut' },
-                { y: this.baseY - 20, scaleX: this.baseScaleX * 0.9, scaleY: this.baseScaleY * 1.1, duration: 150, ease: 'Quad.easeOut' },
-                { y: this.baseY, scaleX: this.baseScaleX, scaleY: this.baseScaleY, duration: 200, ease: 'Bounce.easeOut' }
+                { ...this.positionAnimation('y', -15), scaleX: this.baseScaleX * 0.9, scaleY: this.baseScaleY * 1.1, duration: 150, ease: 'Quad.easeOut' },
+                { ...this.positionAnimation('y', 0), scaleX: this.baseScaleX * 1.05, scaleY: this.baseScaleY * 0.95, duration: 150, ease: 'Bounce.easeOut' },
+                { ...this.positionAnimation('y', -20), scaleX: this.baseScaleX * 0.9, scaleY: this.baseScaleY * 1.1, duration: 150, ease: 'Quad.easeOut' },
+                { ...this.positionAnimation('y', 0), scaleX: this.baseScaleX, scaleY: this.baseScaleY, duration: 200, ease: 'Bounce.easeOut' }
             ],
             onComplete: () => {
                 this.returnToIdle();
@@ -355,7 +366,7 @@ class CreatureAnimationController {
 
         const tween = this.scene.tweens.add({
             targets: this.sprite,
-            y: this.baseY + 5,
+            ...this.positionAnimation('y', 5),
             scaleY: this.baseScaleY * 0.92,
             angle: -3,
             duration: 800,
@@ -404,7 +415,7 @@ class CreatureAnimationController {
 
         const tween = this.scene.tweens.add({
             targets: this.sprite,
-            y: this.baseY - 12,
+            ...this.positionAnimation('y', -12),
             duration: 200,
             yoyo: true,
             repeat: 2,
@@ -437,13 +448,13 @@ class CreatureAnimationController {
 
         const tween = this.scene.tweens.add({
             targets: this.sprite,
-            x: this.baseX + 3,
+            ...this.positionAnimation('x', 3),
             duration: 50,
             yoyo: true,
             repeat: 6,
             ease: 'Sine.easeInOut',
             onComplete: () => {
-                this.sprite.x = this.baseX;
+                if (!this.sprite.body) this.sprite.x = this.baseX;
                 this.returnToIdle();
             }
         });
@@ -488,14 +499,14 @@ class CreatureAnimationController {
 
         const tween = this.scene.tweens.add({
             targets: this.sprite,
-            x: this.baseX + 2,
+            ...this.positionAnimation('x', 2),
             angle: 1,
             duration: 40,
             yoyo: true,
             repeat: 8,
             ease: 'Sine.easeInOut',
             onComplete: () => {
-                this.sprite.x = this.baseX;
+                if (!this.sprite.body) this.sprite.x = this.baseX;
                 this.sprite.angle = 0;
                 this.returnToIdle();
             }
@@ -510,9 +521,9 @@ class CreatureAnimationController {
         const tween = this.scene.tweens.chain({
             targets: this.sprite,
             tweens: [
-                { y: this.baseY - 3, duration: 800, ease: 'Sine.easeOut' },
-                { y: this.baseY - 3, duration: 1500 }, // Hold
-                { y: this.baseY, duration: 600, ease: 'Sine.easeIn' }
+                { ...this.positionAnimation('y', -3), duration: 800, ease: 'Sine.easeOut' },
+                { ...this.positionAnimation('y', -3), duration: 1500 }, // Hold
+                { ...this.positionAnimation('y', 0), duration: 600, ease: 'Sine.easeIn' }
             ],
             onComplete: () => this.returnToIdle()
         });
@@ -526,10 +537,10 @@ class CreatureAnimationController {
         const tween = this.scene.tweens.chain({
             targets: this.sprite,
             tweens: [
-                { x: this.baseX + 8, angle: 5, duration: 200 },
-                { x: this.baseX - 5, angle: -3, duration: 200 },
-                { x: this.baseX + 5, angle: 3, duration: 200 },
-                { x: this.baseX, angle: 0, duration: 150 }
+                { ...this.positionAnimation('x', 8), angle: 5, duration: 200 },
+                { ...this.positionAnimation('x', -5), angle: -3, duration: 200 },
+                { ...this.positionAnimation('x', 5), angle: 3, duration: 200 },
+                { ...this.positionAnimation('x', 0), angle: 0, duration: 150 }
             ],
             onComplete: () => this.returnToIdle()
         });
@@ -543,10 +554,10 @@ class CreatureAnimationController {
         const tween = this.scene.tweens.chain({
             targets: this.sprite,
             tweens: [
-                { y: this.baseY - 2, scaleY: this.baseScaleY * 1.02, duration: 150 },
-                { y: this.baseY, scaleY: this.baseScaleY * 0.98, duration: 100 },
-                { y: this.baseY - 2, scaleY: this.baseScaleY * 1.02, duration: 150 },
-                { y: this.baseY, scaleY: this.baseScaleY, duration: 150 }
+                { ...this.positionAnimation('y', -2), scaleY: this.baseScaleY * 1.02, duration: 150 },
+                { ...this.positionAnimation('y', 0), scaleY: this.baseScaleY * 0.98, duration: 100 },
+                { ...this.positionAnimation('y', -2), scaleY: this.baseScaleY * 1.02, duration: 150 },
+                { ...this.positionAnimation('y', 0), scaleY: this.baseScaleY, duration: 150 }
             ],
             onComplete: () => this.returnToIdle()
         });
@@ -560,10 +571,10 @@ class CreatureAnimationController {
         const tween = this.scene.tweens.chain({
             targets: this.sprite,
             tweens: [
-                { y: this.baseY + 3, duration: 400, ease: 'Sine.easeOut' },
-                { y: this.baseY, duration: 400, ease: 'Sine.easeIn' },
-                { y: this.baseY + 3, duration: 400, ease: 'Sine.easeOut' },
-                { y: this.baseY, duration: 400, ease: 'Sine.easeIn' }
+                { ...this.positionAnimation('y', 3), duration: 400, ease: 'Sine.easeOut' },
+                { ...this.positionAnimation('y', 0), duration: 400, ease: 'Sine.easeIn' },
+                { ...this.positionAnimation('y', 3), duration: 400, ease: 'Sine.easeOut' },
+                { ...this.positionAnimation('y', 0), duration: 400, ease: 'Sine.easeIn' }
             ],
             onComplete: () => this.returnToIdle()
         });

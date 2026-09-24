@@ -5,6 +5,7 @@ const { execFileSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
 const { chromium } = require('playwright');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
+const { verifyHeldTouch } = require('./lib/held-touch-regression.cjs');
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(root, process.env.HOTFIX_EVIDENCE || '.visual-review/explore-audio');
 const profile = JSON.parse(fs.readFileSync(path.join(root, 'public/press/gameplay/real-creature-showcase/source-profiles.json'))).profiles[1];
@@ -29,9 +30,15 @@ async function main() {
     const base = `http://127.0.0.1:${server.httpServer.address().port}`;
     browser = await chromium.launch({ channel: 'chrome', headless: true,
         args: [...smokeRendererArgs(process.env), '--mute-audio', '--enable-webgl', '--ignore-gpu-blocklist'] });
-    for (const [name, width, height] of [['phone', 390, 844], ['desktop', 1280, 720]]) {
-        const context = await browser.newContext({ viewport: { width, height }, hasTouch: name === 'phone', serviceWorkers: 'block' });
+    for (const [name, width, height, userAgent] of [
+        ['phone', 390, 844, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1'],
+        ['android', 390, 844, 'Mozilla/5.0 (Linux; Android 14; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.122 Mobile Safari/537.36'],
+        ['desktop', 1280, 720]
+    ]) {
+        const phone = name !== 'desktop';
+        const context = await browser.newContext({ viewport: { width, height }, hasTouch: phone, isMobile: phone, ...(userAgent ? { userAgent } : {}), serviceWorkers: 'block' });
         const page = await context.newPage();
+        page.setDefaultTimeout(15000);
         activePage = page;
         const result = { name, errors: [], outside: [], httpErrors: [], visits: [] }; report.cases.push(result);
         page.on('pageerror', error => result.errors.push(error.message));
@@ -70,7 +77,7 @@ async function main() {
                 await Promise.all(contexts.map(c => c.suspend()));
                 audio.muted = false; // Zero gains + Phaser mute + browser mute remain in force.
             }, kind);
-            if (name === 'phone') await page.touchscreen.tap(5, height / 2);
+            if (phone) await page.touchscreen.tap(5, height / 2);
             else await page.mouse.click(5, height / 2);
             await page.waitForFunction(() => AudioManager.audioUnlocked && AudioManager.getAudioContexts().every(c => c.state === 'running'));
             const before = await page.evaluate(() => AudioManager.getAudioContexts().map(c => c.currentTime));
@@ -90,6 +97,18 @@ async function main() {
         await page.waitForFunction(() => hotfixThemeProbe.isPlaying && hotfixThemeProbe.seek > 0.1);
         await page.evaluate(() => { hotfixThemeProbe.stop(); hotfixThemeProbe.destroy(); delete window.hotfixThemeProbe; });
         result.audio.theme.zeroOutputPlaybackAdvanced = true;
+        await page.evaluate(async () => {
+            AudioManager.stopMusic(false);
+            Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+            AudioManager.playAreaMusic('sanctuary');
+            if (AudioManager.musicPlaying) throw Error('Music started in hidden page');
+            await AudioManager.audioContext.suspend();
+            delete document.hidden;
+        });
+        if (phone) await page.touchscreen.tap(5, height / 2);
+        else await page.mouse.click(5, height / 2);
+        await page.waitForFunction(() => AudioManager.musicPlaying && AudioManager.currentArea === 'sanctuary' && AudioManager.musicNodes?.oscillators.length > 0);
+        result.audio.hiddenMusicRequestRecovered = true;
         await page.evaluate(() => { AudioManager.muted = true; mythicalGame.sound.setMute(true); });
         await page.evaluate(async profile => {
             const state = window.GameState, game = window.mythicalGame;
@@ -123,21 +142,43 @@ async function main() {
             const rect = await page.locator('canvas').first().boundingBox();
             const size = await page.evaluate(() => ({ width: mythicalGame.scale.width, height: mythicalGame.scale.height }));
             const x = rect.x + point.x * rect.width / size.width, y = rect.y + point.y * rect.height / size.height;
-            if (name === 'phone') await page.touchscreen.tap(x, y); else await page.mouse.click(x, y);
+            result.lastTap = { point, x, y, rect, size };
+            if (phone) await page.touchscreen.tap(x, y); else await page.mouse.click(x, y);
         };
         for (const [visit, target] of ['back', 'mythical_forest', 'mythical_forest', 'crystal_caves'].entries()) {
             console.log(`[hotfix] ${name} visit ${visit + 1} -> ${target}`);
             await page.waitForFunction(() => mythicalGame.scene.isActive('GameScene') && mythicalGame.scene.keys.GameScene.player?.body);
             await page.waitForTimeout(1200);
-            // Close ordinary check-in UI through its existing button, if present.
-            const greeting = await page.evaluate(() => {
-                const s = mythicalGame.scene.keys.GameScene;
-                const button = s.greetingElements?.find(o => o.input?.enabled);
-                return button ? hotfixScreenPoint(s, button) : null;
-            });
-            if (greeting) await tap(greeting);
+            // Scene-clock delivery can put the daily greeting after the first
+            // frame. Dismiss it through real input, then await normal play.
+            let ready = false;
+            const readyDeadline = Date.now() + 25000;
+            while (!ready && Date.now() < readyDeadline) {
+                const state = await page.evaluate(() => {
+                    const s = mythicalGame.scene.keys.GameScene;
+                    const onboarding = window.OnboardingManager;
+                    const button = s.greetingElements?.find(o => o.input?.enabled);
+                    return {
+                        greeting: button ? hotfixScreenPoint(s, button) : null,
+                        ready: onboarding?.scene === s && onboarding.flowContext && !onboarding.isProcessing &&
+                            !s.rescuedResidentArrivalScheduleTimer && !s.rescuedResidentArrivalActive &&
+                            !s.mobileControls?.isSuspended
+                    };
+                });
+                if (state.greeting) await tap(state.greeting);
+                ready = Boolean(state.ready && !state.greeting);
+                if (!ready) await page.waitForTimeout(150);
+            }
+            assert(ready, 'Ordinary Sanctuary arrival did not hand back control');
+            if (phone) {
+                result.heldInputs ||= [];
+                result.heldInputs.push({ visit: visit + 1, cases: await verifyHeldTouch(page, context, { full: visit === 0 }) });
+            }
             const position = await page.evaluate(() => {
                 const s = mythicalGame.scene.keys.GameScene;
+                // Exercise the real cosmetic tween while physics takes the
+                // actor elsewhere. It must not restore its old world position.
+                s.creatureAnimationController.playReaction('feed');
                 s.player.body.reset(s.hubPortal.x, s.hubPortal.y + 45);
                 s.player.body.setVelocity(0, 0);
                 s.cameras.main.centerOn(s.player.x, s.player.y);
@@ -147,9 +188,32 @@ async function main() {
             });
             assert.equal(position.cooldown, false, 'Gate cooldown survived a return');
             if (visit === 3) await page.evaluate(() => document.getElementById('loading-overlay')?.remove());
-            await page.waitForTimeout(200);
-            if (name === 'phone') { assert(position.button, 'Touch Explore control missing'); await tap(position.button); }
-            else await page.keyboard.press('Space', { delay: 100 });
+            await page.waitForTimeout(1100);
+            const portalDistance = await page.evaluate(() => {
+                const s = mythicalGame.scene.keys.GameScene;
+                return Math.hypot(s.player.x - s.hubPortal.x, s.player.y - s.hubPortal.y);
+            });
+            assert(portalDistance < 120, `Idle animation displaced player from Explore: ${portalDistance}`);
+            if (phone) {
+                const button = await page.evaluate(() => {
+                    const s = mythicalGame.scene.keys.GameScene;
+                    return hotfixScreenPoint(s, s.mobileControls.actionButtons.interact.zone);
+                });
+                assert(button, 'Touch Explore control missing'); await tap(button);
+            }
+            else {
+                // JustDown is cleared by key-up. Software-rendered CI may not
+                // update within a 100ms pulse; hold through real acknowledgement.
+                await page.keyboard.down('Space');
+                try {
+                    await page.waitForFunction(() => {
+                        const s = mythicalGame.scene.keys.GameScene;
+                        return s.hubEntryTransition || s.hubEntryCooldown || mythicalGame.scene.isActive('HubWorldScene');
+                    }, null, { timeout: 5000 });
+                } finally {
+                    await page.keyboard.up('Space');
+                }
+            }
             await page.waitForFunction(() => mythicalGame.scene.isActive('HubWorldScene') && mythicalGame.scene.keys.HubWorldScene.actionLabel, null, { timeout: 20000 });
             await page.screenshot({ path: path.join(output, `${name}-hub-visit-${visit + 1}.png`) });
             if (target === 'back') {
@@ -186,6 +250,8 @@ main().catch(async error => {
             const s = mythicalGame.scene.keys.GameScene;
             return { scenes: mythicalGame.scene.getScenes(true).map(s => s.sys.settings.key),
                 cooldown: s.hubEntryCooldown, transition: !!s.hubEntryTransition, nearHub: s.nearHubPortal,
+                input: { x: s.joystickX, y: s.joystickY, active: s.mobileControls?.joystickActive, suspended: s.mobileControls?.isSuspended,
+                    source: s.mobileControls?.joystickInputSource, trace: window.heldTouchTrace },
                 player: { x: s.player?.x, y: s.player?.y }, portal: { x: s.hubPortal?.x, y: s.hubPortal?.y },
                 zoom: s.cameras?.main?.zoom, focus: s.sanctuaryFocusModeActive,
                 tutorial: s.controlsTutorial?.isVisible, onboarding: window.OnboardingManager?.currentStep,

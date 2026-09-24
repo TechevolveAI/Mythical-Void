@@ -102,6 +102,43 @@ test('a rejected mobile resume is contained and retriable, not an unhandled reje
     await Promise.resolve();
 });
 
+test('music requested while hidden starts once after foreground gesture recovery', async () => {
+    const { manager, context, document } = fixture();
+    manager.setupMobileAudioUnlock();
+    document.hidden = true;
+    context.state = 'suspended';
+    manager.playAreaMusic('sanctuary');
+    expect(manager.musicPlaying).not.toBe(true);
+    document.hidden = false;
+    document.dispatchEvent(new Event('touchend'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(manager.musicPlaying).toBe(true);
+    expect(manager.currentArea).toBe('sanctuary');
+    const nodes = manager.musicNodes;
+    await manager.resume();
+    expect(manager.musicNodes).toBe(nodes);
+});
+
+test('a pending resume cannot restart music after leaving the scene or muting', async () => {
+    const { manager, context, document } = fixture();
+    document.hidden = true;
+    manager.playAreaMusic('sanctuary');
+    document.hidden = false;
+    let resolve;
+    context.state = 'suspended';
+    context.resume.mockImplementation(() => new Promise(done => { resolve = done; }));
+    const resuming = manager.resume();
+    manager.stopMusic(false);
+    context.state = 'running';
+    resolve();
+    await resuming;
+    expect(manager.musicPlaying).not.toBe(true);
+    manager.muted = true;
+    manager.playAreaMusic('sanctuary');
+    await manager.resume();
+    expect(manager.musicPlaying).not.toBe(true);
+});
+
 test('muted gestures do not consume the later audio unlock', async () => {
     const { manager, context, document } = fixture();
     context.state = 'suspended'; manager.muted = true;

@@ -30,6 +30,7 @@ function loadMobileControls(environment = {}) {
         console: { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
         devLog: jest.fn(),
         getJoystickVector: layoutSandbox.module.exports.getJoystickVector,
+        getSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
         window: {
             matchMedia: jest.fn(() => ({ matches: false })),
             addEventListener: jest.fn(),
@@ -208,6 +209,69 @@ describe('MobileControls pointer ownership', () => {
 
         expect(hide).toHaveBeenCalledTimes(1);
         expect(show).toHaveBeenCalledWith(true);
+    });
+
+    function visibleHeldControls() {
+        const MobileControls = loadMobileControls();
+        const { scene } = createScene();
+        const controls = new MobileControls(scene);
+        controls.isVisible = true;
+        controls.controlViewport = { width: 390, height: 844, top: 0, bottom: 0, left: 0, right: 0 };
+        controls.joystickActive = true;
+        controls.activePointerId = 7;
+        controls.joystickInputSource = 'touch';
+        return { controls, scene };
+    }
+
+    test('duplicate Phaser size notifications cannot cancel a held joystick', () => {
+        const { controls, scene } = visibleHeldControls();
+        const hide = jest.spyOn(controls, 'hide').mockImplementation(() => {});
+        jest.spyOn(controls, 'show').mockImplementation(() => {});
+        for (let i = 0; i < 10; i += 1) controls.handleResize();
+        expect(hide).not.toHaveBeenCalled();
+        expect(controls.joystickActive).toBe(true);
+        expect(controls.activePointerId).toBe(7);
+        expect(scene.game.events.emit).not.toHaveBeenCalledWith('virtual-joystick', { x: 0, y: 0 });
+    });
+
+    test('browser chrome height changes reflow only after the held finger is released', () => {
+        const { controls, scene } = visibleHeldControls();
+        const hide = jest.spyOn(controls, 'hide').mockImplementation(() => {});
+        const show = jest.spyOn(controls, 'show').mockImplementation(() => {});
+        scene.scale.height = 800;
+        controls.handleResize();
+        expect(hide).not.toHaveBeenCalled();
+        expect(controls.joystickActive).toBe(true);
+        controls.resetJoystick(true);
+        expect(hide).toHaveBeenCalledTimes(1);
+        expect(show).toHaveBeenCalledTimes(1);
+        expect(controls.joystickActive).toBe(false);
+        expect(scene.game.events.emit).toHaveBeenCalledWith('virtual-joystick', { x: 0, y: 0 });
+    });
+
+    test('rotation still releases input instead of preserving a stale direction', () => {
+        const { controls, scene } = visibleHeldControls();
+        jest.spyOn(controls, 'show').mockImplementation(() => {});
+        scene.scale.width = 844;
+        scene.scale.height = 390;
+        controls.handleResize();
+        expect(controls.activePointerId).toBeNull();
+        expect(controls.joystickActive).toBe(false);
+    });
+
+    test('safe-area changes reflow an idle dock and hiding cancels deferred reflow', () => {
+        const { controls, scene } = visibleHeldControls();
+        const show = jest.spyOn(controls, 'show').mockImplementation(() => {});
+        scene.scale.height = 800;
+        controls.handleResize();
+        controls.hide();
+        expect(show).not.toHaveBeenCalled();
+        expect(controls.isVisible).toBe(false);
+        controls.isVisible = true;
+        scene.scale.height = 844;
+        controls.getSafeAreaInsets = () => ({ top: 0, bottom: 34, left: 0, right: 0 });
+        controls.handleResize();
+        expect(show).toHaveBeenCalledTimes(1);
     });
 
     function attachControlFixtures(controls) {
