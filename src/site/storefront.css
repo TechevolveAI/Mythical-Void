@@ -219,6 +219,16 @@ body.site-mode h3 {
     color: var(--paper);
 }
 
+footer [data-analytics-settings] {
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    color: inherit;
+    padding: 0.5rem 0.75rem;
+    font: inherit;
+    cursor: pointer;
+}
+
 .analytics-consent {
     position: fixed;
     z-index: 90;

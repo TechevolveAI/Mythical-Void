@@ -126,9 +126,7 @@ for (const [label, source] of [['index.html', index], ['public/discovery.js', di
     if (!source.includes(correctId)) failures.push(`${label}: user-supplied Google tag ID is missing`);
     if (source.includes(incorrectId)) failures.push(`${label}: swapped Google tag ID remains`);
     for (const eventName of eventNames) if (!source.includes(eventName)) failures.push(`${label}: ${eventName} is missing`);
-    const consentGate = label === 'index.html'
-        ? "this.getConsent() !== 'granted' || allowedEvents.indexOf(eventName) === -1"
-        : "readChoice() !== 'granted' || allowedEvents.indexOf(eventName) === -1";
+    const consentGate = "getConsent() !== 'granted' || allowedEvents.indexOf(eventName) === -1";
     if (!source.includes(consentGate)) failures.push(`${label}: events are not stopped before consent`);
     for (const property of ['source_page', 'source_area', 'transport_type']) {
         if (!source.includes(property)) failures.push(`${label}: safe event property ${property} is missing`);
