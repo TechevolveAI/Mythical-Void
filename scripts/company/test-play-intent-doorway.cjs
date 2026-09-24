@@ -64,7 +64,7 @@ invalid('public/playable-now/index.html', source => source.replace('data-intent-
 invalid('public/playable-now/index.html', source => source.replace('class="play-intent-direct"', 'class="play-intent-delayed"'), 'first-screen direct Play choice is missing');
 invalid('public/playable-now/index.html', source => source.replace('First-time players choose an age range, then begin.', 'Start instantly.'), 'honest first-screen direct Play choice is missing');
 invalid('public/playable-now/index.html', source => source.replace('data-play-link data-source-area="hero"', 'data-play-link data-source-area="unknown"'), 'first-screen direct Play source is missing');
-invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
+invalid('public/discovery.js', source => source.replaceAll("getConsent() !== 'granted'", 'false'), 'measurement is not stopped before consent');
 invalid('public/discovery.js', source => source.replace('/^#find-your-way\\/(wonder|create|challenge|story)$/', '/^#find-your-way\\/(.*)$/'), 'shared intent routes are not restricted');
 invalid('public/discovery.js', source => source.replace('missionTitle:', 'missingMissionTitle:'), 'each reason to play needs one concrete starter mission');
 invalid('public/discovery.css', source => source.replace('.play-intent-section {\n    scroll-margin-top: 82px', '.play-intent-section {\n    scroll-margin-top: 0'), 'does not preserve the 82px site header');
@@ -106,7 +106,7 @@ function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/play
         answerAfterSelectedChoice: selected?.nextElementSibling?.matches('[data-intent-answer]') === true,
         selected: selected?.dataset.intentChoice || null,
         hash: dom.window.location.hash,
-        events: dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event')
+        events: dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event' && entry[1] !== 'page_view')
     };
 }
 
@@ -123,7 +123,7 @@ function directPlayResult(consent, referrer = '') {
     play.addEventListener('click', event => event.preventDefault());
     dom.window.eval(fs.readFileSync(path.join(root, 'public/discovery.js'), 'utf8'));
     play.click();
-    return dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event');
+    return dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event' && entry[1] !== 'page_view');
 }
 
 function homepageResult(consent, referrer = '', grantAfterLoad = false) {
@@ -138,7 +138,7 @@ function homepageResult(consent, referrer = '', grantAfterLoad = false) {
     if (consent) dom.window.localStorage.setItem('mythical-analytics-consent', consent);
     dom.window.eval(script);
     if (grantAfterLoad) dom.window.MythicalAnalytics.setConsent('granted');
-    return dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event');
+    return dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event' && entry[1] !== 'page_view');
 }
 
 cases += 1;
@@ -197,7 +197,7 @@ assert.strictEqual(directDenied.length, 0);
 for (const [label, referrer, expected] of [
     ['search', 'https://www.google.com/search?q=free+creature+game', 'search'],
     ['game shelf', 'https://itch.io/games/html5', 'game_shelf'],
-    ['social or creator', 'https://www.youtube.com/watch?v=example', 'social_or_creator'],
+    ['social or creator', 'https://www.youtube.com/watch?v=example', 'youtube'],
     ['owned site', 'https://mythicalvoid.com/creature-genetics/', 'owned_site']
 ]) {
     cases += 1;

@@ -65,7 +65,7 @@ requireValue(discovery.includes("shareUrl = 'https://mythicalvoid.com/playable-n
 requireValue(discovery.includes('selectIntent(intentRoot.querySelector') && discovery.includes('sharedIntentId'), 'a shared route does not reopen its selected answer');
 requireValue(discoveryCss.includes('.play-intent-section {\n    scroll-margin-top: 82px'), 'the doorway does not preserve the 82px site header on shared arrival');
 requireValue(discoveryCss.includes('.play-intent-mission { padding-top: 1.25rem; padding-left: 0; border-top: 1px solid rgba(118, 227, 207, 0.32); border-left: 0; }'), 'starter mission does not stack cleanly at phone width');
-requireValue(discovery.includes("readChoice() !== 'granted'"), 'measurement is not stopped before consent');
+requireValue(discovery.includes("getConsent() !== 'granted'"), 'measurement is not stopped before consent');
 requireValue(discovery.includes("track('play_selected'"), 'existing Play event is not connected');
 requireValue(!discovery.includes("track('intent_"), 'choice clicks must not create analytics events');
 requireValue(!discovery.includes("localStorage.setItem('play-intent"), 'the selected reason must not be stored');

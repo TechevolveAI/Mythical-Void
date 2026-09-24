@@ -74,7 +74,7 @@ try {
 }
 
 invalid('index.html', source => source.replace('G-FTM4W73ECQ', 'G-FTM4W73EQC'), 'swapped Google tag ID remains');
-invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'events are not stopped before consent');
+invalid('public/discovery.js', source => source.replaceAll("getConsent() !== 'granted'", 'false'), 'events are not stopped before consent');
 invalid('index.html', source => source.replace("if (isGameRoute) return", '// removed'), 'game-route stop is missing');
 invalid('src/site/storefront.js', source => source.replace('does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity', 'sends Google sharing details'), 'sharing measurement excludes');
 invalid('scripts/company/submit-indexnow.cjs', source => source.replace("const submit = process.argv.includes('--submit')", 'const submit = true'), 'not behind an explicit flag');
@@ -113,7 +113,7 @@ cases += 1;
 assert.strictEqual(measurementFixture('denied').some(entry => entry[0] === 'event'), false, 'denied consent must send no event');
 cases += 1;
 const grantedEvents = measurementFixture('granted').filter(entry => entry[0] === 'event');
-assert.deepStrictEqual(JSON.parse(JSON.stringify(grantedEvents.map(entry => entry[1]))), ['discovery_arrival', 'play_selected']);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(grantedEvents.map(entry => entry[1]))), ['page_view', 'discovery_arrival', 'play_selected']);
 const playSelected = grantedEvents.find(entry => entry[1] === 'play_selected');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     source_page: '/playable-now/',

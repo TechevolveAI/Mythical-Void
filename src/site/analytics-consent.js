@@ -6,7 +6,19 @@ function readConsent() {
 }
 
 function mountAnalyticsConsent() {
-    if (document.querySelector('[data-analytics-consent]') || readConsent()) return;
+    if (!document.querySelector('[data-analytics-settings]')) {
+        const settings = document.createElement('button');
+        settings.type = 'button';
+        settings.dataset.analyticsSettings = '';
+        settings.textContent = 'Analytics choices';
+        settings.addEventListener('click', showAnalyticsChoice);
+        (document.querySelector('footer') || document.body).appendChild(settings);
+    }
+    if (!readConsent()) showAnalyticsChoice();
+}
+
+function showAnalyticsChoice() {
+    if (document.querySelector('[data-analytics-consent]')) return;
 
     const banner = document.createElement('aside');
     banner.className = 'analytics-consent';
@@ -15,7 +27,7 @@ function mountAnalyticsConsent() {
     banner.innerHTML = `
         <div class="analytics-consent-copy">
             <strong>Help us improve the website?</strong>
-            <p>Optional analytics show what helps people reach Play. They stay off unless you allow them and never run inside the game.</p>
+            <p>Optional analytics show what helps people reach Play and how much of the film is watched. They stay off unless you allow them and never run inside the game. Change your choice at any time using “Analytics choices” in the footer.</p>
             <a href="/privacy/">Privacy and safety</a>
         </div>
         <div class="analytics-consent-actions">

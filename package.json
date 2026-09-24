@@ -165,7 +165,7 @@
     "validate:owned-attention": "node scripts/company/validate-owned-channel-attention.cjs",
     "test:owned-attention": "node scripts/company/test-owned-channel-attention.cjs",
     "validate:website-analytics": "node scripts/company/validate-website-analytics-tag.cjs",
-    "test:website-analytics": "node scripts/company/test-website-analytics-tag.cjs",
+    "test:website-analytics": "node scripts/company/test-website-analytics-tag.cjs && node scripts/company/test-website-analytics-runtime.cjs --check",
     "test:analytics-owner-opt-out": "node scripts/company/test-analytics-owner-opt-out.cjs",
     "smoke:analytics-owner-opt-out": "ANALYTICS_SMOKE_MODE=owner-opt-out node scripts/company/smoke-website-analytics-consent.cjs",
     "smoke:website-analytics-consent": "node scripts/company/smoke-website-analytics-consent.cjs",

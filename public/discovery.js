@@ -1,18 +1,160 @@
+/* WEBSITE ANALYTICS CORE START */
 (function () {
+    var path = window.location.pathname.replace(/\/+$/, '') || '/';
+    var params = new URLSearchParams(window.location.search);
+    var isPortalBuild = document.documentElement.dataset.distributionTarget === 'itch';
+    var isGameRoute = isPortalBuild || path === '/play' || path === '/game' || params.has('testBoss');
+    document.documentElement.dataset.initialRoute = isGameRoute ? 'game' : 'site';
+    if (isGameRoute) return;
+    if (window.MythicalAnalytics) return;
+
+    var tagId = 'G-FTM4W73ECQ';
     var storageKey = 'mythical-analytics-consent';
     var exclusionKey = 'mythical-analytics-owner-excluded';
-    var tagId = 'G-FTM4W73ECQ';
     var analyticsExcluded = false;
-    try { analyticsExcluded = window.localStorage.getItem(exclusionKey) === 'true'; } catch (error) { /* Storage can be unavailable. */ }
-    if (analyticsExcluded) window['ga-disable-' + tagId] = true;
-    var currentPath = window.location.pathname;
-    var allowedEvents = ['discovery_arrival', 'play_selected', 'share_completed', 'share_link_copied'];
+    var choice = null;
+    try {
+        analyticsExcluded = window.localStorage.getItem(exclusionKey) === 'true';
+        choice = window.localStorage.getItem(storageKey);
+    } catch (error) { /* A choice still works in memory when storage is blocked. */ }
+    if (choice !== 'granted' && choice !== 'denied') choice = null;
+    if (analyticsExcluded) choice = 'denied';
+    window['ga-disable-' + tagId] = choice !== 'granted';
+    window.MYTHICAL_GOOGLE_TAG_ID = tagId;
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { window.dataLayer.push(arguments); }
+    window.gtag = gtag;
+    var started = false;
+    var allowedEvents = ['discovery_arrival', 'play_selected', 'share_completed', 'share_link_copied', 'trailer_start', 'trailer_progress', 'trailer_complete'];
+    var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story', 'trailer'];
+    // Only fixed public paths: never include arbitrary paths, titles, query strings or fragments.
+    var publicPaths = ['/', '/privacy', '/terms', '/playable-now', '/press', '/hatch-challenge', '/creature-genetics', '/creature-field-guide', '/nasa-space-science', '/space-discovery', '/parents', '/help', '/educators', '/studio', '/story', '/updates'];
+    var safePath = publicPaths.indexOf(path) !== -1 ? (path === '/' ? '/' : path + '/') : '/other/';
+    function hostMatches(host, domains) {
+        return domains.some(function (domain) { return host === domain || host.endsWith('.' + domain); });
+    }
+    function classifyEntrySource() {
+        try {
+            var host = new URL(document.referrer).hostname.toLowerCase();
+            if (host === window.location.hostname.toLowerCase() || hostMatches(host, ['mythicalvoid.com'])) return 'owned_site';
+            if (hostMatches(host, ['youtube.com', 'youtu.be'])) return 'youtube';
+            if (hostMatches(host, ['linkedin.com', 'lnkd.in'])) return 'linkedin';
+            if (hostMatches(host, ['google.com', 'google.ie', 'bing.com', 'duckduckgo.com', 'search.yahoo.com', 'ecosia.org'])) return 'search';
+            if (hostMatches(host, ['itch.io', 'poki.com', 'crazygames.com'])) return 'game_shelf';
+            if (hostMatches(host, ['tiktok.com', 'instagram.com', 'facebook.com', 'x.com', 'twitter.com', 'reddit.com'])) return 'social_or_creator';
+            return 'other_site';
+        } catch (error) { return document.referrer ? 'other_site' : 'direct_or_private'; }
+    }
+    var entrySource = classifyEntrySource();
+    // Accept only these complete, published-link conventions. Untrusted UTMs are ignored.
+    var source = params.get('utm_source');
+    var medium = source === 'youtube' ? 'organic_video' : 'organic_social';
+    var content = source === 'youtube' ? 'trailer_description' : 'founder_post';
+    var campaign = (source === 'youtube' || source === 'linkedin') &&
+        params.get('utm_medium') === medium && params.get('utm_campaign') === 'through_the_void_launch' &&
+        params.get('utm_content') === content;
+    if (campaign) entrySource = source;
+    function getConsent() {
+        if (analyticsExcluded) return 'denied';
+        return choice;
+    }
+    function clearCookies() {
+        document.cookie.split(';').forEach(function (part) {
+            var name = part.trim().split('=')[0];
+            if (!/^_ga(?:_|$)/.test(name)) return;
+            var expired = name + '=; Max-Age=0; path=/; SameSite=Lax';
+            document.cookie = expired;
+            document.cookie = expired + '; domain=' + window.location.hostname;
+            document.cookie = expired + '; domain=.mythicalvoid.com';
+        });
+    }
+    function start() {
+        if (started || getConsent() !== 'granted') return;
+        started = true;
+        window['ga-disable-' + tagId] = false;
+        gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+        gtag('consent', 'update', { analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+        gtag('set', 'ads_data_redaction', true);
+        gtag('set', 'url_passthrough', false);
+        gtag('js', new Date());
+        var config = {
+            send_page_view: false,
+            allow_google_signals: false,
+            allow_ad_personalization_signals: false,
+            page_location: window.location.origin + safePath,
+            page_path: safePath,
+            page_title: 'Mythical Void website',
+            page_referrer: '',
+            campaign_id: '', campaign_source: '', campaign_medium: '',
+            campaign_name: '', campaign_content: '', campaign_term: ''
+        };
+        if (entrySource === 'youtube' || entrySource === 'linkedin') {
+            config.campaign_source = entrySource;
+            config.campaign_medium = entrySource === 'youtube' ? 'organic_video' : 'organic_social';
+            if (campaign) {
+                config.campaign_name = 'through_the_void_launch';
+                config.campaign_content = content;
+            }
+        }
+        gtag('config', tagId, config);
+        gtag('event', 'page_view', { source_page: safePath, entry_source: entrySource });
+        if (path === '/' || path === '/playable-now') window.MythicalAnalytics.track('discovery_arrival', { source_area: 'hero' });
+        if (!analyticsExcluded) {
+            var tag = document.createElement('script');
+            tag.async = true;
+            tag.dataset.websiteAnalytics = '';
+            tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + tagId;
+            document.head.appendChild(tag);
+        }
+    }
+    window.MythicalAnalytics = {
+        getConsent: getConsent,
+        setConsent: function (value) {
+            if (value !== 'granted' && value !== 'denied') return;
+            if (analyticsExcluded) value = 'denied';
+            choice = value;
+            try { window.localStorage.setItem(storageKey, value); } catch (error) { /* In-memory fallback. */ }
+            if (value === 'granted') start();
+            else {
+                // Disable first; do not send a denied-consent ping. A reload removes Google's listeners.
+                window['ga-disable-' + tagId] = true;
+                clearCookies();
+                document.querySelectorAll('script[data-website-analytics]').forEach(function (tag) { tag.remove(); });
+            }
+            window.dispatchEvent(new CustomEvent('mythical:analytics-consent', { detail: { value: value } }));
+            if (value === 'denied' && started) window.location.reload();
+        },
+        track: function (eventName, details) {
+            if (getConsent() !== 'granted' || allowedEvents.indexOf(eventName) === -1) return false;
+            details = details || {};
+            var data = {
+                source_page: safePath,
+                source_area: allowedAreas.indexOf(details.source_area) !== -1 ? details.source_area : 'content',
+                entry_source: entrySource,
+                transport_type: 'beacon'
+            };
+            if (eventName === 'trailer_progress') {
+                if (['25', '50', '75', '90'].indexOf(details.watch_bucket) === -1) return false;
+                data.watch_bucket = details.watch_bucket;
+            }
+            gtag('event', eventName, data);
+            return true;
+        }
+    };
+    window.addEventListener('storage', function (event) {
+        if (event.key === exclusionKey && event.newValue === 'true') {
+            analyticsExcluded = true;
+            window.MythicalAnalytics.setConsent('denied');
+        } else if (event.key === storageKey || event.key === null) {
+            if (event.newValue !== 'granted') window.MythicalAnalytics.setConsent('denied');
+        }
+    });
+    if (choice === 'granted') start();
+    else clearCookies();
+}());
+/* WEBSITE ANALYTICS CORE END */
+(function () {
     var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story'];
-    var allowedEntrySources = ['direct_or_private', 'owned_site', 'search', 'game_shelf', 'social_or_creator', 'other_site'];
-    var searchDomains = ['google.com', 'google.ie', 'bing.com', 'duckduckgo.com', 'search.yahoo.com', 'ecosia.org'];
-    var gameShelfDomains = ['itch.io', 'poki.com', 'crazygames.com'];
-    var socialDomains = ['youtube.com', 'youtu.be', 'tiktok.com', 'instagram.com', 'facebook.com', 'x.com', 'twitter.com', 'linkedin.com', 'reddit.com'];
-    var arrivalEventSent = false;
     var intentMessages = {
         wonder: {
             title: 'Follow the mystery into six impossible realms.',
@@ -105,39 +247,8 @@
         return 'content';
     }
 
-    function hostMatches(hostname, domains) {
-        return domains.some(function (domain) {
-            return hostname === domain || hostname.endsWith('.' + domain);
-        });
-    }
-
-    function classifyEntrySource(referrer) {
-        if (!referrer) return 'direct_or_private';
-        try {
-            var referrerUrl = new URL(referrer);
-            var hostname = referrerUrl.hostname.toLowerCase();
-            if (hostname === window.location.hostname.toLowerCase()) return 'owned_site';
-            if (hostMatches(hostname, searchDomains)) return 'search';
-            if (hostMatches(hostname, gameShelfDomains)) return 'game_shelf';
-            if (hostMatches(hostname, socialDomains)) return 'social_or_creator';
-        } catch (error) {
-            return 'other_site';
-        }
-        return 'other_site';
-    }
-
-    var entrySource = classifyEntrySource(document.referrer);
-
     function track(eventName, sourceArea) {
-        if (readChoice() !== 'granted' || allowedEvents.indexOf(eventName) === -1) return false;
-        var safeArea = allowedAreas.indexOf(sourceArea) === -1 ? 'content' : sourceArea;
-        window.gtag('event', eventName, {
-            source_page: currentPath,
-            source_area: safeArea,
-            entry_source: allowedEntrySources.indexOf(entrySource) === -1 ? 'other_site' : entrySource,
-            transport_type: 'beacon'
-        });
-        return true;
+        return window.MythicalAnalytics.track(eventName, { source_area: sourceArea });
     }
 
     function readableShareAddress() {
@@ -371,90 +482,13 @@
         }
     }
 
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { window.dataLayer.push(arguments); }
-    window.gtag = window.gtag || gtag;
-
-    function readChoice() {
-        if (analyticsExcluded) return 'denied';
-        try { return window.localStorage.getItem(storageKey); } catch (error) { return null; }
-    }
-
-    function rememberChoice(value) {
-        try { window.localStorage.setItem(storageKey, value); } catch (error) { /* Storage can be unavailable. */ }
-    }
-
-    function applyChoice(value) {
-        if (analyticsExcluded) value = 'denied';
-        window.gtag('consent', 'update', {
-            analytics_storage: value,
-            ad_storage: 'denied',
-            ad_user_data: 'denied',
-            ad_personalization: 'denied'
-        });
-        if (value === 'granted') {
-            window.gtag('config', tagId, {
-                send_page_view: true,
-                allow_google_signals: false,
-                allow_ad_personalization_signals: false,
-                page_location: window.location.origin + currentPath,
-                page_path: currentPath,
-                page_referrer: ''
-            });
-            if (currentPath === '/playable-now/' && !arrivalEventSent) {
-                arrivalEventSent = true;
-                track('discovery_arrival', 'hero');
-            }
-        }
-    }
-
-    window.MythicalAnalytics = {
-        getConsent: readChoice,
-        setConsent: function (value) {
-            if (value !== 'granted' && value !== 'denied') return;
-            rememberChoice(value);
-            applyChoice(value);
-        },
-        track: function (eventName, details) {
-            return track(eventName, details && details.source_area);
-        }
-    };
-
     document.addEventListener('click', function (event) {
         var link = event.target.closest && event.target.closest('a[href="/play/"]');
         if (link) track('play_selected', sourceAreaFor(link));
     });
 
-    window.gtag('consent', 'default', {
-        analytics_storage: 'denied',
-        ad_storage: 'denied',
-        ad_user_data: 'denied',
-        ad_personalization: 'denied',
-        wait_for_update: 500
-    });
-    window.gtag('js', new Date());
-    window.gtag('config', tagId, {
-        send_page_view: false,
-        allow_google_signals: false,
-        allow_ad_personalization_signals: false,
-        page_location: window.location.origin + currentPath,
-        page_path: currentPath,
-        page_referrer: ''
-    });
-
-    if (!analyticsExcluded) {
-        var tag = document.createElement('script');
-        tag.async = true;
-        tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + tagId;
-        document.head.appendChild(tag);
-    }
-
-    var savedChoice = readChoice();
-    if (savedChoice === 'granted' || savedChoice === 'denied') {
-        applyChoice(savedChoice);
-        return;
-    }
-
+    function showAnalyticsChoice() {
+    if (document.querySelector('.analytics-choice')) return;
     var notice = document.createElement('aside');
     notice.className = 'analytics-choice';
     notice.setAttribute('aria-label', 'Optional website analytics');
@@ -469,4 +503,11 @@
         window.MythicalAnalytics.setConsent('denied');
         notice.remove();
     });
+    }
+    var settings = document.createElement('button');
+    settings.type = 'button';
+    settings.textContent = 'Analytics choices';
+    settings.addEventListener('click', showAnalyticsChoice);
+    (document.querySelector('footer') || document.body).appendChild(settings);
+    if (!window.MythicalAnalytics.getConsent()) showAnalyticsChoice();
 }());

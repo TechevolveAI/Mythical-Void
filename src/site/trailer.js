@@ -37,6 +37,7 @@ export function mountTrailer(root) {
         player.muted = true;
         player.defaultMuted = true;
         player.preload = 'none';
+        measureTrailer(player);
         player.poster = '/marketing/through-the-void-poster.jpg';
         player.src = '/cinematic/through-the-void-v4-720p.mp4';
         const captions = document.createElement('track');
@@ -54,4 +55,55 @@ export function mountTrailer(root) {
         const note = root.querySelector('#trailer-disclosure span');
         if (note) note.textContent = 'Starts muted. Turn sound on in the player.';
     });
+}
+
+// Count unique watched intervals only while visible and permitted. Seeking and replaying
+// the same seconds cannot manufacture completion; no pre-consent history is backfilled.
+export function measureTrailer(player) {
+    let previous = null;
+    let ranges = [];
+    const sent = new Set();
+    let started = false;
+    let completed = false;
+    const resetPosition = () => { previous = null; };
+    const consent = () => window.MythicalAnalytics?.getConsent() === 'granted';
+    const send = (name, details = {}) => window.MythicalAnalytics?.track(name, { source_area: 'trailer', ...details });
+    player.addEventListener('seeking', resetPosition);
+    player.addEventListener('pause', resetPosition);
+    player.addEventListener('timeupdate', () => {
+        const now = performance.now();
+        const time = player.currentTime;
+        if (!consent()) { previous = null; ranges = []; return; }
+        if (document.visibilityState === 'hidden' || player.seeking || player.paused || !Number.isFinite(player.duration) || player.duration <= 0) {
+            resetPosition(); return;
+        }
+        if (previous) {
+            const delta = time - previous.time;
+            const maxDelta = Math.min(2, (now - previous.wall) / 1000 * player.playbackRate + 0.15);
+            if (delta > 0 && delta <= maxDelta) {
+                if (!started) started = send('trailer_start') === true;
+                ranges.push([previous.time, time]);
+                ranges.sort((a, b) => a[0] - b[0]);
+                const merged = [];
+                for (const range of ranges) {
+                    const last = merged[merged.length - 1];
+                    if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+                    else merged.push(range.slice());
+                }
+                ranges = merged;
+                const coverage = ranges.reduce((sum, range) => sum + range[1] - range[0], 0) / player.duration;
+                for (const bucket of [25, 50, 75, 90]) {
+                    if (coverage >= bucket / 100 && !sent.has(bucket) && send('trailer_progress', { watch_bucket: String(bucket) })) sent.add(bucket);
+                }
+            }
+        }
+        previous = { time, wall: now };
+    });
+    player.addEventListener('ended', () => {
+        const watched = ranges.reduce((sum, range) => sum + range[1] - range[0], 0);
+        if (!completed && consent() && watched >= player.duration * 0.9) completed = send('trailer_complete') === true;
+        resetPosition();
+    });
+    window.addEventListener('mythical:analytics-consent', () => { previous = null; ranges = []; });
+    document.addEventListener('visibilitychange', resetPosition);
 }
