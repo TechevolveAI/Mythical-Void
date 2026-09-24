@@ -1,7 +1,7 @@
 # Held joystick and missing music incident
 
 Baseline investigated: production/main `d6a8c168f9b2ae869731cdd24fc885b6fc6beb4c`.
-Scope: two reproduced lifecycle defects; no save, backend, level, artwork,
+Scope: three reproduced input/audio/animation defects; no save, backend, level, artwork,
 economy, generation or broader unfinished feature changes.
 
 ## What is established
@@ -35,6 +35,15 @@ failed before repair: the audio context was running, but music was not playing.
 The sound preference being on is not evidence that a soundtrack is playing.
 This does not yet establish the physical phone's entire no-sound cause.
 
+The extended repeated-gate journey also exposed a separate movement conflict.
+`GameScene` attaches `CreatureAnimationController` to the physics-controlled
+player. Its idle bounce/wiggle/sniff tweens wrote absolute world coordinates
+captured before the player moved. Instrumenting the built player's position
+recorded a Phaser tween moving it from y=1645 back to y=880, away from Explore.
+This was not residual joystick input: its vector and body velocity were zero.
+The existing controller tests used a hand-copied subset rather than its actual
+animation implementation and did not cover this conflict.
+
 ## Narrow repair
 
 - Ignore duplicate layout notifications, including unchanged safe-area insets.
@@ -43,6 +52,9 @@ This does not yet establish the physical phone's entire no-sound cause.
   still release input, preventing an involuntary stuck direction.
 - After audio recovery, start a current deferred soundtrack exactly once. Do not
   restart a playing track, resurrect a departed scene, or override mute.
+- Express cosmetic positional motion as small scale changes on physics-backed
+  creatures. Keep world movement for non-physics display sprites. Test the real
+  controller's 17 behaviors and completion callbacks against position ownership.
 - Add a separate CI job for held touch, audio recovery and repeated Explore
   journeys. Existing release checks remain unchanged.
 
@@ -64,6 +76,15 @@ An initial combined run encountered the saved Forest victory's normal resident
 arrival cinematic. Its trace showed `playRescuedResidentArrival -> suspend`, an
 intentional input pause. The harness now waits for that real scene to finish;
 the production cinematic was not disabled or changed.
+
+The first CI run also demonstrated that the daily greeting can arrive later than
+the smoke's one-off check. The harness now observes the onboarding queue, taps
+the real greeting button when present, and awaits normal gameplay. It does not
+suppress or skip production state. Every gate visit explicitly runs a real
+creature reaction before moving the actor, then checks that it remains nearby.
+
+Animation pre-fix evidence: `.visual-review/gate-physics-axes/result.json` and
+`/private/tmp/mythical-animation-ownership-red.log` (nine failing behaviors).
 
 Repeat from the exact candidate checkout:
 

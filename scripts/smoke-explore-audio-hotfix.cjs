@@ -149,25 +149,36 @@ async function main() {
             console.log(`[hotfix] ${name} visit ${visit + 1} -> ${target}`);
             await page.waitForFunction(() => mythicalGame.scene.isActive('GameScene') && mythicalGame.scene.keys.GameScene.player?.body);
             await page.waitForTimeout(1200);
-            // Close ordinary check-in UI through its existing button, if present.
-            const greeting = await page.evaluate(() => {
-                const s = mythicalGame.scene.keys.GameScene;
-                const button = s.greetingElements?.find(o => o.input?.enabled);
-                return button ? hotfixScreenPoint(s, button) : null;
-            });
-            if (greeting) await tap(greeting);
-            if (phone) {
-                // A saved Forest victory schedules the normal resident-arrival
-                // cinematic. Its intentional input suspension must finish first.
-                await page.waitForFunction(() => {
+            // Scene-clock delivery can put the daily greeting after the first
+            // frame. Dismiss it through real input, then await normal play.
+            let ready = false;
+            const readyDeadline = Date.now() + 25000;
+            while (!ready && Date.now() < readyDeadline) {
+                const state = await page.evaluate(() => {
                     const s = mythicalGame.scene.keys.GameScene;
-                    return !s.rescuedResidentArrivalScheduleTimer && !s.rescuedResidentArrivalActive && !s.mobileControls.isSuspended;
-                }, null, { timeout: 15000 });
+                    const onboarding = window.OnboardingManager;
+                    const button = s.greetingElements?.find(o => o.input?.enabled);
+                    return {
+                        greeting: button ? hotfixScreenPoint(s, button) : null,
+                        ready: onboarding?.scene === s && onboarding.flowContext && !onboarding.isProcessing &&
+                            !s.rescuedResidentArrivalScheduleTimer && !s.rescuedResidentArrivalActive &&
+                            !s.mobileControls?.isSuspended
+                    };
+                });
+                if (state.greeting) await tap(state.greeting);
+                ready = Boolean(state.ready && !state.greeting);
+                if (!ready) await page.waitForTimeout(150);
+            }
+            assert(ready, 'Ordinary Sanctuary arrival did not hand back control');
+            if (phone) {
                 result.heldInputs ||= [];
                 result.heldInputs.push({ visit: visit + 1, cases: await verifyHeldTouch(page, context, { full: visit === 0 }) });
             }
             const position = await page.evaluate(() => {
                 const s = mythicalGame.scene.keys.GameScene;
+                // Exercise the real cosmetic tween while physics takes the
+                // actor elsewhere. It must not restore its old world position.
+                s.creatureAnimationController.playReaction('feed');
                 s.player.body.reset(s.hubPortal.x, s.hubPortal.y + 45);
                 s.player.body.setVelocity(0, 0);
                 s.cameras.main.centerOn(s.player.x, s.player.y);
@@ -177,7 +188,12 @@ async function main() {
             });
             assert.equal(position.cooldown, false, 'Gate cooldown survived a return');
             if (visit === 3) await page.evaluate(() => document.getElementById('loading-overlay')?.remove());
-            await page.waitForTimeout(200);
+            await page.waitForTimeout(1100);
+            const portalDistance = await page.evaluate(() => {
+                const s = mythicalGame.scene.keys.GameScene;
+                return Math.hypot(s.player.x - s.hubPortal.x, s.player.y - s.hubPortal.y);
+            });
+            assert(portalDistance < 120, `Idle animation displaced player from Explore: ${portalDistance}`);
             if (phone) {
                 const button = await page.evaluate(() => {
                     const s = mythicalGame.scene.keys.GameScene;
