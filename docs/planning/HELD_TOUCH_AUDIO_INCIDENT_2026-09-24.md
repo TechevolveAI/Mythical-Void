@@ -83,6 +83,13 @@ the real greeting button when present, and awaits normal gameplay. It does not
 suppress or skip production state. Every gate visit explicitly runs a real
 creature reaction before moving the actor, then checks that it remains nearby.
 
+A subsequent clean CI run passed all 22 mobile held-input cases and eight mobile
+gate visits, but missed a 100ms desktop Space pulse. The player remained correctly
+at (1200,1645), near Explore, without cooldown or overlay. Phaser clears JustDown
+on key-up, so the harness now holds the native key until the real game acknowledges
+the transition, with a five-second timeout and key-up in finally. No direct game
+interaction method or scene start replaces the keyboard path.
+
 Animation pre-fix evidence: `.visual-review/gate-physics-axes/result.json` and
 `/private/tmp/mythical-animation-ownership-red.log` (nine failing behaviors).
 

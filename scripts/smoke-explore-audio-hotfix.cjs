@@ -201,7 +201,19 @@ async function main() {
                 });
                 assert(button, 'Touch Explore control missing'); await tap(button);
             }
-            else await page.keyboard.press('Space', { delay: 100 });
+            else {
+                // JustDown is cleared by key-up. Software-rendered CI may not
+                // update within a 100ms pulse; hold through real acknowledgement.
+                await page.keyboard.down('Space');
+                try {
+                    await page.waitForFunction(() => {
+                        const s = mythicalGame.scene.keys.GameScene;
+                        return s.hubEntryTransition || s.hubEntryCooldown || mythicalGame.scene.isActive('HubWorldScene');
+                    }, null, { timeout: 5000 });
+                } finally {
+                    await page.keyboard.up('Space');
+                }
+            }
             await page.waitForFunction(() => mythicalGame.scene.isActive('HubWorldScene') && mythicalGame.scene.keys.HubWorldScene.actionLabel, null, { timeout: 20000 });
             await page.screenshot({ path: path.join(output, `${name}-hub-visit-${visit + 1}.png`) });
             if (target === 'back') {
