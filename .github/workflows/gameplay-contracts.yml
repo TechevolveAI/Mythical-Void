@@ -13,6 +13,29 @@ permissions:
   contents: read
 
 jobs:
+  mobile-input-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build:onboarding-ci
+      - name: Verify held mobile input, audio recovery and repeated Explore entry
+        env:
+          MYTHICAL_VOID_AUTOMATION_AUDIO: '0'
+          HOTFIX_EVIDENCE: /tmp/mythical-mobile-lifecycle
+          SMOKE_NATIVE_OPENGL: '1'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s '-screen 0 1280x1024x24' node scripts/smoke-explore-audio-hotfix.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-input-audio-evidence
+          path: /tmp/mythical-mobile-lifecycle
   gameplay-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -17,6 +17,8 @@ class MobileControls {
         this.isVisible = false;
         this.isSuspended = false;
         this.dockBackground = null;
+        this.controlViewport = null;
+        this.pendingResize = false;
 
         // Joystick state
         this.joystickBase = null;
@@ -240,6 +242,7 @@ class MobileControls {
 
         // Create action buttons (right side)
         this.createActionButtons();
+        this.controlViewport = this.getControlViewport();
 
         // Set up resize handler for screen rotation/resize
         this.resizeHandler = () => this.handleResize();
@@ -253,12 +256,34 @@ class MobileControls {
         });
     }
 
+    getControlViewport() {
+        const { width, height } = this.scene.scale;
+        const { top = 0, bottom = 0, left = 0, right = 0 } = this.getSafeAreaInsets();
+        return { width, height, top, bottom, left, right };
+    }
+
     /**
      * Handle screen resize (rotation, window resize, etc.)
      * Recreates controls at new scaled positions
      */
     handleResize() {
         if (!this.isVisible) return;
+
+        const viewport = this.getControlViewport();
+        const previous = this.controlViewport;
+        // Phaser emits resize on bounds refreshes too, without changing size.
+        // Rebuilding here cancels the finger that is still holding the joystick.
+        if (previous && Object.keys(viewport).every(key => viewport[key] === previous[key])) {
+            this.pendingResize = false;
+            return;
+        }
+        const sameOrientation = previous && (previous.width > previous.height) === (viewport.width > viewport.height);
+        if (this.joystickActive && previous?.width === viewport.width && sameOrientation) {
+            // Let a browser toolbar settle without replacing controls under a finger.
+            // Rotation/width changes still cancel stale input immediately.
+            this.pendingResize = true;
+            return;
+        }
 
         // Check if still mobile after resize
         this.isMobile = this.detectMobile();
@@ -384,6 +409,7 @@ class MobileControls {
      * Hide mobile controls
      */
     hide() {
+        this.pendingResize = false;
         // ALWAYS clean up event handlers first (even if not visible)
         // This prevents orphaned handlers when state gets out of sync
         this.cleanupEventHandlers();
@@ -1060,6 +1086,10 @@ class MobileControls {
 
         // Emit zero movement immediately
         this.scene.game.events.emit('virtual-joystick', { x: 0, y: 0 });
+        if (this.pendingResize && this.isVisible) {
+            this.pendingResize = false;
+            this.handleResize();
+        }
     }
 
     /**
