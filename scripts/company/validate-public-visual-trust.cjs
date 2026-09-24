@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { createHash } = require('node:crypto');
 const { isWithdrawnPublicVisual, readVisualPublicationRegister } = require('./visual-publication-policy.cjs');
 
 const root = path.resolve(__dirname, '../..');
@@ -40,9 +41,20 @@ for (const relative of visiblePages) {
     }
 }
 
-requireValue(storefront.includes('class="hero-mobile-window"'), 'homepage has no dedicated phone-size creature-universe view');
-requireValue(storefront.includes('Artwork inspired by real creature hatches — not gameplay.'), 'phone-size creature-universe view lacks a visible not-gameplay boundary');
-requireValue(/@media \(max-width: 620px\)[\s\S]*?\.hero-mobile-window\s*\{[\s\S]*?display:\s*block/.test(storefrontCss), 'phone-size creature-universe view is not exposed at the mobile breakpoint');
+// The approved story film replaces the old phone-size marketing illustration.
+// This narrow exception does not release any withdrawn gameplay media above.
+const trailer = read('src/site/trailer.js');
+const cinematic = JSON.parse(read('docs/company/content/homepage-cinematic-2026-09-24.json'));
+requireValue(storefront.includes('${trailerMarkup()}'), 'homepage has no dedicated cinematic view');
+requireValue(trailer.includes('AI-created cinematic — not gameplay.'), 'cinematic lacks a visible not-gameplay boundary');
+requireValue(storefrontCss.includes('.hero-film .homepage-trailer { grid-row: 1; }'), 'cinematic is not first at the phone breakpoint');
+requireValue(trailer.includes("start.addEventListener('click'") && trailer.includes("player.preload = 'none'") && !trailer.includes('<video'), 'cinematic must load only after a visitor click');
+requireValue(trailer.includes("player.src = '/cinematic/through-the-void-v4-720p.mp4'"), 'homepage does not use the reviewed cinematic edition');
+for (const kind of ['media', 'poster']) {
+    const file = path.join(root, cinematic[`${kind}Path`]);
+    requireValue(fs.existsSync(file), `approved cinematic ${kind} is missing`);
+    if (fs.existsSync(file)) requireValue(createHash('sha256').update(fs.readFileSync(file)).digest('hex') === cinematic[`${kind}Sha256`], `approved cinematic ${kind} has changed and needs review`);
+}
 
 for (const relative of ['public/updates/feed.xml', 'public/updates/feed.json']) {
     const feed = read(relative);
@@ -81,7 +93,9 @@ console.log(JSON.stringify({
     withdrawnPathFamilies: register.withdrawnPathFamilies.length,
     withdrawnIndividualAssets: register.withdrawnIndividualPaths.length,
     socialPreviewsChecked: (previews.pages || []).length,
-    videoEmbedded: false,
+    videoEmbeddedOnArrival: false,
+    approvedStoryCinematicOnTap: true,
+    gameplayMediaStillHeld: true,
     failures
 }, null, 2));
 if (failures.length) process.exit(1);

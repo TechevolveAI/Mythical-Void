@@ -1,6 +1,7 @@
 import './storefront.css';
 import { mountAnalyticsConsent } from './analytics-consent.js';
 import { mountLivePresence } from './live-presence.js';
+import { trailerMarkup, mountTrailer } from './trailer.js';
 
 const showcaseScenes = [
     { name: 'Shared Habitat', image: '/game/village/shared-habitat.webp', detail: 'The Fend', mission: 'Build a home' },
@@ -300,12 +301,9 @@ function renderStorefront() {
                     <span></span><span></span><span></span>
                 </button>
                 <nav class="site-nav" aria-label="Main navigation" data-menu>
-                    <a href="/playable-now/#find-your-way">Find your game</a>
+                    <a href="#trailer">Watch the film</a>
                     <a href="#adventure">The adventure</a>
-                    <a href="#how-it-works">How it works</a>
-                    <a href="#studio">The studio</a>
                     <a href="#creatures">Creatures</a>
-                    <a href="/story/">The story</a>
                     <a href="#parents">For grown-ups</a>
                     ${playLink('Play now', 'button button-small')}
                 </nav>
@@ -313,33 +311,40 @@ function renderStorefront() {
         </header>
 
         <main id="main-content">
-            <section class="hero" id="hero">
-                <img class="hero-world" src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Alien creatures reimagined from the body shapes and mutations supported by the Mythical Void genetics engine" fetchpriority="high">
+            <section class="hero hero-film" id="hero">
                 <div class="hero-veil" aria-hidden="true"></div>
-                <div class="live-presence" data-live-presence data-state="loading" aria-live="polite">
-                    <span class="live-presence-pulse" aria-hidden="true"></span>
-                    <span data-live-presence-copy>Creatures are waking in the Void…</span>
-                    <span class="live-presence-note" data-live-presence-note>Activity inside the game world</span>
-                </div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
-                        <figure class="hero-mobile-window">
-                            <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="">
-                            <figcaption><strong>IMAGINED CREATURE UNIVERSE</strong><span>Artwork inspired by real creature hatches — not gameplay.</span></figcaption>
-                        </figure>
-                        <p class="kicker"><span></span> A universe of creatures</p>
-                        <h1>One universe. <em>Every hatch opens a new possibility.</em></h1>
-                        <p class="hero-copy">Hatch one alien creature shaped by body, colour, nature, cosmic affinity and rare changes. Cross six living realms together. Decide what Project Beacon should tell Earth.</p>
+                        <p class="kicker">FREE BROWSER ADVENTURE</p>
+                        <h1>Hatch a creature.<em>Explore the unknown.</em></h1>
+                        <p class="hero-copy">A strange new world. A creature unlike any other. Your adventure starts here.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
+                        </div>
+                        <p class="hero-entry-facts">No download. No account needed.</p>
+                        <p class="returning-player-note" data-returning-player-note hidden>Welcome back — your adventure is saved in this browser.</p>
+                    </div>
+                    ${trailerMarkup()}
+                </div>
+            </section>
+
+            <section class="homepage-essentials" aria-label="Help and latest news">
+                <div class="section-inner">
+                    <div class="homepage-help">
+                        <details>
+                            <summary>Playing again or need a hand? <span aria-hidden="true">+</span></summary>
+                            <p>Your progress stays in this browser. Cloud Save is optional; you do not need it to start. This early version does not yet move progress to another device.</p>
+                            <a href="/playable-now/#find-your-way">Find your way in →</a>
+                            <a href="#faq">More questions →</a>
+                        </details>
+                        <div class="homepage-share">
                             <button class="button button-quiet button-share" type="button" data-share-hatch-challenge>
                                 <span data-hatch-share-label>Invite someone to hatch</span>
                                 <span class="button-arrow" aria-hidden="true">↗</span>
                             </button>
-                            <a class="button button-quiet" href="/playable-now/#find-your-way">Find your way in</a>
+                            <p class="share-status" data-hatch-share-status aria-live="polite"></p>
                         </div>
-                        <p class="returning-player-note" data-returning-player-note hidden><strong>Welcome back.</strong> Your saved adventure is still in this browser. Continue where you left off.</p>
-                        <p class="hero-share-status share-status" data-hatch-share-status aria-live="polite"></p>
+                    </div>
                         <a class="hero-latest-update" href="/updates/" data-latest-update hidden>
                             <span class="hero-latest-label">NEW IN THE GAME</span>
                             <span class="hero-latest-copy">
@@ -348,18 +353,12 @@ function renderStorefront() {
                             </span>
                             <span class="hero-latest-action">Read what changed <b aria-hidden="true">→</b></span>
                         </a>
-                        <ul class="hero-genetics" aria-label="How this scene was made">
-                            <li><strong>1,000</strong><span>real engine hatches explored</span></li>
-                            <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
-                            <li><strong>1</strong><span>creature made for your story</span></li>
-                        </ul>
-                    </div>
-                    <div class="hero-art-note">
-                        <span class="hero-art-note-star" aria-hidden="true">✦</span>
-                        <span><strong>From 72 engine-born profiles</strong>Real silhouettes and mutations, reimagined for the Void</span>
+                    <div class="live-presence" data-live-presence data-state="loading" aria-live="polite">
+                        <span class="live-presence-pulse" aria-hidden="true"></span>
+                        <span data-live-presence-copy>Checking the game world…</span>
+                        <span class="live-presence-note" data-live-presence-note>Activity inside the game world</span>
                     </div>
                 </div>
-                <a class="scroll-cue" href="#adventure"><span>Begin the story</span><b aria-hidden="true">↓</b></a>
             </section>
 
             <section class="adventure-section" id="adventure">
@@ -643,6 +642,7 @@ function renderStorefront() {
 
     window.MythicalReturningPlayer?.apply(app);
     bindInteractions();
+    mountTrailer(app);
     mountLatestUpdate(app);
     mountLivePresence(app);
     mountAnalyticsConsent();
