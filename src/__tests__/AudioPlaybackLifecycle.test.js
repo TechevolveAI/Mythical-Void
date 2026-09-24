@@ -7,16 +7,18 @@ const declaration = parse(source, { sourceType: 'module' }).program.body
     .find(node => node.type === 'ClassDeclaration' && node.id.name === 'AudioManager');
 
 function fixture() {
-    const document = { hidden: false, visibilityState: 'visible', addEventListener: jest.fn(), removeEventListener: jest.fn() };
+    const document = new EventTarget();
+    document.hidden = false; document.visibilityState = 'visible';
+    jest.spyOn(document, 'addEventListener'); jest.spyOn(document, 'removeEventListener');
     const timers = [];
     const Manager = vm.runInNewContext(`(${source.slice(declaration.start, declaration.end)})`, {
-        document, window: { addEventListener: jest.fn() },
+        document, window: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
         console: { log() {}, warn() {} }, setTimeout: callback => timers.push(callback), clearInterval: jest.fn()
     });
     const manager = new Manager();
     manager.initialized = true;
     const context = { state: 'running', currentTime: 0, destination: {}, suspend: jest.fn(async () => { context.state = 'suspended'; }),
-        resume: jest.fn(async () => { context.state = 'running'; }) };
+        resume: jest.fn(async () => { context.state = 'running'; }), close: jest.fn() };
     context.createGain = () => ({ gain: { value: 0, linearRampToValueAtTime: jest.fn() }, connect: jest.fn(), disconnect: jest.fn() });
     manager.audioContext = context;
     manager.createMusicLayer = jest.fn();
@@ -98,4 +100,69 @@ test('a rejected mobile resume is contained and retriable, not an unhandled reje
     manager.playSound('coin_collect');
     await Promise.resolve();
     await Promise.resolve();
+});
+
+test('muted gestures do not consume the later audio unlock', async () => {
+    const { manager, context, document } = fixture();
+    context.state = 'suspended'; manager.muted = true;
+    manager.setupMobileAudioUnlock();
+    document.dispatchEvent(new Event('touchend'));
+    expect(context.resume).not.toHaveBeenCalled();
+    manager.muted = false;
+    document.dispatchEvent(new Event('touchend'));
+    await Promise.resolve();
+    expect(context.resume).toHaveBeenCalledTimes(1);
+});
+
+test('a resolved but still interrupted context retries on the next gesture', async () => {
+    const { manager, context, document } = fixture();
+    context.state = 'interrupted';
+    context.resume.mockImplementationOnce(async () => {});
+    manager.setupMobileAudioUnlock();
+    document.dispatchEvent(new Event('touchend'));
+    await Promise.resolve(); await Promise.resolve();
+    expect(manager.audioUnlocked).toBe(false);
+    document.dispatchEvent(new Event('touchend'));
+    await Promise.resolve(); await Promise.resolve();
+    expect(context.resume).toHaveBeenCalledTimes(2);
+    expect(context.state).toBe('running');
+});
+
+test('recorded Phaser music and procedural sound both resume in the same gesture', async () => {
+    const { manager, context, document } = fixture();
+    const recorded = { state: 'suspended', resume: jest.fn(async () => { recorded.state = 'running'; }), suspend: jest.fn() };
+    const sound = { context: recorded, locked: true, setMute: jest.fn() };
+    manager.attachPhaserSound?.(sound);
+    manager.setupMobileAudioUnlock();
+    document.dispatchEvent(new Event('touchend'));
+    expect(recorded.resume).toHaveBeenCalledTimes(1);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(context.state).toBe('running');
+    expect(sound.unlocked).toBe(true);
+    manager.toggleMute();
+    expect(sound.setMute).toHaveBeenLastCalledWith(true);
+});
+
+test('backgrounding suspends both contexts; return waits for interaction and destroy removes recovery', async () => {
+    const { manager, context, document } = fixture();
+    const recorded = { state: 'running', resume: jest.fn(async () => { recorded.state = 'running'; }),
+        suspend: jest.fn(async () => { recorded.state = 'suspended'; }) };
+    manager.attachPhaserSound?.({ context: recorded, setMute: jest.fn() });
+    manager.setupMobileAudioUnlock(); manager.setupAudioLifecycleRecovery();
+    document.hidden = true; document.visibilityState = 'hidden';
+    manager.audioVisibilityHandler();
+    expect(recorded.suspend).toHaveBeenCalledTimes(1);
+    document.dispatchEvent(new Event('touchend'));
+    expect(recorded.resume).not.toHaveBeenCalled();
+    document.hidden = false; document.visibilityState = 'visible';
+    manager.audioVisibilityHandler();
+    expect(recorded.resume).not.toHaveBeenCalled();
+    document.dispatchEvent(new Event('touchend'));
+    await Promise.resolve(); await Promise.resolve();
+    expect(recorded.resume).toHaveBeenCalledTimes(1);
+    manager.destroy();
+    context.resume.mockClear(); recorded.resume.mockClear();
+    document.dispatchEvent(new Event('touchend'));
+    expect(context.resume).not.toHaveBeenCalled();
+    expect(recorded.resume).not.toHaveBeenCalled();
 });

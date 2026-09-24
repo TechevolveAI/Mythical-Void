@@ -522,6 +522,7 @@ class GameScene extends Phaser.Scene {
     init(data) {
         // Reset shutdown flag for fresh scene
         this._isShuttingDown = false;
+        this.cancelHubEntryTransition();
         this.forceMobileControls = data?.forceMobileControls === true;
         this.fieldKitPreview = data?.fieldKitPreview === true;
         this.fieldKitPreviewSize = data?.fieldKitPreviewSize || null;
@@ -12600,9 +12601,6 @@ class GameScene extends Phaser.Scene {
         }
 
         this.hubEntryCooldown = true;
-        this.time.delayedCall(1000, () => {
-            this.hubEntryCooldown = false;
-        });
 
         this.nearHubPortal = false;
         window.QuestManager?.trackProgress('landmark_visit', { landmark: 'hub_gate' });
@@ -12620,22 +12618,47 @@ class GameScene extends Phaser.Scene {
         // Screen effect - magical transition
         window.FeedbackManager?.cameraFlash?.(this, 300, 147, 112, 219); // Purple flash
 
-        // Fade out and transition to hub
-        this.cameras.main.fadeOut(500, 0, 0, 0);
+        const camera = this.cameras.main;
+        const transition = { camera, started: false, timer: null, onComplete: null };
+        this.hubEntryTransition = transition;
+        const data = {
+            creatureTexture: this.creatureTextureName || getGameState().get('creature.textureName'),
+            returnPosition: { x: this.player.x, y: this.player.y }
+        };
+        const recover = () => {
+            if (this.hubEntryTransition !== transition || this._isShuttingDown) return;
+            this.cancelHubEntryTransition();
+            window.UXEnhancements?.hideLoading?.();
+            camera.resetFX?.();
+            camera.fadeIn(180, 0, 0, 0);
+            this.showInteractionHint('The gate could not open. Tap Explore to try again.');
+        };
+        transition.onComplete = () => {
+            if (this.hubEntryTransition !== transition || transition.started || this._isShuttingDown) return;
+            transition.started = true;
+            clearTimeout(transition.timer);
+            camera.off?.('camerafadeoutcomplete', transition.onComplete);
+            try {
+                Promise.resolve(this.sceneRouter.startScene('HubWorldScene', data, { sound: null }))
+                    .then(started => { if (started === false) recover(); }, recover);
+            } catch {
+                recover();
+            }
+        };
+        // Scene-clock timers vanish on departure; own and cancel this handoff explicitly.
+        camera.once('camerafadeoutcomplete', transition.onComplete);
+        transition.timer = setTimeout(transition.onComplete, 1200);
+        camera.fadeOut(500, 0, 0, 0);
+    }
 
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-            // Get the current creature texture for the hub
-            const creatureTexture = this.creatureTextureName || getGameState().get('creature.textureName');
-
-            // Start hub world scene
-            this.sceneRouter.startScene('HubWorldScene', {
-                creatureTexture: creatureTexture,
-                returnPosition: {
-                    x: this.player.x,
-                    y: this.player.y
-                }
-            }, { sound: null });
-        });
+    cancelHubEntryTransition() {
+        const transition = this.hubEntryTransition;
+        if (transition) {
+            clearTimeout(transition.timer);
+            transition.camera?.off?.('camerafadeoutcomplete', transition.onComplete);
+        }
+        this.hubEntryTransition = null;
+        this.hubEntryCooldown = false;
     }
 
     /**
@@ -18285,6 +18308,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this._isShuttingDown = true;
+        this.cancelHubEntryTransition();
         this.cancelCompletionHandoffs();
         this.villageCommandPreviewState = null;
         console.log('[GameScene] Shutting down - cleaning up event listeners');

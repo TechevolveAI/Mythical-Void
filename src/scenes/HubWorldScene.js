@@ -2095,6 +2095,7 @@ export default class HubWorldScene extends Phaser.Scene {
         // Show loading (will appear after transition)
         if (window.UXEnhancements) {
             this.time.delayedCall(800, () => {
+                if (this._isShuttingDown || !this.isTransitioning || this.gateTransitionStarted) return;
                 window.UXEnhancements.showLoading(
                     resume
                         ? `Reconnecting at ${resume.label}...`
