@@ -29,7 +29,14 @@ Verified in the signed-in Google interface on 24 September:
 - Ads personalisation allowed in **0 of 307 regions** (previously 307 of 307).
 - Google signals and user-provided data remain OFF.
 
-Custom dimensions and release verification are recorded below when completed. Retention, internal-traffic filter state, reporting identity and historical data are unchanged.
+The following four Event-scoped custom dimensions were saved and verified in the table (4 of 4): Website entry source (`entry_source`), Website button area (`source_area`), Website page category (`source_page`), Trailer watched coverage (`watch_bucket`). Retention, internal-traffic filter state, reporting identity and historical data are unchanged.
+
+## Verification before release
+
+- Full `npm run build` completed successfully; the final Vite build also passed after the last source adjustment.
+- Website consent runtime: 29 offline cases; legacy analytics contract: 33; owner opt-out: 28; owned discovery: 26; Play-intent website checks: 32; website Jest suites: 19 tests. No gameplay browser journey was run locally.
+- Browser review used a temporary localhost server with third-party scripts/connections blocked by CSP and game routes disabled. Verified fresh refusal, remembered refusal, reopening choices, one page-view/arrival queue after allowing, and withdrawal returning to zero Google scripts/events after reload. Discovery pages also retain refusal and expose the choice control. This checks browser behaviour without sending synthetic events into the live property; it does not prove Google receipt.
+- Release through protected-main PR #331; deployment and organic event receipt must be verified separately. Existing build-generated external-platform measurement files are not included in the website change.
 
 ## Clean campaign links (prepared, not posted)
 
