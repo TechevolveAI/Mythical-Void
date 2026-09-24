@@ -38,6 +38,10 @@ The following four Event-scoped custom dimensions were saved and verified in the
 - Browser review used a temporary localhost server with third-party scripts/connections blocked by CSP and game routes disabled. Verified fresh refusal, remembered refusal, reopening choices, one page-view/arrival queue after allowing, and withdrawal returning to zero Google scripts/events after reload. Discovery pages also retain refusal and expose the choice control. This checks browser behaviour without sending synthetic events into the live property; it does not prove Google receipt.
 - Release through protected-main PR #331; deployment and organic event receipt must be verified separately. Existing build-generated external-platform measurement files are not included in the website change.
 
+### Production build correction
+
+The first production build after #331 passed all unit tests but stopped at sitemap freshness: `/play/` still declared 14 September although its shared HTML shell changed on 24 September. The pre-commit local build had not yet seen that committed source date. The follow-up updates that one sitemap date and reruns freshness against the committed release state. It does not alter gameplay or bypass the build gate. The preview check on #331 had been skipped by the existing release-branch policy, not successfully built; the follow-up uses the established `codex/release-*` prefix.
+
 ## Clean campaign links (prepared, not posted)
 
 YouTube description:
