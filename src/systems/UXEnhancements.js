@@ -7,6 +7,7 @@ class UXEnhancements {
     constructor() {
         this.initialized = false;
         this.focusableElements = [];
+        this.focusHistory = [];
         this.currentFocusIndex = 0;
         this.announcementQueue = [];
         this.tooltips = new Map();
@@ -529,20 +530,26 @@ class UXEnhancements {
      * Set up loading states for async operations
      */
     setupLoadingStates() {
-        // Create loading overlay
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.id = 'loading-overlay';
-        loadingOverlay.className = 'loading-overlay hidden';
-        loadingOverlay.innerHTML = `
+        if (!document.body || !document.head) return null;
+        let loadingOverlay = document.getElementById('loading-overlay');
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.className = 'loading-overlay hidden';
+            document.body.appendChild(loadingOverlay);
+        }
+        loadingOverlay.setAttribute('role', 'status');
+        loadingOverlay.setAttribute('aria-live', 'polite');
+        if (!loadingOverlay.querySelector('.loading-text')) loadingOverlay.innerHTML = `
             <div class="loading-content">
-                <div class="loading-spinner"></div>
+                <div class="loading-spinner" aria-hidden="true"></div>
                 <p class="loading-text">Loading...</p>
             </div>
         `;
-        document.body.appendChild(loadingOverlay);
-        
-        // Add styles
+        if (document.getElementById('ux-loading-styles')) return loadingOverlay;
+
         const style = document.createElement('style');
+        style.id = 'ux-loading-styles';
         style.textContent = `
             .loading-overlay {
                 position: fixed;
@@ -587,6 +594,7 @@ class UXEnhancements {
             }
         `;
         document.head.appendChild(style);
+        return loadingOverlay;
     }
 
     /**
@@ -719,12 +727,14 @@ class UXEnhancements {
      * Trap focus within element (for modals)
      */
     trapFocus(element) {
+        if (!element || element._focusTrapHandler) return;
         const focusableElements = element.querySelectorAll(
             'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
         );
         
         const firstFocusable = focusableElements[0];
         const lastFocusable = focusableElements[focusableElements.length - 1];
+        if (!firstFocusable) return;
         
         // Focus first element
         if (firstFocusable) {
@@ -755,6 +765,7 @@ class UXEnhancements {
      * Release focus trap
      */
     releaseFocusTrap(element) {
+        if (!element?._focusTrapHandler) return;
         if (element._focusTrapHandler) {
             element.removeEventListener('keydown', element._focusTrapHandler);
             delete element._focusTrapHandler;
@@ -847,17 +858,21 @@ class UXEnhancements {
      * Show loading state
      */
     showLoading(message = 'Loading...') {
-        const overlay = document.getElementById('loading-overlay');
+        // Scene entry can outlive a DOM teardown or run before full UX setup.
+        const overlay = this.setupLoadingStates();
+        if (!overlay) return false;
         const text = overlay.querySelector('.loading-text');
         
         text.textContent = message;
         overlay.classList.remove('hidden');
+        overlay.setAttribute('aria-busy', 'true');
         
         // Announce to screen reader
         this.announce(`Loading: ${message}`);
         
         // Trap focus in loading overlay
         this.trapFocus(overlay);
+        return true;
     }
 
     /**
@@ -865,7 +880,9 @@ class UXEnhancements {
      */
     hideLoading() {
         const overlay = document.getElementById('loading-overlay');
+        if (!overlay || overlay.classList.contains('hidden')) return;
         overlay.classList.add('hidden');
+        overlay.setAttribute('aria-busy', 'false');
         
         // Release focus trap
         this.releaseFocusTrap(overlay);
@@ -1160,6 +1177,7 @@ class UXEnhancements {
             'game-announcer',
             'game-instructions',
             'loading-overlay',
+            'ux-loading-styles',
             'tooltip-container',
             'ux-visual-feedback',
             'ux-mobile-enhancements'

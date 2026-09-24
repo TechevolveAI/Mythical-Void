@@ -811,6 +811,7 @@ async function initializeGame() {
             // Add Phaser's built-in error handling
             callbacks: {
                 postBoot: function (game) {
+                    window.AudioManager?.attachPhaserSound?.(game.sound);
                     console.log('🎮 Phaser game booted successfully');
 
                     try {
@@ -927,20 +928,6 @@ async function initializeGame() {
                             window.creatureAI = creatureAI; // Still available in fallback mode
                         });
                     }
-
-                    // Resume audio context on first user interaction (browser requirement)
-                    const resumeAudio = () => {
-                        if (window.AudioManager) {
-                            window.AudioManager.resume();
-                            // Remove listener after first interaction
-                            document.removeEventListener('click', resumeAudio);
-                            document.removeEventListener('touchstart', resumeAudio);
-                            document.removeEventListener('keydown', resumeAudio);
-                        }
-                    };
-                    document.addEventListener('click', resumeAudio);
-                    document.addEventListener('touchstart', resumeAudio);
-                    document.addEventListener('keydown', resumeAudio);
 
                     // Set up scene transition cleanup
                     game.scene.scenes.forEach(scene => {
@@ -2697,11 +2684,6 @@ async function initializeGame() {
         // Handle page unload - save game state with error handling
         window.addEventListener('beforeunload', () => {
             try {
-                // Clean up resources
-                if (window.memoryManager) {
-                    window.memoryManager.performCleanup();
-                }
-
                 // Save game state
                 if (GameState && typeof GameState.save === 'function') {
                     GameState.save();
@@ -2710,7 +2692,16 @@ async function initializeGame() {
                 cloudSaveManager?.flush().catch(() => {
                     // The local save has already completed; retry cloud sync next launch.
                 });
+            } catch (saveError) {
+                console.error('💾❌ Final save failed:', saveError);
+            }
+        });
 
+        // Cancelled navigation and back/forward cache retain this running game.
+        window.addEventListener('pagehide', event => {
+            if (event.persisted) return;
+            try {
+                window.memoryManager?.performCleanup();
                 pageVisibilityController?.detach();
                 pageVisibilityController = null;
 
@@ -2723,9 +2714,8 @@ async function initializeGame() {
                 if (uxEnhancements) {
                     uxEnhancements.destroy();
                 }
-            } catch (saveError) {
-                console.error('💾❌ Final save failed:', saveError);
-                // Don't show error message here as page is unloading
+            } catch (cleanupError) {
+                console.warn('[Main] Page exit cleanup failed:', cleanupError);
             }
         });
 

@@ -26,6 +26,8 @@ class AudioManager {
         this.unlockHandler = null;
         this.audioVisibilityHandler = null;
         this.audioPageShowHandler = null;
+        this.audioPageHideHandler = null;
+        this.phaserSound = null;
     }
 
     /**
@@ -103,34 +105,22 @@ class AudioManager {
      * Mobile browsers require user interaction before audio can play
      */
     setupMobileAudioUnlock() {
-        if (!this.audioContext) return;
+        if (!this.getAudioContexts().length || typeof document === 'undefined') return;
 
         this.removeUnlockListeners();
-        this.audioUnlocked = this.audioContext.state === 'running';
+        this.audioUnlocked = this.getAudioContexts().every(context => context.state === 'running');
 
-        // Create unlock handler that resumes audio context on first interaction
+        // A later interruption must be recoverable by another trusted interaction.
         this.unlockHandler = () => {
             if (this.muted || (typeof document !== 'undefined' && document.hidden)) return;
-            if (this.audioUnlocked && this.audioContext?.state === 'running') return;
-
-            if (this.audioContext && ['suspended', 'interrupted'].includes(this.audioContext.state)) {
-                this.audioContext.resume().then(() => {
-                    console.log('[AudioManager] 🔊 Audio unlocked on mobile');
-                    this.audioUnlocked = true;
-                    this.removeUnlockListeners();
-                }).catch(() => {
-                    this.audioUnlocked = false;
-                });
-            } else {
-                this.audioUnlocked = true;
-                this.removeUnlockListeners();
-            }
+            void this.resume();
         };
 
-        // Listen for first user interaction (touch or click)
-        const events = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+        // Capture also reaches taps handled by overlays that stop propagation.
+        const events = ['touchstart', 'touchend', 'pointerup', 'mousedown', 'click', 'keydown'];
         events.forEach(event => {
-            document.addEventListener(event, this.unlockHandler, { once: true, passive: true });
+            // Keep recovery available after muted taps, rejected unlocks and iOS interruptions.
+            document.addEventListener(event, this.unlockHandler, { capture: true, passive: true });
         });
 
         console.log('[AudioManager] Mobile audio unlock listeners added');
@@ -142,22 +132,41 @@ class AudioManager {
         this.audioVisibilityHandler = () => {
             if (document.hidden) {
                 this.audioUnlocked = false;
-                this.audioContext?.suspend?.().catch(() => {});
+                this.suspendAudioContexts();
                 return;
             }
             if (document.visibilityState !== 'visible') return;
             this.rearmAudioAfterInterruption();
         };
         this.audioPageShowHandler = () => this.rearmAudioAfterInterruption();
+        this.audioPageHideHandler = () => this.suspendAudioContexts();
 
         document.addEventListener('visibilitychange', this.audioVisibilityHandler);
         window.addEventListener?.('pageshow', this.audioPageShowHandler);
+        window.addEventListener?.('pagehide', this.audioPageHideHandler);
     }
 
     rearmAudioAfterInterruption() {
-        if (!this.audioContext || this.audioContext.state === 'running') return;
+        if (!this.getAudioContexts().length || this.getAudioContexts().every(context => context.state === 'running')) return;
         this.audioUnlocked = false;
         this.setupMobileAudioUnlock();
+    }
+
+    getAudioContexts() {
+        return [...new Set([this.audioContext, this.phaserSound?.context].filter(Boolean))];
+    }
+
+    attachPhaserSound(sound) {
+        this.phaserSound = sound;
+        sound?.setMute?.(this.muted);
+        this.setupMobileAudioUnlock();
+    }
+
+    suspendAudioContexts() {
+        this.audioUnlocked = false;
+        this.getAudioContexts().forEach(context => {
+            try { Promise.resolve(context.suspend?.()).catch(() => {}); } catch { /* Already closed. */ }
+        });
     }
 
     /**
@@ -166,9 +175,9 @@ class AudioManager {
     removeUnlockListeners() {
         if (!this.unlockHandler) return;
 
-        const events = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+        const events = ['touchstart', 'touchend', 'pointerup', 'mousedown', 'click', 'keydown'];
         events.forEach(event => {
-            document.removeEventListener(event, this.unlockHandler);
+            document.removeEventListener(event, this.unlockHandler, true);
         });
 
         this.unlockHandler = null;
@@ -2277,6 +2286,7 @@ class AudioManager {
         }
 
         this.applyMusicGain();
+        this.phaserSound?.setMute?.(this.muted);
         if (!this.muted) void this.resume();
         if (!this.muted && !this.musicPlaying && this.requestedArea) {
             this.playAreaMusic(this.requestedArea);
@@ -2378,17 +2388,28 @@ class AudioManager {
      * Resume audio context (needed for user interaction requirement)
      */
     resume() {
-        const context = this.audioContext;
-        if (!context || this.muted || (typeof document !== 'undefined' && document.hidden)) return Promise.resolve(false);
-        if (context.state === 'running') return Promise.resolve(true);
-        if (!['suspended', 'interrupted'].includes(context.state)) return Promise.resolve(false);
-        return context.resume().then(() => {
-            this.audioUnlocked = context === this.audioContext && context.state === 'running';
+        const contexts = this.getAudioContexts();
+        if (!contexts.length || this.muted || (typeof document !== 'undefined' && document.hidden)) return Promise.resolve(false);
+        // Both resume calls must happen synchronously inside the same trusted gesture.
+        const attempts = contexts.map(context => {
+            if (context.state === 'running') return Promise.resolve(true);
+            if (!['suspended', 'interrupted'].includes(context.state)) return Promise.resolve(false);
+            try {
+                return Promise.resolve(context.resume()).then(() => context.state === 'running', () => false);
+            } catch { return Promise.resolve(false); }
+        });
+        return Promise.all(attempts).then(() => {
+            if (this.muted || (typeof document !== 'undefined' && document.hidden)) {
+                this.suspendAudioContexts();
+                return false;
+            }
+            this.audioUnlocked = contexts.every(context => this.getAudioContexts().includes(context) && context.state === 'running');
+            if (this.phaserSound?.context?.state === 'running' && this.phaserSound.locked) {
+                // Phaser's update emits UNLOCKED and releases sounds queued before the gesture.
+                this.phaserSound.unlocked = true;
+            }
+            if (!this.audioUnlocked) this.rearmAudioAfterInterruption();
             return this.audioUnlocked;
-        }).catch(() => {
-            this.audioUnlocked = false;
-            this.rearmAudioAfterInterruption();
-            return false;
         });
     }
 
@@ -3418,6 +3439,11 @@ class AudioManager {
             window.removeEventListener?.('pageshow', this.audioPageShowHandler);
             this.audioPageShowHandler = null;
         }
+        if (this.audioPageHideHandler) {
+            window.removeEventListener?.('pagehide', this.audioPageHideHandler);
+            this.audioPageHideHandler = null;
+        }
+        this.phaserSound = null;
 
         // Clear music nodes
         this.musicNodes = null;
