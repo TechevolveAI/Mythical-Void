@@ -93,40 +93,20 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressFactSheet).not.toMatch(/\b(?:nine|9)[ -]year[ -]old\b/i);
     });
 
-    test('turns real genetics runs into an immersive creature-universe hero', () => {
-        expect(storefront).toContain('1,000');
-        expect(storefront).toContain('72');
-        expect(storefront).toContain('real engine hatches explored');
-        expect(storefront).toContain('A universe of creatures');
-        expect(storefront).toContain('Every hatch opens a new possibility.');
-        expect(storefront).toContain(
-            'Hatch one alien creature shaped by body, colour, nature, cosmic affinity and rare changes.'
-        );
-        expect(storefront).toContain(
-            'Cross six living realms together. Decide what Project Beacon should tell Earth.'
-        );
+    test('leads with the disclosed story cinematic and a concise game promise', () => {
+        const trailer = fs.readFileSync(path.join(__dirname, '../site/trailer.js'), 'utf8');
+        expect(storefront).toContain('Hatch a creature.<em>Explore the unknown.</em>');
+        expect(storefront).toContain('${trailerMarkup()}');
+        expect(storefront).toContain('Genetics with real variety');
+        expect(storefront).toContain('Creature genetics combine species, colours, body shapes');
         expect(storefront).not.toContain(
             'What arrives from the Void will be truly yours.'
         );
         expect(storefront).not.toMatch(/\bcompanions?\b/i);
-        expect(storefront).toContain(
-            '/marketing/mythical-void-creature-universe-hero-v2.webp'
-        );
-        expect(storefront).toContain('hero-mobile-window');
-        expect(storefront).toContain('IMAGINED CREATURE UNIVERSE');
-        expect(storefront).toContain('Artwork inspired by real creature hatches — not gameplay.');
-        expect(styles).toMatch(
-            /@media \(max-width: 620px\)[\s\S]*?\.hero-mobile-window\s*\{[\s\S]*?display:\s*block/
-        );
-        expect(styles).toMatch(
-            /\.hero-copy-block > \.hero-actions \{ order: 4; \}[\s\S]*?\.hero-copy-block > \.hero-copy \{ order: 5; \}/
-        );
-        expect(styles).toMatch(
-            /\.hero\s*\{[\s\S]*?height:\s*min\(860px,\s*100svh\)/
-        );
-        expect(styles).not.toMatch(
-            /\.hero\s*\{[^}]*grid-template-columns:/
-        );
+        expect(trailer).toContain('AI-created cinematic — not gameplay.');
+        expect(trailer).toContain('fetchpriority="high"');
+        expect(styles).toMatch(/@media \(max-width: 900px\)[\s\S]*?\.hero-film \.homepage-trailer \{ grid-row: 1; \}/);
+        expect(styles).toMatch(/\.hero\.hero-film\s*\{[^}]*height: auto;[^}]*min-height: 0;/);
     });
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
@@ -174,7 +154,9 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('The Mythical Void Hatch Challenge');
         expect(storefront).toContain('https://mythicalvoid.com/hatch-challenge/');
         expect(storefront).toContain('Challenge link copied — no tracking code.');
-        expect(storefront).toContain('hero-share-status');
+        expect(storefront).toContain('data-hatch-share-status aria-live="polite"');
+        const hero = storefront.split('<section class="hero hero-film"')[1].split('</section>')[0];
+        expect(hero).not.toContain('data-share-hatch-challenge');
         expect(storefront).toContain("const shareButtons = [...app.querySelectorAll('[data-share-game]')]");
         expect(storefront).toContain('data-share-label');
         expect(storefront).toContain('navigator.share');
