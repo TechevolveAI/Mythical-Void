@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { expectForestCompletionConnection } = require('./support/forestCompletionContract.cjs');
 const vm = require('node:vm');
 
 function read(relativePath) {
@@ -78,24 +79,25 @@ describe('first Guardian invitation', () => {
             /showBossVictory\(\)\s*\{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Override shutdown/
         )?.[1] || '';
 
-        expect(victoryMethod).toContain('completionResult?.firstCompletion === true');
-        expect(victoryMethod).toContain("'[ INVITE SOMEONE ]'");
-        expect(victoryMethod).toContain('shareGuardianRestoration(window.navigator)');
-        expect(victoryMethod).toContain(
-            'syncCampaignObjectiveDisplay({ visible: false, force: true })'
+        const sharedResult = read('scenes/PlatformerLevelScene.js');
+        expect(sharedResult).toContain("result.levelId === 'mythicalForest' && result.firstCompletion === true");
+        expect(sharedResult).toContain("label: 'Invite someone'");
+        expect(sharedResult).toContain('shareGuardianRestoration(window.navigator)');
+        expect(victoryMethod).toContain('return finishForestCompletion(this)');
+        const controller = expectForestCompletionConnection();
+        expect(controller).toContain(
+            'syncCampaignObjectiveDisplay.call(scene, { visible: false, force: true })'
         );
-        expect(victoryMethod).toContain(
+        expect(controller).toContain(
             'combatJuice?.comboDisplay?.setVisible?.(false)'
         );
-        expect(victoryMethod.indexOf('completeLevelProgression({')).toBeLessThan(
-            victoryMethod.indexOf('shareGuardianRestoration(window.navigator)')
-        );
+        expect(controller).toContain("attempt.verified = true; attempt.phase = 'committed';");
     });
 
     test('the real Guardian handoff checks both actions are visible and separate', () => {
         const smoke = read('../scripts/smoke-secondary-journeys.js');
-        expect(smoke).toContain("item?.text === '[ INVITE SOMEONE ]'");
-        expect(smoke).toContain("item?.text === '[ ENTER SANCTUARY ]'");
+        expect(smoke).toContain('[data-victory-action="invite"]');
+        expect(smoke).toContain('.expedition-debrief-continue');
         expect(smoke).toContain('actionsOverlap');
         expect(smoke).toContain('actionsInFrame');
         expect(smoke).toContain('first-guardian-invitation-phone.png');

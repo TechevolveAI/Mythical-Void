@@ -19,13 +19,15 @@ test('Forest restoration enters the shared physics/input freeze while its story 
             shakeEffect: { isRunning: true, reset: jest.fn(function () { this.isRunning = false; }) } } },
         levelHeight: 900, isMobile: true, forestRestorationElements: [], forestRestorationTimers: [],
         add: { graphics: () => drawable, text: () => drawable, ellipse: () => drawable },
-        tweens: { add: jest.fn() },
+        tweens: { add: jest.fn() }, invincibilityTween: { stop: jest.fn() }, isInvincible: true,
         time: { paused: false, delayedCall: jest.fn(() => ({ remove: jest.fn() })) },
         resetJoystick: jest.fn(), clearVirtualJumpInput: jest.fn(), hidePlatformerMobileControls: jest.fn(),
         syncCampaignObjectiveDisplay: jest.fn(), clearForestStoryBubble: jest.fn(),
         physics: { world: { isPaused: false }, pause: jest.fn(function () { this.world.isPaused = true; }) }
     };
     scene.enterLevelCompletionState = loadMethod('../scenes/PlatformerLevelScene.js', 'enterLevelCompletionState');
+    scene.endInvincibility = loadMethod('../scenes/PlatformerLevelScene.js', 'endInvincibility');
+    const flash = scene.invincibilityTween;
     const restoration = loadMethod('../scenes/levels/MythicalForestLevel.js', 'showForestRestorationSequence', {
         Phaser: { Math: { Clamp: (value, min, max) => Math.min(max, Math.max(min, value)) } }
     });
@@ -36,6 +38,9 @@ test('Forest restoration enters the shared physics/input freeze while its story 
     expect(scene.virtualJoystickX).toBe(0);
     expect(scene.virtualJoystickY).toBe(0);
     expect(scene.time.paused).toBe(false);
+    expect(scene.isInvincible).toBe(false);
+    expect(flash.stop).toHaveBeenCalledTimes(1);
+    expect(scene.invincibilityTween).toBeNull();
     expect(scene.cameras.main.shakeEffect.reset).toHaveBeenCalledTimes(1);
     expect(scene.cameras.main.shakeEffect.isRunning).toBe(false);
     expect(scene.time.delayedCall).toHaveBeenCalled();

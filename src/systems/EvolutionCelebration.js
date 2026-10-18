@@ -6,6 +6,7 @@
  */
 
 import evolutionConfig from '../config/evolution.json';
+import Phaser from 'phaser';
 
 class EvolutionCelebrationManager {
     constructor() {
@@ -13,6 +14,7 @@ class EvolutionCelebrationManager {
         this.isPlaying = false;
         this.currentScene = null;
         this.celebrationElements = [];
+        this.currentRun = null;
     }
 
     /**
@@ -24,54 +26,127 @@ class EvolutionCelebrationManager {
      * @returns {Promise} Resolves when celebration completes
      */
     async playCelebration(scene, fromStage, toStage, creatureData) {
+        if (this.isPlaying && !this.isRunCurrent(this.currentRun)) this.cleanup();
         if (this.isPlaying) {
             console.log('[EvolutionCelebration] Already playing, skipping');
             return;
         }
-
-        this.isPlaying = true;
-        this.currentScene = scene;
-        this.celebrationElements = [];
 
         const celebrationKey = `${fromStage}_to_${toStage}`;
         const celebrationConfig = this.config.evolution.celebrations[celebrationKey];
 
         if (!celebrationConfig) {
             console.warn(`[EvolutionCelebration] No config for ${celebrationKey}`);
-            this.isPlaying = false;
             return;
         }
+        if (!scene?.add || !scene?.time || !scene?.tweens || scene._isShuttingDown) return;
+
+        const run = this.beginRun(scene);
 
         console.log(`[EvolutionCelebration] Starting ${celebrationConfig.name} celebration`);
 
         try {
             // Phase 1: Pre-evolution buildup
-            await this.playPreEvolutionEffects(scene, celebrationConfig);
+            await this.runPhase(run, () => this.playPreEvolutionEffects(scene, celebrationConfig, run));
+            if (!this.isRunCurrent(run)) return;
 
             // Phase 2: The evolution moment
-            await this.playEvolutionBurst(scene, celebrationConfig, fromStage, toStage);
+            await this.runPhase(run, () => this.playEvolutionBurst(scene, celebrationConfig, fromStage, toStage, run));
+            if (!this.isRunCurrent(run)) return;
 
             // Phase 3: Play fanfare
             this.playEvolutionFanfare(fromStage, toStage);
 
             // Phase 4: Particle celebration
-            await this.playParticleCelebration(scene, celebrationConfig);
+            await this.runPhase(run, () => this.playParticleCelebration(scene, celebrationConfig, run));
+            if (!this.isRunCurrent(run)) return;
 
             // Phase 5: Show evolution modal
-            await this.showEvolutionModal(scene, celebrationConfig, fromStage, toStage, creatureData);
+            await this.runPhase(run, () => this.showEvolutionModal(scene, celebrationConfig, fromStage, toStage, creatureData, run));
 
         } catch (error) {
             console.error('[EvolutionCelebration] Error during celebration:', error);
         } finally {
-            this.cleanup();
-            this.isPlaying = false;
+            this.cleanup(run);
         }
+    }
+
+    beginRun(scene) {
+        const gameState = window.GameState;
+        const run = {
+            scene, gameState, story: gameState?.get?.('story'),
+            creatureId: gameState?.get?.('creature.id'),
+            elements: [], timers: new Set(), tweens: new Set(), listeners: [], stopped: false
+        };
+        run.cancelled = new Promise(resolve => { run.cancel = resolve; });
+        this.currentRun = run;
+        this.currentScene = scene;
+        this.celebrationElements = run.elements;
+        this.isPlaying = true;
+
+        const stop = () => this.cleanup(run);
+        for (const event of ['shutdown', 'destroy', 'sleep', 'pause']) {
+            scene.events?.once?.(event, stop);
+            run.listeners.push(() => scene.events?.off?.(event, stop));
+        }
+        for (const event of ['creatureSwitched', 'reset', 'loaded']) {
+            const unsubscribe = gameState?.on?.(event, stop);
+            run.listeners.push(typeof unsubscribe === 'function'
+                ? unsubscribe : () => gameState?.off?.(event, stop));
+        }
+        return run;
+    }
+
+    isRunCurrent(run) {
+        return Boolean(run && !run.stopped && this.currentRun === run &&
+            !run.scene._isShuttingDown && window.GameState === run.gameState &&
+            run.gameState?.get?.('story') === run.story &&
+            run.gameState?.get?.('creature.id') === run.creatureId);
+    }
+
+    async runPhase(run, play) {
+        if (!this.isRunCurrent(run)) return false;
+        // Phaser removes scene timers at shutdown; cancellation must also release the await.
+        await Promise.race([play(), run.cancelled]);
+        return this.isRunCurrent(run);
+    }
+
+    schedule(run, delay, callback) {
+        if (!this.isRunCurrent(run)) return null;
+        const timer = run.scene.time.delayedCall(delay, () => {
+            run.timers.delete(timer);
+            if (!this.isRunCurrent(run)) {
+                this.cleanup(run);
+                return;
+            }
+            try {
+                callback();
+            } catch (error) {
+                console.error('[EvolutionCelebration] Animation interrupted:', error);
+                this.cleanup(run);
+            }
+        });
+        run.timers.add(timer);
+        return timer;
+    }
+
+    addTween(run, config) {
+        if (!this.isRunCurrent(run)) return null;
+        const tween = run.scene.tweens.add({
+            ...config,
+            onComplete: (...args) => {
+                run.tweens.delete(tween);
+                if (this.isRunCurrent(run)) config.onComplete?.(...args);
+            }
+        });
+        run.tweens.add(tween);
+        return tween;
     }
 
     /**
      * Pre-evolution buildup effects
      */
-    async playPreEvolutionEffects(scene, config) {
+    async playPreEvolutionEffects(scene, config, run) {
         const { width, height } = scene.scale;
 
         return new Promise((resolve) => {
@@ -99,7 +174,7 @@ class EvolutionCelebrationManager {
                 pulseCount++;
 
                 if (pulseCount < maxPulses * 2) {
-                    scene.time.delayedCall(pulseInterval, doPulse);
+                    this.schedule(run, pulseInterval, doPulse);
                 } else {
                     resolve();
                 }
@@ -117,7 +192,7 @@ class EvolutionCelebrationManager {
     /**
      * The main evolution burst moment
      */
-    async playEvolutionBurst(scene, config, fromStage, toStage) {
+    async playEvolutionBurst(scene, config, fromStage, toStage, run) {
         const { width, height } = scene.scale;
         const effects = config.effects;
 
@@ -132,7 +207,7 @@ class EvolutionCelebrationManager {
                 flash.fillRect(0, 0, width, height);
                 this.celebrationElements.push(flash);
 
-                scene.tweens.add({
+                this.addTween(run, {
                     targets: flash,
                     alpha: 0,
                     duration: effects.flashDuration || 300,
@@ -159,7 +234,7 @@ class EvolutionCelebrationManager {
                 glow.fillRect(0, 0, width, height);
                 this.celebrationElements.push(glow);
 
-                scene.tweens.add({
+                this.addTween(run, {
                     targets: glow,
                     alpha: 0,
                     duration: 2000,
@@ -167,7 +242,7 @@ class EvolutionCelebrationManager {
                 });
             }
 
-            scene.time.delayedCall(effects.flashDuration || 300, resolve);
+            this.schedule(run, effects.flashDuration || 300, resolve);
         });
     }
 
@@ -197,7 +272,7 @@ class EvolutionCelebrationManager {
     /**
      * Particle burst celebration
      */
-    async playParticleCelebration(scene, config) {
+    async playParticleCelebration(scene, config, run) {
         const { width, height } = scene.scale;
         const effects = config.effects;
 
@@ -211,24 +286,24 @@ class EvolutionCelebrationManager {
 
             // Create multiple particle bursts
             for (let i = 0; i < particleCount; i++) {
-                scene.time.delayedCall(i * 30, () => {
-                    this.createParticle(scene, centerX, centerY, colors);
+                this.schedule(run, i * 30, () => {
+                    this.createParticle(scene, centerX, centerY, colors, run);
                 });
             }
 
             // Also create firework-style bursts from corners
-            this.createFireworkBurst(scene, width * 0.2, height * 0.3, colors);
-            this.createFireworkBurst(scene, width * 0.8, height * 0.3, colors);
-            this.createFireworkBurst(scene, width * 0.5, height * 0.2, colors);
+            this.createFireworkBurst(scene, width * 0.2, height * 0.3, colors, run);
+            this.createFireworkBurst(scene, width * 0.8, height * 0.3, colors, run);
+            this.createFireworkBurst(scene, width * 0.5, height * 0.2, colors, run);
 
-            scene.time.delayedCall(2000, resolve);
+            this.schedule(run, 2000, resolve);
         });
     }
 
     /**
      * Create a single animated particle
      */
-    createParticle(scene, startX, startY, colors) {
+    createParticle(scene, startX, startY, colors, run) {
         const colorHex = colors[Math.floor(Math.random() * colors.length)];
         const color = Phaser.Display.Color.HexStringToColor(colorHex);
 
@@ -257,7 +332,7 @@ class EvolutionCelebrationManager {
         const targetX = startX + Math.cos(angle) * speed;
         const targetY = startY + Math.sin(angle) * speed - 100; // Bias upward
 
-        scene.tweens.add({
+        this.addTween(run, {
             targets: particle,
             x: targetX,
             y: targetY,
@@ -273,11 +348,11 @@ class EvolutionCelebrationManager {
     /**
      * Create firework-style particle burst
      */
-    createFireworkBurst(scene, x, y, colors) {
+    createFireworkBurst(scene, x, y, colors, run) {
         const burstCount = 15;
 
         for (let i = 0; i < burstCount; i++) {
-            scene.time.delayedCall(i * 50, () => {
+            this.schedule(run, i * 50, () => {
                 const colorHex = colors[Math.floor(Math.random() * colors.length)];
                 const color = Phaser.Display.Color.HexStringToColor(colorHex);
 
@@ -296,7 +371,7 @@ class EvolutionCelebrationManager {
                 const targetX = x + Math.cos(angle) * distance;
                 const targetY = y + Math.sin(angle) * distance;
 
-                scene.tweens.add({
+                this.addTween(run, {
                     targets: particle,
                     x: targetX,
                     y: targetY,
@@ -337,7 +412,7 @@ class EvolutionCelebrationManager {
     /**
      * Show evolution modal with before/after comparison
      */
-    async showEvolutionModal(scene, config, fromStage, toStage, creatureData) {
+    async showEvolutionModal(scene, config, fromStage, toStage, creatureData, run) {
         const { width, height } = scene.scale;
 
         return new Promise((resolve) => {
@@ -517,18 +592,21 @@ class EvolutionCelebrationManager {
             this.celebrationElements.push(buttonZone);
 
             buttonZone.on('pointerover', () => {
+                if (!this.isRunCurrent(run)) return;
                 button.clear();
                 button.fillStyle(0xFFFFFF, 0.9);
                 button.fillRoundedRect(width / 2 - 60, buttonY - 15, 120, 35, 8);
             });
 
             buttonZone.on('pointerout', () => {
+                if (!this.isRunCurrent(run)) return;
                 button.clear();
                 button.fillStyle(glowColor.color, 0.8);
                 button.fillRoundedRect(width / 2 - 60, buttonY - 15, 120, 35, 8);
             });
 
             buttonZone.on('pointerdown', () => {
+                if (!this.isRunCurrent(run)) return;
                 if (window.AudioManager?.playButtonClick) {
                     window.AudioManager.playButtonClick();
                 }
@@ -538,7 +616,7 @@ class EvolutionCelebrationManager {
             // Animate modal in
             const allElements = [overlay, panel, title, celebrationName, message, subMessage, stageInfo, button, buttonText];
 
-            scene.tweens.add({
+            this.addTween(run, {
                 targets: allElements,
                 alpha: 1,
                 duration: 500,
@@ -546,7 +624,7 @@ class EvolutionCelebrationManager {
             });
 
             // Title bounce animation
-            scene.tweens.add({
+            this.addTween(run, {
                 targets: title,
                 scale: { from: 0.5, to: 1 },
                 duration: 600,
@@ -555,21 +633,40 @@ class EvolutionCelebrationManager {
             });
 
             // Auto-close after duration if no interaction
-            scene.time.delayedCall(config.duration + 5000, () => {
-                if (this.isPlaying) {
-                    resolve();
-                }
-            });
+            this.schedule(run, config.duration + 5000, resolve);
         });
     }
 
     /**
      * Cleanup all celebration elements
      */
-    cleanup() {
+    cleanup(run = this.currentRun) {
+        if (!run || run.stopped) return;
+        run.stopped = true;
         console.log('[EvolutionCelebration] Cleaning up');
 
-        this.celebrationElements.forEach(element => {
+        // Release ownership before disposal; teardown may overlap with a new reveal.
+        if (this.currentRun === run) {
+            this.currentRun = null;
+            this.celebrationElements = [];
+            this.currentScene = null;
+            this.isPlaying = false;
+        }
+        run.cancel();
+        const disposals = [
+            ...run.listeners,
+            ...Array.from(run.timers, timer => () => timer.remove(false)),
+            ...Array.from(run.tweens, tween => () => tween.remove())
+        ];
+        run.listeners.length = 0;
+        run.timers.clear();
+        run.tweens.clear();
+        disposals.forEach(dispose => {
+            try { dispose(); } catch (error) {
+                console.warn('[EvolutionCelebration] Resource already disposed:', error);
+            }
+        });
+        run.elements.forEach(element => {
             if (element && element.destroy) {
                 try {
                     element.removeAllListeners?.();
@@ -580,8 +677,7 @@ class EvolutionCelebrationManager {
             }
         });
 
-        this.celebrationElements = [];
-        this.currentScene = null;
+        run.elements.length = 0;
     }
 
     /**
@@ -595,11 +691,7 @@ class EvolutionCelebrationManager {
      * Force stop celebration (for scene transitions)
      */
     forceStop() {
-        if (this.isPlaying) {
-            console.log('[EvolutionCelebration] Force stopping');
-            this.cleanup();
-            this.isPlaying = false;
-        }
+        this.cleanup();
     }
 }
 

@@ -1,5 +1,6 @@
 import { CAMPAIGN_INTENTS } from './CampaignLegacy.js';
 import { getShipReconstructionSnapshot } from './ShipReconstruction.js';
+import { getExpeditionCheckpointResume } from './ExpeditionCheckpoints.js';
 
 const CAMPAIGN_ROUTE = Object.freeze([
     Object.freeze({
@@ -183,16 +184,10 @@ function getCampaignJourneyStep(gameState) {
         };
     }
 
-    const activeCheckpoint = read(
-        gameState,
-        'story.projectBeacon.expeditionCheckpoint'
-    );
-    if (activeCheckpoint?.sceneKey) {
+    const activeCheckpoint = getExpeditionCheckpointResume(gameState);
+    if (activeCheckpoint) {
         const checkpointRoute = CAMPAIGN_ROUTE.find(
-            route => route.sceneKey === activeCheckpoint.sceneKey ||
-                route.levelStateId === activeCheckpoint.levelStateId ||
-                `levels.${route.levelStateId}` === activeCheckpoint.levelStatePath ||
-                route.gateId === activeCheckpoint.gateId
+            route => route.gateId === activeCheckpoint.gateId
         );
         const checkpointAccess = checkpointRoute
             ? getCampaignRouteAccess(gameState, checkpointRoute)
@@ -202,7 +197,7 @@ function getCampaignJourneyStep(gameState) {
                 ...checkpointRoute,
                 status: 'resume',
                 title: `Resume ${checkpointRoute.label}`,
-                action: `Rejoin at ${activeCheckpoint.label || 'the last Beacon anchor'}.`
+                action: `Rejoin at ${activeCheckpoint.label}.`
             };
         }
     }

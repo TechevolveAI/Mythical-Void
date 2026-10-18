@@ -835,7 +835,7 @@ describe('first-session Project Beacon mission loop', () => {
         manager.togglePanel();
 
         expect(manager.panelVisible).toBe(true);
-        expect(manager.panelElements).toHaveLength(13);
+        expect(manager.panelElements).toHaveLength(16);
         expect(manager.setFocusMode(true)).toBe(true);
         expect(manager.panelVisible).toBe(false);
         expect(manager.hintText.setVisible).toHaveBeenLastCalledWith(false);

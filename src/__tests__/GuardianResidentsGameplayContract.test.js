@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection, expectPeaksCompletionConnection, expectCrystalCompletionConnection, expectReefCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 function read(relativePath) {
     return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
@@ -42,10 +43,14 @@ describe('Guardian resident gameplay contract', () => {
         expect(platformer).toContain('${resident.name} FREED -> SANCTUARY');
         expect(platformer).toContain('REGIONAL OUTCOME // ${guardian.name}');
         completionLevels.forEach(level => {
-            if (level.includes('class VoidPeaksLevel')) {
-                expect(level).toContain('this.presentLevelCompletion()');
-                expect(level).toContain('this.pendingResidentReleaseContinuation = () => this.returnToHub()');
-            } else expect(level).toContain('this.getGuardianSanctuaryArrivalCopy({ compact: true })');
+            if (level.includes('class MythicalForestLevel')) { expectForestCompletionConnection(); return; }
+            if (level.includes('class VoidPeaksLevel')) { expectPeaksCompletionConnection(); return; }
+            if (level.includes('class CrystalCavesLevel')) { expectCrystalCompletionConnection(); return; }
+            if (level.includes('class ReefLevel')) { expectReefCompletionConnection(); return; }
+            if (level.includes('class AuroraDepthsLevel')) { expectAuroraCompletionConnection(); return; }
+            expect(level).toContain(level.includes('class FinalVoidLevel')
+                ? 'this.getGuardianSanctuaryArrivalCopy({ compact: true })'
+                : 'this.showRegionalVictorySummary()');
         });
     });
 

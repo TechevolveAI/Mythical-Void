@@ -148,8 +148,9 @@ describe('creature uniqueness production contract', () => {
         );
 
         expect(hatchSource).toContain('this.creatureGenetics\n                );');
-        expect(hatchSource.indexOf('this.beginLivingPortraitPrewarm();')).toBeLessThan(
-            hatchSource.indexOf('this.saveCreatureGenetics();')
+        expect(hatchSource).toContain('this.saveCreatureGenetics(() => {');
+        expect(hatchSource.indexOf('this.saveCreatureGenetics(() => {')).toBeLessThan(
+            hatchSource.indexOf('this.beginLivingPortraitPrewarm();')
         );
         expect(hatchSource).toContain("source: 'post_hatch'");
         expect(graphicsSource).toContain('geneticsOverride = null');

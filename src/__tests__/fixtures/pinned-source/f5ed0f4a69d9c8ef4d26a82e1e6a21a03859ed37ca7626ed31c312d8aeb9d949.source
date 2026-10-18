@@ -1,0 +1,290 @@
+{
+  "title": "Project Beacon",
+  "year": 2026,
+  "ship": {
+    "name": "Wanderer-77",
+    "flightNumber": 23,
+    "registry": "W77-23",
+    "signalChannel": "BEACON LINK 23",
+    "livery": [
+      "#D72638",
+      "#050505",
+      "#FFFFFF",
+      "#138A36"
+    ]
+  },
+  "firstSessionFraming": {
+    "homeSubtitle": "PROJECT BEACON // WANDERER-77",
+    "homeCta": "BEGIN PROJECT BEACON",
+    "homePromise": "One astronaut. A silent beacon. A living world.",
+    "homeCards": [
+      {
+        "icon": "🛰️",
+        "title": "SURVIVE",
+        "description": "Wanderer-77\nis down"
+      },
+      {
+        "icon": "✨",
+        "title": "CONNECT",
+        "description": "Find the hidden\ncreature"
+      },
+      {
+        "icon": "📡",
+        "title": "RESTORE",
+        "description": "Bring the beacon\nback online"
+      }
+    ],
+    "hatchTitle": "FIRST CONTACT",
+    "hatchSubtitle": "PROJECT BEACON // WANDERER-77",
+    "firstHatchPrompt": "Something living answers beside the wreck.\nApproach gently. You are not alone.",
+    "returningHatchPrompt": "Something living is inside the egg. Approach gently.",
+    "tapPromptDesktop": "CLICK THE EGG TO BEGIN",
+    "tapPromptMobile": "TAP EGG TO BEGIN",
+    "controlPrompt": "Click the egg or press SPACE to begin • Move with WASD or Arrow keys later",
+    "journeyPrompt": "Meet the creature → Name it → Explore the world",
+    "tutorialHints": {
+      "preHatch": "Tip: Tap the egg gently to let the creature know you are there.",
+      "hatching": "The creature is answering. Stay close.",
+      "postHatch": "First contact confirmed. Learn who answered, then choose a name."
+    }
+  },
+  "openingPages": [
+    {
+      "title": "PROJECT BEACON",
+      "subtitle": "Flight 23 // Mission Log // 2026",
+      "icon": "📡",
+      "content": "Wanderer-77 missed its target and fell beyond mapped space.\n\nYou survived. Earth is still waiting for the mission that was meant to help it endure.",
+      "color": "#66C7D4"
+    },
+    {
+      "title": "EARTH DIRECTIVE",
+      "subtitle": "Priority Transmission // Fragment 04",
+      "icon": "🌍",
+      "content": "Locate viable energy, mineral, and biological samples. Restore the uplink. Report all signs of life.\n\nMission Control's final order survived the impact: Earth comes first.",
+      "color": "#F2C14E"
+    },
+    {
+      "title": "IMPACT",
+      "subtitle": "Wanderer-77 // Systems Critical",
+      "icon": "🚀",
+      "content": "The hull is breached and the emergency beacon is silent.\n\nYour Earth-forged field katana survived in its case. Most of the science bay did not.",
+      "color": "#EF767A"
+    },
+    {
+      "title": "FIRST OBSERVATION",
+      "subtitle": "Field Note // Classification Pending",
+      "icon": "✨",
+      "content": "The hatchling tracks movement, responds to tone, and avoids the scanner. Intelligence is unconfirmed.\n\nDo not treat it as a specimen. Observe. Protect. Learn.",
+      "color": "#8FE3CF"
+    },
+    {
+      "title": "FIELD PLAN",
+      "subtitle": "Immediate Field Plan",
+      "icon": "🥋",
+      "content": "Stabilize the hatchling. Earn its trust. Recover your field kit. Look for nearby signs of life. Find a safe route from the crash site.\n\nSensei always said to begin with your footing. He probably meant on the ground.",
+      "color": "#BFA6FF"
+    }
+  ],
+  "fieldMissions": [
+    {
+      "id": "beacon_first_contact",
+      "name": "Establish Trust",
+      "objectiveLabel": "OFFER FOOD OR PLAY ONCE",
+      "description": "Offer food or play once.",
+      "briefing": "The hatchling is watching what you do. Begin without instruments.",
+      "fieldNote": "Easy. Sensei said trust begins with how you enter the room. We entered through the roof.",
+      "guidanceDesktop": "Press TAB, then choose Feed or Play.",
+      "guidanceMobile": "Tap your creature, choose Care, then Feed or Play.",
+      "icon": "🤝",
+      "type": "story",
+      "objective": {
+        "type": "care_action",
+        "target": 1
+      },
+      "rewards": {
+        "coins": 25,
+        "xp": 20
+      },
+      "oneTime": true
+    },
+    {
+      "id": "beacon_field_kit",
+      "name": "Recover the Field Kit",
+      "objectiveLabel": "RECOVER THE FIELD KIT AT WANDERER-77",
+      "description": "Return to Wanderer-77 and recover the field gear that survived.",
+      "briefing": "Wanderer-77 is broken, but the field case still answers your suit. Recover what Earth sent with you.",
+      "fieldNote": "Best materials on Earth. I would settle for a handle that survived the landing.",
+      "guidanceDesktop": "Follow the FIELD KIT marker and interact beside Wanderer-77.",
+      "guidanceMobile": "Follow the FIELD KIT marker and tap the interact button beside Wanderer-77.",
+      "icon": "🥋",
+      "type": "story",
+      "objective": {
+        "type": "story_interaction",
+        "event": "field_kit_recovered",
+        "target": 1
+      },
+      "rewards": {
+        "coins": 30,
+        "xp": 25
+      },
+      "oneTime": true
+    },
+    {
+      "id": "beacon_living_signals",
+      "name": "Look for Signs of Life",
+      "objectiveLabel": "LISTEN AT 3 MARKED PULSES",
+      "description": "Listen at all three pulses with your creature. They are traces of the planet's living Current, not transmissions from Earth.",
+      "briefing": "These pulses are not messages from Earth. They move through the planet's living Current, and your creature recognizes them like familiar voices. Walk into each pulse and hold position while your creature listens.",
+      "fieldNote": "Three readings. No samples until I understand what I am touching.",
+      "guidanceDesktop": "Follow the SIGNS OF LIFE marker. Walk into the glow and hold position until something answers.",
+      "guidanceMobile": "Follow the SIGNS OF LIFE marker. Use the joystick to enter the glow, then hold position.",
+      "icon": "🔍",
+      "type": "story",
+      "objective": {
+        "type": "observe_living_signal",
+        "signalIds": [
+          "echo_bloom",
+          "memory_stone",
+          "rootlight"
+        ],
+        "target": 3
+      },
+      "rewards": {
+        "coins": 50,
+        "xp": 30
+      },
+      "oneTime": true
+    },
+    {
+      "id": "beacon_world_gate",
+      "name": "Reach the World Gate",
+      "objectiveLabel": "ENTER THE WORLD GATE",
+      "description": "Find and enter the gate leading beyond the Sanctuary.",
+      "briefing": "Your creature knows a path beyond the crash site. This time, you are the one being asked to follow.",
+      "fieldNote": "First rule of unfamiliar ground: notice who already knows where to step.",
+      "guidanceDesktop": "Follow the WORLD GATE marker and enter when you are ready.",
+      "guidanceMobile": "Follow the WORLD GATE marker and tap interact when you are ready.",
+      "icon": "🌀",
+      "type": "story",
+      "objective": {
+        "type": "landmark_visit",
+        "landmark": "hub_gate",
+        "target": 1
+      },
+      "rewards": {
+        "coins": 75,
+        "xp": 50
+      },
+      "oneTime": true
+    }
+  ],
+  "firstExpeditionHandoff": {
+    "title": "THE PATH ANSWERS",
+    "route": "ROOTLIGHT ROUTE // MYTHICAL FOREST",
+    "finding": "The same living Current you found at Rootlight is moving through the gate. Your creature steps forward, then looks back to make sure you are following.",
+    "companionMoment": "The Current led us here. Something beyond this gate is calling for help.",
+    "fieldNote": "Sensei would say a path is a promise made one step at a time.",
+    "primaryAction": "BEGIN EXPEDITION",
+    "secondaryAction": "LOOK AROUND"
+  },
+  "shipSystems": [
+    {
+      "id": "forest_core",
+      "name": "Forest Core",
+      "icon": "🌿",
+      "function": "Restores the ship's living power lattice."
+    },
+    {
+      "id": "crystal_core",
+      "name": "Crystal Core Engine",
+      "icon": "🔮",
+      "function": "Stabilizes Wanderer-77's damaged propulsion."
+    },
+    {
+      "id": "dimensional_drive",
+      "name": "Dimensional Drive",
+      "icon": "⚙️",
+      "function": "Opens a survivable route through the Void."
+    },
+    {
+      "id": "hull_plating",
+      "name": "Hull Plating",
+      "icon": "🛡️",
+      "function": "Rebuilds the ship around living-world resonance."
+    },
+    {
+      "id": "aurora_reactor",
+      "name": "Aurora Reactor",
+      "icon": "✨",
+      "function": "Powers the long-range Project Beacon uplink."
+    }
+  ],
+  "campaignDebriefs": [
+    {
+      "id": "beacon_debrief_1",
+      "completionNumber": 1,
+      "title": "A GIFT, NOT A SAMPLE",
+      "icon": "✨",
+      "color": "#8FE3CF",
+      "nextGate": {
+        "id": "crystal_caves",
+        "label": "Crystal Caves"
+      },
+      "finding": "The 'structure' was an injured Elder guardian. Clearing the purple corruption restored its living Current. The Forest Core was offered after the rescue. It was not taken.",
+      "companionMoment": "Your creature stayed close through the fight, then approached first when the guardian recovered.",
+      "fieldNote": "Sensei taught that control means knowing when to stop. The guardian offered the Core after we did."
+    },
+    {
+      "id": "beacon_debrief_2",
+      "completionNumber": 2,
+      "title": "THE SAME KIND OF SCAR",
+      "icon": "🌱",
+      "color": "#7ED6A5",
+      "nextGate": {
+        "id": "stellar_reef",
+        "label": "Stellar Reef"
+      },
+      "finding": "Around the second system, the scanner finds energy stripped faster than the world can heal. The pattern resembles the damage reported across Earth.",
+      "companionMoment": "Before approaching the ship part, your creature tends a wounded patch of its world.",
+      "fieldNote": "It is not protecting treasure. It is protecting home."
+    },
+    {
+      "id": "beacon_debrief_3",
+      "completionNumber": 3,
+      "title": "A LANGUAGE WITHOUT WORDS",
+      "icon": "🗺️",
+      "color": "#66C7D4",
+      "nextGate": {
+        "id": "void_peaks",
+        "label": "Void Peaks"
+      },
+      "finding": "Three restored systems resonate together. At your creature's touch, their pulses align into a route through the Void.",
+      "companionMoment": "It studies your instruments, corrects the route, and looks pleased when you finally understand.",
+      "fieldNote": "I came to catalogue life. Life has started briefing me."
+    },
+    {
+      "id": "beacon_debrief_4",
+      "completionNumber": 4,
+      "title": "OTHERS ARE LISTENING",
+      "icon": "📡",
+      "color": "#BFA6FF",
+      "nextGate": {
+        "id": "aurora_depths",
+        "label": "Aurora Depths"
+      },
+      "finding": "Distant settlements answer your creature's call. These are not random echoes. Warnings are moving between living communities.",
+      "companionMoment": "Your creature keeps you close while the replies arrive, allowing you inside a conversation no human has heard.",
+      "fieldNote": "Trust is not something you collect. It is something you return."
+    },
+    {
+      "id": "beacon_debrief_5",
+      "completionNumber": 5,
+      "title": "THE BEACON CAN BE HEARD",
+      "icon": "🌍",
+      "color": "#F2C14E",
+      "finding": "Five systems are online. The uplink can reach Earth, but its message could also reveal this world to everyone listening.",
+      "companionMoment": "Your creature recognizes Earth's symbol on the console and steps closer instead of backing away.",
+      "fieldNote": "The mission is larger than the directive now. I am not ready to name the choice, only to admit it exists."
+    }
+  ]
+}

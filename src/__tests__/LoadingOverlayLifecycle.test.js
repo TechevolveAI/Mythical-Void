@@ -51,6 +51,29 @@ describe('loading presentation must not block scene entry', () => {
         ux.hideLoading();
         expect(document.querySelectorAll('#loading-overlay')).toHaveLength(1);
     });
+
+    test('an old scene cannot dismiss a newer owner\'s loading screen', () => {
+        const hatch = {}, gate = {};
+        ux.showLoading('Showing your creature...', hatch);
+        ux.showLoading('Entering a level...', gate);
+        ux.hideLoading(hatch);
+        const overlay = document.getElementById('loading-overlay');
+        expect(overlay.classList.contains('hidden')).toBe(false);
+        expect(overlay.getAttribute('aria-busy')).toBe('true');
+        expect(overlay.querySelector('.loading-text').textContent).toBe('Entering a level...');
+        ux.hideLoading(gate);
+        expect(overlay.classList.contains('hidden')).toBe(true);
+    });
+
+    test('legacy callers can still show and dismiss without an ownership argument', () => {
+        const hatch = {};
+        ux.showLoading('Hatching...', hatch);
+        ux.showLoading('A legacy scene is loading...');
+        ux.hideLoading(hatch);
+        expect(document.getElementById('loading-overlay').classList.contains('hidden')).toBe(false);
+        ux.hideLoading();
+        expect(document.getElementById('loading-overlay').classList.contains('hidden')).toBe(true);
+    });
 });
 
 describe('page lifecycle keeps a cancelled or cached game usable', () => {

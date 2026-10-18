@@ -1,0 +1,1770 @@
+/**
+ * SoulRevealScene - Unified soul reveal + naming screen
+ *
+ * Combines the old PersonalityScene and NamingScene into a first-contact reading.
+ * Features:
+ * - AI-generated unique soul phrases
+ * - Meaningful context for all stats (rarity odds, ability benefits, etc.)
+ * - Personality preview with sample dialogue
+ * - Dramatic sequential animations
+ * - Data saved to GameState for profile page access
+ */
+
+import Phaser from 'phaser';
+import { devLog } from '../utils/devLogger.js';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import { buildCreaturePowerProfile } from '../systems/CreaturePowerProfile.js';
+import LivingFormHandoff from '../ui/LivingFormHandoff.js';
+
+export default class SoulRevealScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'SoulRevealScene' });
+        this.elements = [];
+        this.nameInput = '';
+        this.inputActive = false;
+        this.canProceed = false;
+        this.htmlInput = null;
+        this.nameDomElement = null;
+        this.nameSubmitButton = null;
+        this.nameSubmitDomElement = null;
+        this.portraitPromise = null;
+        this.portraitError = null;
+        this.livingFormHandoff = null;
+        this.graphicsEngine = null;
+        this.previousDomContainerStyles = null;
+        this.viewportResizeHandler = null;
+        this.compactNamingScrim = null;
+        this.compactNamingPrompt = null;
+        this.namingLifetime = {};
+        this.namingAttempt = null;
+        this.namingRetired = false;
+    }
+
+    init(data) {
+        this.namingRetired = true;
+        this.clearNamingSaveRecovery();
+        this.namingLifetime = {};
+        this.namingAttempt = null;
+        this.namingRetired = false;
+        // Phaser reuses scene instances. Reset every per-creature field here so
+        // a second hatch cannot inherit the previous name or portrait job.
+        this.nameInput = '';
+        this.inputActive = false;
+        this.canProceed = false;
+        this.htmlInput = null;
+        this.nameDomElement = null;
+        this.nameSubmitButton = null;
+        this.portraitPromise = null;
+        this.portraitError = null;
+        this.livingFormHandoff = null;
+        this.previousDomContainerStyles = null;
+        this.isEggHatch = data?.isEggHatch || false;
+        this.eggType = data?.eggType || null;
+        this.resumeLivingForm = data?.resumeLivingForm === true;
+        this.portraitPreviewImage = data?.portraitPreviewImage || null;
+        this.portraitPreviewFailure = data?.portraitPreviewFailure || false;
+        this.portraitPreviewSpecies = data?.portraitPreviewSpecies || null;
+        this.portraitPreviewDelay = Number(data?.portraitPreviewDelay) || 1400;
+        this.portraitReferenceImage = null;
+        devLog('[SoulRevealScene] Init with data:', data);
+    }
+
+    create() {
+        // Stop other scenes to ensure clean display
+        const scenesToStop = ['HatchingScene', 'PersonalityScene', 'NamingScene', 'GameScene'];
+        SceneTransitionHelper.stopActiveScenes(this, scenesToStop);
+        SceneTransitionHelper.bringToTop(this);
+
+        const { width, height } = this.scale;
+
+        // Initialize SoulPhraseGenerator
+        if (window.SoulPhraseGenerator && !window.SoulPhraseGenerator.initialized) {
+            window.SoulPhraseGenerator.initialize();
+        }
+
+        // Get creature data
+        this.loadCreatureData();
+        this.ensureCreatureTexture();
+        if (this.portraitPreviewFailure) {
+            this.portraitPromise = new Promise((resolve, reject) => {
+                this.time.delayedCall(
+                    this.portraitPreviewDelay,
+                    () => reject(new Error('Local portrait failure preview'))
+                );
+            });
+            this.portraitPromise.catch(() => {});
+        } else if (this.portraitPreviewImage) {
+            this.portraitPromise = new Promise(resolve => {
+                this.time.delayedCall(this.portraitPreviewDelay, () => resolve({
+                    identityKey: 'local-preview',
+                    stage: 'baby',
+                    imageUrl: this.portraitPreviewImage
+                }));
+            });
+        }
+
+        // Create background
+        this.createBackground(width, height);
+
+        if (this.resumeLivingForm) {
+            this.resumeLivingFormHandoff(width, height);
+        } else {
+            // Start the dramatic reveal sequence
+            this.startRevealSequence(width, height);
+        }
+
+        // Setup keyboard input for desktop
+        this.setupKeyboardInput();
+        this.viewportResizeHandler = ({ width: nextWidth, height: nextHeight } = {}) => {
+            this.layoutNativeNamingControls(
+                Number(nextWidth) || this.scale.width,
+                Number(nextHeight) || this.scale.height
+            );
+        };
+        this.game.events.on('resize', this.viewportResizeHandler);
+        this.events.once('shutdown', this.shutdown, this);
+
+        devLog('[SoulRevealScene] Created');
+    }
+
+    resumeLivingFormHandoff(width, height) {
+        const stage = this.portraitCreatureData?.stage || 'baby';
+        const existingPortrait = window.GameState?.getCreaturePortrait?.(stage);
+        if (existingPortrait?.imageUrl) {
+            this.portraitPromise = Promise.resolve(existingPortrait);
+        } else if (existingPortrait?.assetRef) {
+            try {
+                const job = window.LivingPortraitService?.resolve?.(existingPortrait);
+                if (job) {
+                    const observed = Promise.resolve(job);
+                    this.portraitPromise = observed;
+                    observed.catch(error => {
+                        if (this.portraitPromise !== observed) return;
+                        this.portraitError = error;
+                    });
+                }
+            } catch (error) {
+                this.portraitError = error;
+                devLog('[SoulRevealScene] Optional saved portrait unavailable');
+            }
+        }
+
+        const textureName = this.creatureData.textureName;
+        if (textureName && this.textures.exists(textureName)) {
+            this.creature = this.add.sprite(width / 2, height / 2, textureName)
+                .setVisible(false);
+            this.elements.push(this.creature);
+            this.beginLivingPortraitPrewarm();
+        }
+
+        const creatureName = window.GameState?.get('creature.name') || 'Creature';
+        this.time.delayedCall(50, () => {
+            this.showLivingPortraitHandoff(creatureName);
+        });
+    }
+
+    /**
+     * Load creature data from GameState
+     */
+    loadCreatureData() {
+        const genetics = window.GameState?.get('creature.genetics');
+        const genes = window.GameState?.get('creature.genes');
+        const dna = window.GameState?.get('creature.dna');
+        const personality = window.GameState?.get('creature.personality');
+
+        // Extract key data
+        this.creatureData = {
+            rarity: genetics?.rarity || genes?.rarity || 'common',
+            personalityCore: personality?.core || genetics?.personality?.core || 'curious',
+            cosmicAffinity: genetics?.cosmicAffinity?.element
+                || genes?.cosmicAffinity?.element
+                || 'star',
+            powerLevel: genetics?.cosmicAffinity?.powerLevel
+                || genes?.cosmicAffinity?.powerLevel
+                || 0.5,
+            textureName: window.GameState?.get('creature.textureName'),
+            isShiny: genetics?.isShiny || false,
+            shinyType: genetics?.shinyType || null,
+            mutations: genetics?.traits?.features?.wackyMutations || [],
+            specialFeatures: genetics?.traits?.features?.specialFeatures || []
+        };
+        this.portraitCreatureData = {
+            name: window.GameState?.get('creature.name') || 'Mythical Creature',
+            stage: window.GameState?.get('creature.lifecycle.stage') || 'baby',
+            genes: genes || genetics || (
+                this.portraitPreviewSpecies
+                    ? { species: this.portraitPreviewSpecies }
+                    : null
+            ),
+            dna
+        };
+
+        this.powerProfile = buildCreaturePowerProfile(window.GameState, {
+            context: 'fend'
+        });
+        this.innateAbility = this.powerProfile.affinityPower;
+
+        // Generate unique soul phrase
+        if (window.SoulPhraseGenerator) {
+            this.soulPhrase = window.SoulPhraseGenerator.generate(
+                this.creatureData.personalityCore,
+                this.creatureData.cosmicAffinity,
+                this.creatureData.rarity
+            );
+        } else {
+            this.soulPhrase = {
+                phrase: 'First contact confirms a life no mission file predicted',
+                nature: 'First contact',
+                action: 'confirms',
+                element: 'a life no mission file predicted'
+            };
+        }
+
+        // Get personality preview dialogue
+        this.personalityPreview = this.getPersonalityPreview(this.creatureData.personalityCore);
+
+        // Get rarity context (odds, bonuses)
+        this.rarityContext = this.getRarityContext(this.creatureData.rarity);
+
+        // Check for Ancient Lineage (5% for testing, normally 0.5%)
+        this.hasAncientLineage = Math.random() < 0.05;
+
+        devLog('[SoulRevealScene] Creature data loaded:', this.creatureData);
+        devLog('[SoulRevealScene] Soul phrase:', this.soulPhrase.phrase);
+        devLog('[SoulRevealScene] Innate ability:', this.innateAbility?.name);
+    }
+
+    /**
+     * Saved texture keys refer to Phaser's in-memory texture cache and do not
+     * survive a refresh. Rebuild the same deterministic creature from its
+     * persisted DNA/genes before first contact instead of showing an empty
+     * portrait surface.
+     */
+    ensureCreatureTexture() {
+        const currentTexture = this.creatureData?.textureName;
+        if (currentTexture && this.textures.exists(currentTexture)) {
+            return currentTexture;
+        }
+
+        if (typeof window.GraphicsEngine !== 'function') {
+            return null;
+        }
+
+        try {
+            this.graphicsEngine ||= new window.GraphicsEngine(this);
+            const rendered = this.graphicsEngine.loadCreatureFromGameState?.(0);
+            const textureName = typeof rendered === 'string'
+                ? rendered
+                : rendered?.textureName;
+            if (!textureName || !this.textures.exists(textureName)) {
+                return null;
+            }
+            this.creatureData.textureName = textureName;
+            return textureName;
+        } catch (error) {
+            console.warn(
+                '[SoulRevealScene] Creature texture recovery failed:',
+                error.message
+            );
+            return null;
+        }
+    }
+
+    /**
+     * Get rarity context - odds and bonuses
+     */
+    getRarityContext(rarity) {
+        const contexts = {
+            common: {
+                odds: '1 in 2 hatches',
+                bonus: 'Standard stats',
+                statBoost: 0
+            },
+            uncommon: {
+                odds: '1 in 5 hatches',
+                bonus: '+10% all stats',
+                statBoost: 10
+            },
+            rare: {
+                odds: '1 in 20 hatches',
+                bonus: '+25% all stats',
+                statBoost: 25
+            },
+            epic: {
+                odds: '1 in 50 hatches',
+                bonus: '+40% all stats',
+                statBoost: 40
+            },
+            legendary: {
+                odds: '1 in 100 hatches',
+                bonus: '+60% all stats · Unique aura',
+                statBoost: 60
+            }
+        };
+        return contexts[rarity] || contexts.common;
+    }
+
+    /**
+     * Get personality preview dialogue samples
+     */
+    getPersonalityPreview(personality) {
+        const previews = {
+            curious: {
+                observation: 'Tracks every light and movement around the wreck.',
+                trait: 'Alert, investigative, and quick to notice change'
+            },
+            playful: {
+                observation: 'Mirrors your movements, then waits for a response.',
+                trait: 'Social, responsive, and drawn to movement'
+            },
+            gentle: {
+                observation: 'Keeps close when your suit alarm sounds.',
+                trait: 'Calm, attentive, and sensitive to distress'
+            },
+            wise: {
+                observation: 'Studies the scanner before approaching you.',
+                trait: 'Patient, deliberate, and highly observant'
+            },
+            energetic: {
+                observation: 'Moves first, then checks whether you follow.',
+                trait: 'Fast, decisive, and constantly in motion'
+            }
+        };
+        return previews[personality] || previews.curious;
+    }
+
+    getRevealLayout(width = this.scale.width, height = this.scale.height) {
+        const compactHeight = height < 660;
+        const keyboardCompact = height < 600;
+        const panelHeight = compactHeight ? 264 : 276;
+        const formTail = 156;
+        const preferredPanelY = height * (width < 600 ? 0.38 : 0.32);
+        const panelY = Math.max(
+            compactHeight ? 126 : 150,
+            Math.min(preferredPanelY, height - panelHeight - formTail)
+        );
+        const panelWidth = Math.min(width - 32, 380);
+        const panelBottom = panelY + panelHeight;
+        const inputHeight = 46;
+        const inputTop = keyboardCompact
+            ? Math.max(12, height - inputHeight - 48 - 28)
+            : panelBottom + 42;
+        const buttonTop = keyboardCompact
+            ? inputTop + inputHeight + 8
+            : panelBottom + 102;
+
+        return {
+            compactHeight,
+            keyboardCompact,
+            panelX: (width - panelWidth) / 2,
+            panelY,
+            panelWidth,
+            panelHeight,
+            panelBottom,
+            titleY: Math.max(30, panelY - (compactHeight ? 142 : 156)),
+            creatureY: Math.max(76, panelY - (compactHeight ? 54 : 72)),
+            creatureMaxSize: Math.min(
+                width * 0.26,
+                compactHeight ? 72 : 104
+            ),
+            inputTop,
+            inputHeight,
+            inputWidth: Math.min(panelWidth - 24, 320),
+            buttonTop,
+            buttonHeight: 48
+        };
+    }
+
+    /**
+     * Create magical background
+     */
+    createBackground(width, height) {
+        // Gradient background
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x2d1b4e, 0x2d1b4e, 1);
+        bg.fillRect(0, 0, width, height);
+        bg.setDepth(0);
+        this.elements.push(bg);
+
+        // Twinkling stars
+        this.createStarfield(width, height);
+    }
+
+    /**
+     * Create animated starfield
+     */
+    createStarfield(width, height) {
+        for (let i = 0; i < 50; i++) {
+            const star = this.add.graphics();
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const size = 1 + Math.random() * 2;
+            const alpha = 0.3 + Math.random() * 0.7;
+
+            star.fillStyle(0xFFFFFF, alpha);
+            star.fillCircle(x, y, size);
+            star.setDepth(1);
+            this.elements.push(star);
+
+            // Twinkle animation
+            this.tweens.add({
+                targets: star,
+                alpha: { from: alpha, to: alpha * 0.3 },
+                duration: 1000 + Math.random() * 2000,
+                yoyo: true,
+                repeat: -1,
+                delay: Math.random() * 1000
+            });
+        }
+    }
+
+    /**
+     * Start the dramatic reveal sequence
+     */
+    startRevealSequence(width, height) {
+        const timeline = [];
+        let delay = 0;
+
+        // 0.0s - Title
+        timeline.push({ delay: delay, fn: () => this.showTitle(width, height) });
+        delay += 300;
+
+        // 0.3s - Creature entrance
+        timeline.push({ delay: delay, fn: () => this.showCreature(width, height) });
+        delay += 700;
+
+        // 1.0s - Rarity badge with context
+        timeline.push({ delay: delay, fn: () => this.showRarityBadge(width, height) });
+        delay += 500;
+
+        // 1.5s - Ancient Lineage (if applicable)
+        if (this.hasAncientLineage) {
+            timeline.push({ delay: delay, fn: () => this.showAncientLineage(width, height) });
+            delay += 1000;
+        }
+
+        // 2.0s - Personality with preview
+        timeline.push({ delay: delay, fn: () => this.showPersonality(width, height) });
+        delay += 800;
+
+        // 2.8s - Cosmic affinity with power comparison
+        timeline.push({ delay: delay, fn: () => this.showCosmicAffinity(width, height) });
+        delay += 500;
+
+        // 3.3s - Innate ability with benefits
+        timeline.push({ delay: delay, fn: () => this.showInnateAbility(width, height) });
+        delay += 600;
+
+        // 3.9s - Name input
+        timeline.push({ delay: delay, fn: () => this.showNameInput(width, height) });
+        delay += 400;
+
+        // 4.3s - Begin button
+        timeline.push({ delay: delay, fn: () => this.showBeginButton(width, height) });
+
+        // Execute timeline
+        timeline.forEach(item => {
+            this.time.delayedCall(item.delay, item.fn);
+        });
+    }
+
+    /**
+     * Show title with fade animation
+     */
+    showTitle(width, height) {
+        const layout = this.getRevealLayout(width, height);
+        const title = this.add.text(width / 2, layout.titleY, 'FIRST CONTACT // INITIAL READINGS', {
+            fontSize: Math.min(20, width * 0.047) + 'px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#DCE8ED',
+            fontStyle: 'bold',
+            stroke: '#2D1B4E',
+            strokeThickness: 4
+        }).setOrigin(0.5).setAlpha(0).setDepth(100);
+        this.elements.push(title);
+
+        this.tweens.add({
+            targets: title,
+            alpha: 1,
+            y: title.y + 10,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playVisionReveal?.();
+        }
+    }
+
+    /**
+     * Show creature with dramatic entrance
+     */
+    showCreature(width, height) {
+        const textureName = this.creatureData.textureName;
+        if (!textureName || !this.textures.exists(textureName)) {
+            devLog('[SoulRevealScene] No creature texture found');
+            return;
+        }
+
+        // Calculate creature position and size
+        const layout = this.getRevealLayout(width, height);
+        const creatureY = layout.creatureY;
+        const maxSize = layout.creatureMaxSize;
+
+        this.creature = this.add.sprite(width / 2, creatureY, textureName);
+        const scale = maxSize / Math.max(this.creature.width, this.creature.height);
+        this.creature.setScale(0).setDepth(50);
+        this.elements.push(this.creature);
+        this.beginLivingPortraitPrewarm();
+
+        // Dramatic entrance: scale from 0 → 1.1 → 1.0
+        this.tweens.add({
+            targets: this.creature,
+            scale: scale * 1.15,
+            duration: 400,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: this.creature,
+                    scale: scale,
+                    duration: 200,
+                    ease: 'Power2'
+                });
+            }
+        });
+
+        // Sparkle burst
+        this.createSparkleBurst(width / 2, creatureY);
+
+        // Breathing animation
+        this.time.delayedCall(600, () => {
+            this.tweens.add({
+                targets: this.creature,
+                scaleY: scale * 1.03,
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        });
+
+        // Play baby sound
+        if (window.AudioManager) {
+            window.AudioManager.playBabyCoo?.();
+        }
+    }
+
+    beginLivingPortraitPrewarm() {
+        if (!this.creature) {
+            return;
+        }
+
+        try {
+            this.portraitReferenceImage ||= (
+                window.LivingPortraitService?.captureReference?.(this.creature)
+                || null
+            );
+        } catch (error) {
+            this.portraitError = error;
+            devLog('[SoulRevealScene] Optional local portrait capture unavailable');
+        }
+        // The local capture is also the guaranteed first-contact visual when
+        // remote portrait generation is unavailable. Capture it before any
+        // remote eligibility or identity checks.
+        if (this.portraitPromise) {
+            return;
+        }
+        if (!this.portraitCreatureData?.genes) {
+            return;
+        }
+        try {
+            const job = window.LivingPortraitService?.prewarm?.({
+                creatureData: this.portraitCreatureData,
+                sprite: this.creature,
+                referenceImage: this.portraitReferenceImage,
+                style: 'cinematic',
+                source: 'post_hatch'
+            });
+            if (!job) return;
+            const observed = Promise.resolve(job);
+            this.portraitPromise = observed;
+            observed.catch(error => {
+                if (this.portraitPromise !== observed) return;
+                this.portraitError = error;
+                devLog('[SoulRevealScene] Optional portrait prewarm unavailable');
+            });
+        } catch (error) {
+            this.portraitError = error;
+            devLog('[SoulRevealScene] Optional portrait prewarm unavailable');
+        }
+    }
+
+    /**
+     * Create sparkle burst effect
+     */
+    createSparkleBurst(x, y) {
+        const colors = [0xFFD700, 0xE8D5FF, 0xFFFFFF, 0x9B7FEE];
+
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 60 + Math.random() * 40;
+
+            const sparkle = this.add.graphics();
+            sparkle.fillStyle(colors[i % colors.length], 1);
+            // Draw a 4-pointed star shape manually
+            const size = 6;
+            const points = [
+                { x: x, y: y - size },
+                { x: x + size * 0.3, y: y - size * 0.3 },
+                { x: x + size, y: y },
+                { x: x + size * 0.3, y: y + size * 0.3 },
+                { x: x, y: y + size },
+                { x: x - size * 0.3, y: y + size * 0.3 },
+                { x: x - size, y: y },
+                { x: x - size * 0.3, y: y - size * 0.3 }
+            ];
+            sparkle.fillPoints(points, true);
+            sparkle.setDepth(45);
+            this.elements.push(sparkle);
+
+            this.tweens.add({
+                targets: sparkle,
+                x: Math.cos(angle) * distance,
+                y: Math.sin(angle) * distance,
+                alpha: 0,
+                scale: 0.5,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => sparkle.destroy()
+            });
+        }
+    }
+
+    /**
+     * Show rarity badge with meaningful context
+     */
+    showRarityBadge(width, height) {
+        const rarityColors = {
+            common: { bg: 0x4CAF50, text: '#4CAF50', emoji: '🟢' },
+            uncommon: { bg: 0x2196F3, text: '#64B5F6', emoji: '🔵' },
+            rare: { bg: 0x9C27B0, text: '#CE93D8', emoji: '🟣' },
+            epic: { bg: 0xFF9800, text: '#FFB74D', emoji: '🟠' },
+            legendary: { bg: 0xFFD700, text: '#FFD700', emoji: '⭐' }
+        };
+
+        const rarity = this.creatureData.rarity;
+        const config = rarityColors[rarity] || rarityColors.common;
+        const context = this.rarityContext;
+
+        const layout = this.getRevealLayout(width, height);
+        const {
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight
+        } = layout;
+
+        // Info panel background
+        this.infoPanel = this.add.graphics();
+        this.infoPanel.fillStyle(0x1A1A3E, 0.95);
+        this.infoPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        this.infoPanel.lineStyle(2, config.bg, 0.8);
+        this.infoPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        this.infoPanel.setDepth(30).setAlpha(0);
+        this.elements.push(this.infoPanel);
+
+        // Rarity header with emoji
+        const rarityText = this.add.text(
+            panelX + 15,
+            panelY + 12,
+            `FIELD CLASSIFICATION // ${rarity.toUpperCase()}`,
+            {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: config.text,
+                fontStyle: 'bold'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(rarityText);
+
+        // Rarity odds (meaningful context!)
+        const oddsText = this.add.text(
+            panelX + panelWidth - 15,
+            panelY + 34,
+            `VARIATION ${context.statBoost > 0 ? `+${context.statBoost}%` : 'BASELINE'}`,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8B7FBB'
+            }
+        ).setOrigin(1, 0).setDepth(100).setAlpha(0);
+        this.elements.push(oddsText);
+
+        // Bonus indicator
+        const bonusText = this.add.text(
+            panelX + 15,
+            panelY + 32,
+            context.bonus,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#7FEEAF'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(bonusText);
+
+        // Store panel bounds for later elements
+        this.panelBounds = {
+            x: panelX,
+            y: panelY,
+            width: panelWidth,
+            height: panelHeight
+        };
+
+        // Fade in
+        this.tweens.add({
+            targets: [this.infoPanel, rarityText, oddsText, bonusText],
+            alpha: 1,
+            duration: 400,
+            ease: 'Power2'
+        });
+    }
+
+    /**
+     * Show Ancient Lineage prophecy (if triggered)
+     */
+    showAncientLineage(width, height) {
+        // Dim screen briefly
+        const dimOverlay = this.add.graphics();
+        dimOverlay.fillStyle(0x000000, 0.5);
+        dimOverlay.fillRect(0, 0, width, height);
+        dimOverlay.setDepth(200).setAlpha(0);
+        this.elements.push(dimOverlay);
+
+        this.tweens.add({
+            targets: dimOverlay,
+            alpha: 0.5,
+            duration: 300,
+            yoyo: true,
+            hold: 1500
+        });
+
+        // Prophecy text
+        const prophecy = this.add.text(
+            width / 2,
+            height * 0.15,
+            'THE ANCIENT BLOODLINE AWAKENS',
+            {
+                fontSize: '14px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#4B0082',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(201).setAlpha(0);
+        this.elements.push(prophecy);
+
+        // Golden aura around creature
+        if (this.creature) {
+            const aura = this.add.graphics();
+            aura.fillStyle(0xFFD700, 0.3);
+            aura.fillCircle(this.creature.x, this.creature.y, 80);
+            aura.setDepth(49).setAlpha(0);
+            this.elements.push(aura);
+
+            this.tweens.add({
+                targets: aura,
+                alpha: { from: 0, to: 0.5 },
+                scale: { from: 0.8, to: 1.2 },
+                duration: 800,
+                yoyo: true,
+                repeat: 1
+            });
+        }
+
+        this.tweens.add({
+            targets: prophecy,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // Play special sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp?.();
+        }
+    }
+
+    /**
+     * Show personality with preview dialogue
+     */
+    showPersonality(width, height) {
+        if (!this.panelBounds) return;
+
+        const { x: panelX, y: panelY, width: panelWidth } = this.panelBounds;
+        const personalityY = panelY + 60;
+
+        const personality = this.creatureData.personalityCore;
+        const preview = this.personalityPreview;
+
+        // Personality header
+        const headerText = this.add.text(
+            panelX + 15,
+            personalityY,
+            `OBSERVED TEMPERAMENT // ${personality.toUpperCase()}`,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#CE93D8',
+                fontStyle: 'bold'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(headerText);
+
+        // Trait description
+        const traitText = this.add.text(
+            panelX + 15,
+            personalityY + 20,
+            preview.trait,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#9B8FBB'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(traitText);
+
+        // Sample dialogue bubble
+        const dialogueText = this.add.text(
+            panelX + 15,
+            personalityY + 42,
+            `OBSERVATION // ${preview.observation}`,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#E8D5FF',
+                wordWrap: { width: panelWidth - 30 }
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(dialogueText);
+
+        // Fade in
+        this.tweens.add({
+            targets: [headerText, traitText, dialogueText],
+            alpha: 1,
+            duration: 400,
+            ease: 'Power2'
+        });
+    }
+
+    /**
+     * Get emoji for personality
+     */
+    getPersonalityEmoji(personality) {
+        const emojis = {
+            curious: '🔍',
+            playful: '🎮',
+            gentle: '💜',
+            wise: '📚',
+            energetic: '⚡'
+        };
+        return emojis[personality] || '✨';
+    }
+
+    /**
+     * Show cosmic affinity with power comparison
+     */
+    showCosmicAffinity(width, height) {
+        if (!this.panelBounds) return;
+
+        const { x: panelX, y: panelY, width: panelWidth } = this.panelBounds;
+        const affinityY = panelY + 142;
+
+        // Get affinity info
+        const affinity = this.creatureData.cosmicAffinity;
+        const power = this.creatureData.powerLevel;
+        const emoji = window.SoulPhraseGenerator?.getAffinityEmoji(affinity) || '✨';
+        const name = `${String(affinity || 'unknown').toUpperCase()} RESONANCE`;
+
+        // Affinity header
+        const affinityText = this.add.text(
+            panelX + 15,
+            affinityY,
+            `${emoji} ${name}`,
+            {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#9B7FEE',
+                fontStyle: 'bold'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(affinityText);
+
+        // Power comparison (meaningful!)
+        const powerPercent = Math.round(power * 100);
+        const comparisonText = this.add.text(
+            panelX + panelWidth - 15,
+            affinityY + 2,
+            `POWER ${powerPercent}%`,
+            {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#7FEEAF'
+            }
+        ).setOrigin(1, 0).setDepth(100).setAlpha(0);
+        this.elements.push(comparisonText);
+
+        // Power bar background
+        const barX = panelX + 15;
+        const barY = affinityY + 20;
+        const barWidth = panelWidth - 30;
+        const barHeight = 8;
+
+        const barBg = this.add.graphics();
+        barBg.fillStyle(0x2D1B4E, 1);
+        barBg.fillRoundedRect(barX, barY, barWidth, barHeight, 4);
+        barBg.setDepth(99).setAlpha(0);
+        this.elements.push(barBg);
+
+        // Power bar fill
+        const barFill = this.add.graphics();
+        barFill.fillStyle(this.innateAbility.color || 0x9B7FEE, 1);
+        barFill.fillRoundedRect(barX, barY, barWidth * power, barHeight, 4);
+        barFill.setDepth(100).setAlpha(0);
+        this.elements.push(barFill);
+
+        // Fade in
+        this.tweens.add({
+            targets: [affinityText, comparisonText, barBg, barFill],
+            alpha: 1,
+            duration: 400,
+            ease: 'Power2'
+        });
+    }
+
+    /**
+     * Show innate ability with concrete benefits
+     */
+    showInnateAbility(width, height) {
+        if (!this.panelBounds || !this.innateAbility) return;
+
+        const { x: panelX, y: panelY, width: panelWidth } = this.panelBounds;
+        const abilityY = panelY + 181;
+
+        // Ability section header
+        const headerText = this.add.text(
+            panelX + 15,
+            abilityY,
+            'INNATE ABILITY',
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#7B68EE',
+                letterSpacing: 1
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(headerText);
+
+        // Ability card background
+        const cardX = panelX + 10;
+        const cardY = abilityY + 16;
+        const cardWidth = panelWidth - 20;
+        const cardHeight = 64;
+
+        const abilityCard = this.add.graphics();
+        abilityCard.fillStyle(0x2D1B4E, 0.8);
+        abilityCard.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
+        abilityCard.lineStyle(2, this.innateAbility.color || 0x9B7FEE, 0.6);
+        abilityCard.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
+        abilityCard.setDepth(99).setAlpha(0);
+        this.elements.push(abilityCard);
+
+        // Ability icon
+        const iconText = this.add.text(
+            cardX + 22,
+            cardY + 20,
+            this.innateAbility.icon,
+            {
+                fontSize: '24px'
+            }
+        ).setOrigin(0.5).setDepth(100).setAlpha(0);
+        this.elements.push(iconText);
+
+        // Ability name
+        const nameText = this.add.text(
+            cardX + 45,
+            cardY + 8,
+            this.innateAbility.name,
+            {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(nameText);
+
+        // Range/effect (concrete benefit!)
+        const rangeText = this.add.text(
+            cardX + cardWidth - 10,
+            cardY + 10,
+            this.innateAbility.displayRange || this.innateAbility.range,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#7FEEAF'
+            }
+        ).setOrigin(1, 0).setDepth(100).setAlpha(0);
+        this.elements.push(rangeText);
+
+        // Benefit description (what it actually does for the player)
+        const benefitText = this.add.text(
+            cardX + 45,
+            cardY + 26,
+            this.innateAbility.benefit,
+            {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#E8D5FF',
+                wordWrap: { width: cardWidth - 55 }
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(benefitText);
+
+        // Unlock status
+        const unlockText = this.add.text(
+            cardX + 45,
+            cardY + 45,
+            'Available now',
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8B7FBB'
+            }
+        ).setDepth(100).setAlpha(0);
+        this.elements.push(unlockText);
+
+        // Animate in with a flash effect
+        const flash = this.add.graphics();
+        flash.fillStyle(this.innateAbility.color || 0x9B7FEE, 0.3);
+        flash.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
+        flash.setDepth(98).setAlpha(0);
+        this.elements.push(flash);
+
+        // Flash then fade
+        this.tweens.add({
+            targets: flash,
+            alpha: { from: 0.6, to: 0 },
+            duration: 400,
+            ease: 'Power2'
+        });
+
+        // Fade in elements
+        this.tweens.add({
+            targets: [headerText, abilityCard, iconText, nameText, rangeText, benefitText, unlockText],
+            alpha: 1,
+            duration: 400,
+            ease: 'Power2'
+        });
+
+        // Play a subtle sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick?.();
+        }
+    }
+
+    /**
+     * Show name input field
+     */
+    showNameInput(width, height) {
+        if (!this.panelBounds) return;
+
+        const layout = this.getRevealLayout(width, height);
+        const inputY = layout.inputTop;
+
+        // Name label
+        const nameLabel = this.add.text(
+            width / 2,
+            inputY - 20,
+            'The creature is watching you. What will you call them?',
+            {
+                fontSize: width < 500 ? '13px' : '15px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#C8B8FF',
+                align: 'center',
+                wordWrap: { width: Math.min(width - 32, 430) }
+            }
+        ).setOrigin(0.5).setDepth(100).setAlpha(0);
+        this.elements.push(nameLabel);
+
+        // Fade in
+        this.tweens.add({
+            targets: nameLabel,
+            alpha: 1,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+                this.inputActive = true;
+                this.createMobileInput(width, inputY, layout);
+                this.layoutNativeNamingControls(width, height);
+            }
+        });
+    }
+
+    /**
+     * Create a visible native field so mobile browsers open their keyboard from
+     * the user's direct tap instead of forwarding focus from the canvas.
+     */
+    createMobileInput(width, inputY, layout = this.getRevealLayout()) {
+        this.nameDomElement?.destroy?.();
+        this.htmlInput?.remove?.();
+
+        this.htmlInput = document.createElement('input');
+        this.htmlInput.type = 'text';
+        this.htmlInput.maxLength = 20;
+        this.htmlInput.inputMode = 'text';
+        this.htmlInput.enterKeyHint = 'done';
+        this.htmlInput.setAttribute('aria-label', 'Name your creature');
+        this.htmlInput.setAttribute('data-testid', 'creature-name-input');
+        this.htmlInput.autocomplete = 'off';
+        this.htmlInput.autocorrect = 'off';
+        this.htmlInput.spellcheck = false;
+        this.htmlInput.autocapitalize = 'words';
+        this.htmlInput.placeholder = 'Enter a name';
+        Object.assign(this.htmlInput.style, {
+            width: `${layout.inputWidth}px`,
+            height: `${layout.inputHeight}px`,
+            boxSizing: 'border-box',
+            border: '2px solid #7B68EE',
+            borderRadius: '6px',
+            background: '#101126',
+            color: '#FFFFFF',
+            caretColor: '#8FE3CF',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            lineHeight: 'normal',
+            padding: '0 14px',
+            outline: 'none',
+            textAlign: 'center',
+            opacity: '1',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            appearance: 'none',
+            WebkitAppearance: 'none'
+        });
+
+        this.nameDomElement = this.add.dom(
+            width / 2,
+            inputY + layout.inputHeight / 2,
+            this.htmlInput
+        ).setOrigin(0.5).setDepth(105);
+        if (this.game.domContainer) {
+            if (!this.previousDomContainerStyles) {
+                this.previousDomContainerStyles = {
+                    zIndex: this.game.domContainer.style.zIndex,
+                    pointerEvents: this.game.domContainer.style.pointerEvents
+                };
+            }
+            this.game.domContainer.style.zIndex = '110';
+            this.game.domContainer.style.pointerEvents = 'auto';
+        }
+        this.elements.push(this.nameDomElement);
+
+        // Sync input
+        this.htmlInput.addEventListener('input', () => {
+            this.nameInput = this.htmlInput.value
+                .replace(/[^\p{L}\p{N} '\-_]/gu, '')
+                .slice(0, 20);
+            this.updateInputDisplay();
+        });
+
+        this.htmlInput.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            if (
+                e.key === 'Enter' &&
+                this.canProceed &&
+                this.nameInput.trim().length > 0
+            ) {
+                e.preventDefault();
+                this.finalizeName();
+            }
+        });
+
+        this.htmlInput.addEventListener('focus', () => {
+            this.htmlInput.style.borderColor = '#8FE3CF';
+            this.htmlInput.style.boxShadow = '0 0 0 3px rgba(143, 227, 207, 0.2)';
+        });
+        this.htmlInput.addEventListener('blur', () => {
+            this.htmlInput.style.borderColor = '#7B68EE';
+            this.htmlInput.style.boxShadow = 'none';
+        });
+    }
+
+    /**
+     * Setup keyboard input for desktop
+     */
+    setupKeyboardInput() {
+        if (!this.input?.keyboard) return;
+
+        this.input.keyboard.on('keydown', (event) => {
+            if (!this.inputActive) return;
+            if (document.activeElement === this.htmlInput) return;
+
+            if (event.key === 'Enter' && this.canProceed && this.nameInput.length > 0) {
+                this.finalizeName();
+            } else if (event.key === 'Backspace') {
+                this.nameInput = this.nameInput.slice(0, -1);
+                this.updateInputDisplay();
+            } else if (event.key.length === 1 && this.nameInput.length < 20) {
+                // Allow letters, numbers, spaces, common punctuation
+                if (/^[a-zA-Z0-9 '\-_]$/.test(event.key)) {
+                    this.nameInput += event.key;
+                    this.updateInputDisplay();
+                }
+            }
+        });
+    }
+
+    /**
+     * Update the input text display
+     */
+    updateInputDisplay() {
+        if (this.htmlInput && this.htmlInput.value !== this.nameInput) {
+            this.htmlInput.value = this.nameInput;
+        }
+    }
+
+    /**
+     * Show begin button (static, no animation)
+     */
+    showBeginButton(width, height) {
+        const layout = this.getRevealLayout(width, height);
+        const btnY = layout.buttonTop;
+        const btnWidth = layout.inputWidth;
+        this.nameSubmitButton?.remove?.();
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'soul-reveal-name-submit';
+        button.textContent = 'REVEAL LIVING FORM';
+        button.setAttribute('data-testid', 'creature-name-submit');
+        button.style.width = `${btnWidth}px`;
+        button.style.height = `${layout.buttonHeight}px`;
+        button.style.touchAction = 'manipulation';
+        button.style.webkitTapHighlightColor = 'transparent';
+
+        let submitting = false;
+        const submitName = event => {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            if (submitting) return;
+            if (!this.nameInput.trim()) {
+                this.htmlInput?.focus();
+                if (this.htmlInput) {
+                    this.htmlInput.style.borderColor = '#F2C14E';
+                    this.htmlInput.style.boxShadow = '0 0 0 3px rgba(242, 193, 78, 0.24)';
+                }
+                return;
+            }
+            if (this.canProceed) {
+                submitting = true;
+                try {
+                    this.finalizeName();
+                } finally {
+                    submitting = !this.canProceed;
+                }
+            }
+        };
+        button.addEventListener('pointerup', submitName);
+        button.addEventListener('touchend', submitName, { passive: false });
+        button.addEventListener('click', submitName);
+
+        this.nameSubmitButton = button;
+        const submitDom = this.add.dom(
+            width / 2,
+            btnY + layout.buttonHeight / 2,
+            button
+        ).setOrigin(0.5).setDepth(106);
+        this.nameSubmitDomElement = submitDom;
+        this.elements.push(submitDom);
+        this.canProceed = true;
+        this.layoutNativeNamingControls(width, height);
+        requestAnimationFrame(() => button.classList.add('is-visible'));
+    }
+
+    layoutNativeNamingControls(width, height) {
+        const layout = this.getRevealLayout(width, height);
+        if (layout.keyboardCompact) {
+            if (!this.compactNamingScrim) {
+                this.compactNamingScrim = this.add.graphics().setDepth(102);
+                this.elements.push(this.compactNamingScrim);
+            }
+            this.compactNamingScrim.clear();
+            const scrimTop = Math.max(0, layout.inputTop - 48);
+            this.compactNamingScrim.fillStyle(0x160B2A, 0.99);
+            this.compactNamingScrim.fillRect(
+                0,
+                scrimTop,
+                width,
+                height - scrimTop
+            );
+            this.compactNamingScrim.lineStyle(1, 0x7B68EE, 0.75);
+            this.compactNamingScrim.lineBetween(0, scrimTop, width, scrimTop);
+            if (!this.compactNamingPrompt) {
+                this.compactNamingPrompt = this.add.text(0, 0, '', {
+                    fontSize: '12px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#C8B8FF',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5).setDepth(103);
+                this.elements.push(this.compactNamingPrompt);
+            }
+            this.compactNamingPrompt
+                .setText('NAME THIS CREATURE')
+                .setPosition(width / 2, layout.inputTop - 23)
+                .setVisible(true);
+        } else {
+            this.compactNamingScrim?.destroy?.();
+            this.compactNamingPrompt?.destroy?.();
+            this.compactNamingScrim = null;
+            this.compactNamingPrompt = null;
+        }
+        if (this.nameDomElement && this.htmlInput) {
+            this.nameDomElement.setPosition(
+                width / 2,
+                layout.inputTop + layout.inputHeight / 2
+            );
+            this.htmlInput.style.width = `${layout.inputWidth}px`;
+            this.htmlInput.style.height = `${layout.inputHeight}px`;
+        }
+        if (this.nameSubmitDomElement && this.nameSubmitButton) {
+            this.nameSubmitDomElement.setPosition(
+                width / 2,
+                layout.buttonTop + layout.buttonHeight / 2
+            );
+            this.nameSubmitButton.style.width = `${layout.inputWidth}px`;
+            this.nameSubmitButton.style.height = `${layout.buttonHeight}px`;
+        }
+    }
+
+    /**
+     * Finalize name and transition to game
+     */
+    finalizeName() {
+        if (this.namingAttempt) return this.retryNamingSave(this.namingAttempt);
+        if (!this.canProceed) return;
+        if (!this.nameInput || this.nameInput.trim().length === 0) {
+            this.htmlInput?.focus();
+            return;
+        }
+
+        // Admission may synchronously retire this reader. Do not consume the
+        // naming action or mutate protected progress before it is verified.
+        let state, reader, attempt;
+        const sourceAchievements = window.AchievementSystem, sourceQuests = window.QuestManager;
+        try {
+            state = window.GameState;
+            reader = state?.captureSaveAdmissionOwner();
+            if (!reader || !state.canCommitHatchSave() || !reader.isCurrent()) return;
+            reader.observeRaw(localStorage.getItem(state.saveKey));
+            if (!reader.isCurrent()) return;
+            // Retaining a legacy capsule is not proof that current care consumers can use it.
+            const care = state.get('creature.care');
+            const mood = state.get('creature.mood');
+            if (!care || typeof care !== 'object' || Array.isArray(care) ||
+                !mood || typeof mood !== 'object' || Array.isArray(mood)) {
+                reader.hold({ code: 'save_unreadable' }, 'local');
+                return;
+            }
+            const name = this.nameInput.trim(), achievements = sourceAchievements;
+            const birth = window.BirthEventSystem;
+            if (!state.canPrepareCreatureNaming(name) ||
+                (this.hasAncientLineage && typeof birth?.applyAncientLineage === 'function')) {
+                reader.hold({ code: 'save_unreadable' }, 'local');
+                return;
+            }
+            if (window.AchievementSystem !== sourceAchievements || window.QuestManager !== sourceQuests || !reader.isCurrent()) return;
+            // Cold first contact occurs before GameScene's usual service readiness call.
+            if (achievements && !achievements.initialized) {
+                if (!reader.isCurrent()) return;
+                achievements.initialize();
+                if (window.AchievementSystem !== achievements || window.QuestManager !== sourceQuests || !reader.isCurrent()) return;
+            }
+            const publication = achievements ? achievements.captureHatchProgressPublication() : null;
+            const quests = sourceQuests;
+            if (quests?.initialized && quests.loadedGameState === state &&
+                quests.loadedAdmissionEpoch !== state.getSaveAdmission().epoch) {
+                if (window.QuestManager !== quests || window.AchievementSystem !== achievements || !reader.isCurrent()) return;
+                quests.loadQuestState();
+                if (window.QuestManager !== quests || window.AchievementSystem !== achievements || !reader.isCurrent()) return;
+            }
+            const questPublication = quests ? quests.captureNamingProgressPublication(state) : null;
+            const cloud = window.CloudSave, cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+            const epoch = state.getSaveAdmission().epoch, lifetime = this.namingLifetime || (this.namingLifetime = {});
+            const soulData = this.buildSoulDataForProfile();
+            const controls = Object.fromEntries(['nameSubmitButton', 'nameDomElement', 'htmlInput', 'nameSubmitDomElement',
+                'compactNamingScrim', 'compactNamingPrompt'].map(key => [key, this[key]]));
+            attempt = { state, reader, name, publication, achievements, achievementEvents: achievements?.events, quests, questPublication,
+                phase: 'preparing', saving: false, lifetime, controls,
+                isCurrent: () => this.namingAttempt === attempt && !this.namingRetired && this.namingLifetime === lifetime &&
+                    window.GameState === state && window.CloudSave === cloud && window.AchievementSystem === achievements &&
+                    state.getSaveAdmission().epoch === epoch && cloud?.campaignEpoch === cloudEpoch &&
+                    cloud?.currentUser?.id === cloudUser && (!publication || publication.isCurrent()) &&
+                    window.QuestManager === quests && (!questPublication || questPublication.isCurrent()) &&
+                    Object.entries(controls).every(([key, value]) => this[key] === value),
+                ownsUpload: lease => window.CloudSave === cloud && cloud?.gameState === state &&
+                    cloud?.activeCloudWrite === lease && cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser };
+            this.namingAttempt = attempt;
+            if (!attempt.isCurrent()) return;
+            if (!reader.isCurrent()) { attempt.phase = 'protected'; reader.hold({ code: 'commit_failed' }, 'local'); return; }
+            attempt.prepared = state.prepareCreatureNamingDraft(name, soulData, achievements, quests);
+            publication?.prepare(attempt.prepared.achievements);
+            questPublication?.prepare(attempt.prepared.state);
+            if (!attempt.isCurrent()) return;
+            if (!reader.isCurrent()) { attempt.phase = 'protected'; reader.hold({ code: 'commit_failed' }, 'local'); return; }
+            attempt.phase = 'prepared';
+        } catch (error) {
+            if (attempt) {
+                attempt.phase = 'protected';
+                if (attempt.isCurrent()) reader?.hold({ code: 'save_unreadable' }, 'local');
+            } else this.showNamingServiceRecovery(state, reader, sourceAchievements, sourceQuests);
+            return;
+        }
+        return this.retryNamingSave(attempt);
+    }
+
+    retryNamingSave(attempt = this.namingAttempt) {
+        if (!attempt || attempt !== this.namingAttempt || attempt.saving || !attempt.isCurrent() ||
+            !['prepared', 'committed'].includes(attempt.phase)) return false;
+        attempt.saving = true;
+        try {
+            if (attempt.phase === 'prepared') {
+                if (!attempt.reader.isCurrent()) {
+                    attempt.reader.hold({ code: 'commit_failed' }, 'local');
+                    attempt.phase = 'protected'; return false;
+                }
+                if (!attempt.state.canCommitHatchSave()) { this.showNamingSaveRecovery(attempt); return false; }
+                this.canProceed = false; this.inputActive = false;
+                if (this.htmlInput) this.htmlInput.readOnly = true;
+                const prepared = attempt.prepared;
+                const result = attempt.state.commitHatchSaveDraft(prepared.state, {
+                    isCurrentCampaign: attempt.isCurrent, isCurrentUpload: attempt.ownsUpload,
+                    isCurrentResult: (live, durable, serialized) => live === prepared.state &&
+                        JSON.stringify(attempt.state.createSaveSnapshot({ state: live })) === serialized &&
+                        JSON.stringify(durable) === serialized && live.creature.id === prepared.creatureId &&
+                        live.activeCreatureIndex === prepared.index,
+                    onPublished: () => { attempt.questPublication?.publish(); attempt.publication?.publish(); },
+                    notifications: prepared.notifications,
+                    onNotification: packet => {
+                        if (packet.kind === 'state') attempt.state.emit(packet.event, packet.data);
+                        else if (packet.kind === 'achievement') attempt.achievementEvents?.emit(packet.event, packet.data);
+                        else attempt.quests.emit(packet.event, packet.data);
+                    }
+                });
+                if (!result.success) {
+                    // Only exact unchanged source bytes/memory permit a write retry. Adoption is never replayed.
+                    if (attempt.isCurrent() && attempt.reader.isCurrent()) {
+                        this.canProceed = true;
+                        this.showNamingSaveRecovery(attempt);
+                    } else attempt.phase = 'protected';
+                    return false;
+                }
+                attempt.phase = 'committed'; attempt.isDurableCurrent = result.isCurrent;
+            }
+            if (!attempt.isCurrent() || !attempt.isDurableCurrent() ||
+                (attempt.publication && !attempt.publication.isPublished()) ||
+                (attempt.questPublication && !attempt.questPublication.isPublished())) return false;
+            return this.finishNamingPresentation(attempt);
+        } catch (error) {
+            if (attempt.phase === 'committed') this.showNamingSaveRecovery(attempt);
+            else if (attempt.isCurrent() && attempt.reader.isCurrent()) {
+                attempt.phase = 'protected'; attempt.reader.hold({ code: 'commit_failed' }, 'local');
+            }
+            return false;
+        } finally { attempt.saving = false; }
+    }
+
+    finishNamingPresentation(attempt) {
+        const current = () => attempt === this.namingAttempt && attempt.isCurrent() && attempt.isDurableCurrent() &&
+            (!attempt.publication || attempt.publication.isPublished()) &&
+            (!attempt.questPublication || attempt.questPublication.isPublished());
+        if (!current()) return false;
+        if (attempt.presentationComplete) return true;
+        this.clearNamingSaveRecovery();
+        if (!current()) return false;
+        if (!attempt.audioAttempted) {
+            attempt.audioAttempted = true;
+            try { window.AudioManager?.playLevelUp?.(); } catch (error) { /* Optional sound cannot block the saved result. */ }
+        }
+        for (const [key, method] of [['nameSubmitButton', 'remove'], ['nameDomElement', 'destroy']]) {
+            if (!current()) return false;
+            attempt.pendingControls = attempt.pendingControls || {};
+            const element = attempt.pendingControls[key] || this[key];
+            attempt.pendingControls[key] = element;
+            attempt.controls[key] = null; this[key] = null;
+            element?.[method]?.();
+            delete attempt.pendingControls[key];
+        }
+        if (!current()) return false;
+        for (const key of ['nameSubmitDomElement', 'compactNamingScrim', 'compactNamingPrompt', 'htmlInput']) {
+            attempt.controls[key] = null; this[key] = null;
+        }
+        this.showLivingPortraitHandoff(attempt.name);
+        attempt.presentationComplete = true;
+        return true;
+    }
+
+    clearNamingSaveRecovery() {
+        const owned = this.namingSaveRecovery;
+        this.namingSaveRecovery = null;
+        try { owned?.remove(); }
+        catch (error) { owned?.parentNode?.removeChild(owned); }
+    }
+
+    showNamingServiceRecovery(state, reader, achievements, quests) {
+        const lifetime = this.namingLifetime || (this.namingLifetime = {}), control = this.nameSubmitButton;
+        const current = () => !this.namingRetired && this.namingLifetime === lifetime && this.nameSubmitButton === control &&
+            window.GameState === state && window.AchievementSystem === achievements && window.QuestManager === quests && reader?.isCurrent();
+        if (!current()) return;
+        this.clearNamingSaveRecovery();
+        if (!current()) return;
+        const overlay = document.createElement('div'); overlay.className = 'save-recovery-gate';
+        overlay.dataset.mythicalNamingReady = 'true'; overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Creature paused');
+        const panel = document.createElement('section'), title = document.createElement('h1'); title.textContent = 'Your creature is still here';
+        const text = document.createElement('p'); text.textContent = 'We could not get the next step ready. Keep this page open and try again.';
+        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+            if (this.namingSaveRecovery !== overlay || !current()) return;
+            this.clearNamingSaveRecovery(); if (current()) this.finalizeName();
+        });
+        overlay.addEventListener('keydown', event => { if (event.key === 'Tab') { event.preventDefault(); retry.focus(); } });
+        panel.append(title, text, retry); overlay.append(panel);
+        this.namingSaveRecovery = overlay; document.body.append(overlay); retry.focus();
+    }
+
+    showNamingSaveRecovery(attempt) {
+        if (attempt !== this.namingAttempt || !attempt.isCurrent()) return;
+        const ready = attempt.phase === 'prepared' ? attempt.reader.isCurrent() :
+            attempt.phase === 'committed' && attempt.isDurableCurrent?.() &&
+                (!attempt.publication || attempt.publication.isPublished()) &&
+                (!attempt.questPublication || attempt.questPublication.isPublished());
+        if (!ready) return;
+        this.clearNamingSaveRecovery();
+        if (!attempt.isCurrent()) return;
+        const overlay = document.createElement('div'); overlay.className = 'save-recovery-gate';
+        overlay.dataset.mythicalNamingSave = 'true'; overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Creature paused');
+        const panel = document.createElement('section'), title = document.createElement('h1');
+        title.textContent = attempt.phase === 'prepared' ? 'Keep your creature here' : 'Your creature is saved';
+        const message = document.createElement('p');
+        message.textContent = attempt.phase === 'prepared'
+            ? 'We could not save yet. Keep this page open and try again.'
+            : 'The reveal could not open. Try it again without hatching another creature.';
+        const retry = document.createElement('button'); retry.type = 'button';
+        retry.textContent = attempt.phase === 'prepared' ? 'Try saving again' : 'Open the reveal';
+        retry.addEventListener('click', () => {
+            if (this.namingSaveRecovery === overlay) this.retryNamingSave(attempt);
+        });
+        overlay.addEventListener('keydown', event => { if (event.key === 'Tab') { event.preventDefault(); retry.focus(); } });
+        panel.append(title, message, retry); overlay.append(panel);
+        this.namingSaveRecovery = overlay; document.body.append(overlay); retry.focus();
+    }
+
+    transitionToGame() {
+        this.livingFormHandoff?.beginTransition?.();
+        window.GameState?.set('tutorial.livingFormPending', false);
+        window.GameState?.recordOpeningMilestone?.('sanctuary_entered');
+        window.GameState?.save?.();
+        this.cameras.main.fadeOut(360, 0, 0, 0);
+
+        this.time.delayedCall(360, () => {
+            this.livingFormHandoff?.destroy?.();
+            this.livingFormHandoff = null;
+            this.restoreDomContainerStyles();
+            this.scene.start('GameScene', { fromSoulReveal: true });
+        });
+    }
+
+    showLivingPortraitHandoff(finalName) {
+        this.tweens.killAll();
+        this.elements.forEach(element => element?.destroy?.());
+        this.elements = [];
+        this.prepareDomContainerForHandoff();
+        this.livingFormHandoff?.destroy?.();
+        this.livingFormHandoff = new LivingFormHandoff(this);
+        const shown = this.livingFormHandoff.show({
+            name: finalName,
+            species: this.portraitCreatureData?.genes?.species,
+            stage: this.portraitCreatureData?.stage,
+            affinity: this.creatureData?.cosmicAffinity,
+            rarity: this.creatureData?.rarity,
+            powerLevel: this.creatureData?.powerLevel,
+            stats: window.GameState?.get?.('creature.stats'),
+            personality: this.creatureData?.personalityCore,
+            portraitPromise: this.portraitPromise,
+            referenceImage: this.portraitReferenceImage,
+            keepVisibleOnContinue: true,
+            onPortraitShown: record => {
+                if (!record?.imageUrl) return;
+                window.GameState?.set('tutorial.livingFormSeen', true);
+                window.GameState?.recordOpeningPortraitStatus?.('ready');
+                window.GameState?.save?.();
+            },
+            onContinue: () => this.transitionToGame()
+        });
+        if (!shown) {
+            this.livingFormHandoff = null;
+            this.transitionToGame();
+        }
+    }
+
+    prepareDomContainerForHandoff() {
+        if (!this.game?.domContainer) return;
+        if (!this.previousDomContainerStyles) {
+            this.previousDomContainerStyles = {
+                zIndex: this.game.domContainer.style.zIndex,
+                pointerEvents: this.game.domContainer.style.pointerEvents
+            };
+        }
+        this.game.domContainer.style.zIndex = '110';
+        this.game.domContainer.style.pointerEvents = 'auto';
+    }
+
+    restoreDomContainerStyles() {
+        if (!this.game?.domContainer) {
+            this.previousDomContainerStyles = null;
+            return;
+        }
+
+        if (!this.previousDomContainerStyles) {
+            this.previousDomContainerStyles = {
+                zIndex: this.game.domContainer.style.zIndex,
+                pointerEvents: this.game.domContainer.style.pointerEvents
+            };
+        }
+
+        // Phaser's DOM container defaults to pointer-events: none. Restoring it
+        // to auto leaves an empty layer over the canvas that can swallow the
+        // first Sanctuary taps on physical mobile browsers.
+        const restoredPointerEvents =
+            this.previousDomContainerStyles.pointerEvents || 'none';
+
+        this.game.domContainer.style.zIndex = this.previousDomContainerStyles.zIndex || '';
+        this.game.domContainer.style.pointerEvents = restoredPointerEvents;
+        this.previousDomContainerStyles = null;
+    }
+
+    /**
+     * Save soul data to GameState for profile page access
+     */
+    buildSoulDataForProfile() {
+        return {
+            phrase: this.soulPhrase.phrase,
+            personality: {
+                core: this.creatureData.personalityCore,
+                preview: this.personalityPreview
+            },
+            affinity: {
+                element: this.creatureData.cosmicAffinity,
+                powerLevel: this.creatureData.powerLevel,
+                powerPercent: Math.round(this.creatureData.powerLevel * 100)
+            },
+            ability: {
+                name: this.innateAbility.name,
+                icon: this.innateAbility.icon,
+                description: this.innateAbility.description,
+                benefit: this.innateAbility.benefit,
+                range: this.innateAbility.range
+            },
+            rarity: {
+                tier: this.creatureData.rarity,
+                context: this.rarityContext
+            },
+            hasAncientLineage: this.hasAncientLineage,
+            mutations: this.creatureData.mutations,
+            isShiny: this.creatureData.isShiny,
+            shinyType: this.creatureData.shinyType
+        };
+
+    }
+
+    saveSoulDataForProfile() {
+        const soulData = this.buildSoulDataForProfile();
+        window.GameState?.set('creature.soulData', soulData);
+        devLog('[SoulRevealScene] Soul data saved for profile:', soulData);
+    }
+
+    /**
+     * Generate a random creature name
+     */
+    generateRandomName() {
+        const prefixes = ['Luna', 'Nova', 'Spark', 'Star', 'Moon', 'Sky', 'Cloud', 'Mist', 'Glow', 'Shimmer'];
+        const suffixes = ['beam', 'dust', 'wing', 'heart', 'soul', 'light', 'shade', 'dream', 'wish', 'song'];
+
+        const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+
+        return prefix + suffix;
+    }
+
+    /**
+     * Cleanup on shutdown
+     */
+    shutdown() {
+        this.namingRetired = true;
+        this.namingAttempt = null;
+        this.clearNamingSaveRecovery();
+        devLog('[SoulRevealScene] Shutting down');
+        this.portraitPromise = null;
+
+        this.nameDomElement?.destroy?.();
+        this.nameDomElement = null;
+        this.nameSubmitButton?.remove?.();
+        this.nameSubmitButton = null;
+        this.nameSubmitDomElement = null;
+        this.compactNamingScrim = null;
+        this.compactNamingPrompt = null;
+        this.livingFormHandoff?.destroy?.();
+        this.livingFormHandoff = null;
+        this.graphicsEngine = null;
+        this.authoredPortraitPreload = null;
+        this.htmlInput = null;
+        this.restoreDomContainerStyles();
+        if (this.viewportResizeHandler) {
+            this.game?.events?.off?.('resize', this.viewportResizeHandler);
+            this.viewportResizeHandler = null;
+        }
+
+        // Clear typewriter timer
+        if (this.typewriterTimer) {
+            this.typewriterTimer.remove();
+        }
+
+        // Clear all timers
+        if (this.time) {
+            this.time.removeAllEvents();
+        }
+
+        // Kill all tweens
+        if (this.tweens) {
+            this.tweens.killAll();
+        }
+
+        // Remove keyboard listeners
+        if (this.input?.keyboard) {
+            this.input.keyboard.removeAllListeners();
+        }
+
+        // Clear references
+        this.elements = [];
+        this.creature = null;
+        this.inputText = null;
+        this.infoPanel = null;
+    }
+}
+
+// Expose globally for Phaser
+if (typeof window !== 'undefined') {
+    window.SoulRevealScene = SoulRevealScene;
+}

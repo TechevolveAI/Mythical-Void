@@ -25,6 +25,132 @@ function fixture() {
     return { manager, context, document, timers };
 }
 
+function heldResume(context) {
+    context.state = 'suspended';
+    let resolve, reject;
+    const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+    context.resume.mockImplementationOnce(() => promise);
+    return { succeed() { context.state = 'running'; resolve(); },
+        fail() { reject(Error('SYNTHETIC_RESUME_FAILURE')); } };
+}
+
+describe('audio recovery belongs to the binding that requested it', () => {
+    test('an old recovery cannot unlock a replacement Phaser sound manager', async () => {
+        const f = fixture();
+        try {
+            f.manager.attachPhaserSound({ context: { state: 'running' }, locked: true, setMute: jest.fn() });
+            const old = heldResume(f.context), pending = f.manager.resume();
+            const replacement = { context: { state: 'running' }, locked: true, setMute: jest.fn() };
+            f.manager.attachPhaserSound(replacement); old.succeed();
+            expect(await pending).toBe(false); expect(replacement.unlocked).not.toBe(true);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('an old recovery cannot create music in a replacement procedural context', async () => {
+        const f = fixture();
+        try {
+            const old = heldResume(f.context), pending = f.manager.resume();
+            f.manager.audioContext = { ...f.context, state: 'running' };
+            f.manager.requestedArea = 'gathering'; old.succeed();
+            expect(await pending).toBe(false); expect(f.manager.createMusicLayer).not.toHaveBeenCalled();
+            expect(f.manager.musicPlaying).not.toBe(true);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('suspension retires a pending recovery even after a visible return', async () => {
+        const f = fixture();
+        try {
+            f.manager.requestedArea = 'home';
+            const old = heldResume(f.context), pending = f.manager.resume();
+            f.manager.suspendAudioContexts(); f.document.hidden = false; old.succeed();
+            expect(await pending).toBe(false); expect(f.manager.createMusicLayer).not.toHaveBeenCalled();
+            expect(f.manager.audioUnlocked).toBe(false);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('destroyed recovery cannot rearm input listeners', async () => {
+        const f = fixture();
+        try {
+            const rearm = jest.spyOn(f.manager, 'rearmAudioAfterInterruption');
+            const old = heldResume(f.context), pending = f.manager.resume();
+            f.manager.destroy(); old.succeed();
+            expect(await pending).toBe(false); expect(rearm).not.toHaveBeenCalled();
+            expect(f.manager.audioUnlocked).toBe(false);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('detach and reattach cannot make an old recovery current again', async () => {
+        const f = fixture();
+        try {
+            const first = { context: { state: 'running' }, locked: true, setMute: jest.fn() };
+            f.manager.attachPhaserSound(first);
+            const old = heldResume(f.context), pending = f.manager.resume();
+            f.manager.attachPhaserSound(null); f.manager.attachPhaserSound(first); old.succeed();
+            expect(await pending).toBe(false); expect(first.unlocked).not.toBe(true);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('in-place recorded-context replacement rejects the old recovery', async () => {
+        const f = fixture();
+        try {
+            const sound = { context: { state: 'running' }, locked: true, setMute: jest.fn() };
+            f.manager.attachPhaserSound(sound);
+            const old = heldResume(f.context), pending = f.manager.resume();
+            sound.context = { state: 'running' }; f.manager.attachPhaserSound(sound); old.succeed();
+            expect(await pending).toBe(false); expect(sound.unlocked).not.toBe(true);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('reattaching the same sound/context preserves useful pending recovery', async () => {
+        const f = fixture();
+        try {
+            const sound = { context: { state: 'running' }, locked: true, setMute: jest.fn() };
+            f.manager.attachPhaserSound(sound);
+            const current = heldResume(f.context), pending = f.manager.resume();
+            f.manager.attachPhaserSound(sound); current.succeed();
+            expect(await pending).toBe(true); expect(sound.unlocked).toBe(true);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('concurrent current-binding attempts remain useful and start music once', async () => {
+        const f = fixture();
+        try {
+            const first = heldResume(f.context), second = heldResume(f.context);
+            f.manager.requestedArea = 'home';
+            const music = jest.spyOn(f.manager, 'playAreaMusic');
+            const one = f.manager.resume(), two = f.manager.resume();
+            second.succeed(); expect(await two).toBe(true);
+            first.succeed(); expect(await one).toBe(true);
+            expect(music).toHaveBeenCalledTimes(1); expect(f.manager.currentArea).toBe('home');
+        } finally { f.manager.destroy(); }
+    });
+
+    test('a fresh recovery after suspension owns readiness; old completion cannot overwrite it', async () => {
+        const f = fixture();
+        try {
+            const old = heldResume(f.context), retired = f.manager.resume();
+            f.manager.suspendAudioContexts();
+            const current = heldResume(f.context), active = f.manager.resume();
+            current.succeed(); expect(await active).toBe(true);
+            old.succeed(); expect(await retired).toBe(false);
+            expect(f.manager.audioUnlocked).toBe(true);
+        } finally { f.manager.destroy(); }
+    });
+
+    test('retired rejection cannot clear replacement readiness or rearm its listeners', async () => {
+        const f = fixture();
+        try {
+            const rearm = jest.spyOn(f.manager, 'rearmAudioAfterInterruption');
+            const old = heldResume(f.context), pending = f.manager.resume();
+            f.manager.audioContext = { ...f.context, state: 'running' };
+            f.manager.attachPhaserSound({ context: { state: 'running' }, setMute: jest.fn() });
+            expect(f.manager.audioUnlocked).toBe(true); old.fail();
+            expect(await pending).toBe(false); expect(f.manager.audioUnlocked).toBe(true);
+            expect(rearm).not.toHaveBeenCalled();
+        } finally { f.manager.destroy(); }
+    });
+});
+
 test('a fading previous area cannot disconnect the newly selected soundtrack', () => {
     const { manager, timers } = fixture();
     manager.playAreaMusic('sanctuary');

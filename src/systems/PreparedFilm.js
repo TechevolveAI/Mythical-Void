@@ -1,3 +1,7 @@
+function releaseSafely(action) {
+    try { action(); } catch { /* Optional cleanup must not strand the film exit. */ }
+}
+
 /** A single, bounded shared film. No accounts, saves or generation requests. */
 export class PreparedFilm {
     constructor(asset, options = {}) {
@@ -22,6 +26,7 @@ export class PreparedFilm {
         this.controller = null;
         this.pending = null;
         this.stopPlaybackWait = null;
+        this.playbackAttempt = null;
         this.stallTimer = null;
     }
 
@@ -51,37 +56,57 @@ export class PreparedFilm {
     prepare() {
         if (this.state === 'disposed') return Promise.resolve(false);
         if (this.pending) return this.pending;
-        if (['prepared', 'playing', 'paused', 'ended'].includes(this.state)) return Promise.resolve(true);
+        if (['prepared', 'starting', 'playing', 'paused', 'ended'].includes(this.state)) return Promise.resolve(true);
         this.releaseMedia();
+        if (this.state === 'disposed') return Promise.resolve(false);
         const controller = new AbortController();
         this.controller = controller;
-        this.setState('fetching');
+        // Publish ownership before callbacks can re-enter prepare or close it.
+        let resolvePending, rejectPending;
+        const pending = new Promise((resolve, reject) => { resolvePending = resolve; rejectPending = reject; });
+        this.pending = pending;
+        const ownsPreparation = () => this.pending === pending && this.controller === controller;
+        // A provider/auth lookup may ignore AbortSignal. Bound our own wait too.
+        let onAbort;
+        const interrupted = new Promise(resolve => {
+            onAbort = resolve;
+            controller.signal.addEventListener('abort', onAbort, { once: true });
+        });
         const deadline = setTimeout(() => controller.abort(), this.options.prepareMs);
-        this.pending = this.load(controller.signal)
-            .then(() => {
-                if (controller.signal.aborted || this.state === 'disposed') return false;
+        const run = async () => {
+            try {
+                this.setState('fetching');
+                if (!ownsPreparation() || this.state === 'disposed') return false;
+                if (controller.signal.aborted) throw new Error('aborted');
+                await Promise.race([this.load(controller.signal), interrupted]);
+                if (!ownsPreparation() || this.state === 'disposed') return false;
+                if (controller.signal.aborted) throw new Error('aborted');
                 this.setState('prepared');
-                return true;
-            })
-            .catch(error => {
-                this.releaseMedia();
-                if (this.state !== 'disposed') {
-                    this.setState('failed', controller.signal.aborted ? 'prepare_timeout' : error.message);
+                return ownsPreparation() && !controller.signal.aborted && this.state !== 'disposed';
+            } catch (error) {
+                if (ownsPreparation()) {
+                    this.releaseMedia();
+                    if (this.state !== 'disposed') {
+                        this.setState('failed', controller.signal.aborted ? 'prepare_timeout' : error.message);
+                    }
                 }
                 return false;
-            })
-            .finally(() => {
+            } finally {
                 clearTimeout(deadline);
-                this.pending = null;
+                controller.signal.removeEventListener('abort', onAbort);
+                if (this.pending === pending) this.pending = null;
                 if (this.controller === controller) this.controller = null;
-            });
-        return this.pending;
+            }
+        };
+        void run().then(resolvePending, rejectPending);
+        return pending;
     }
 
     async load(signal) {
         const response = await this.options.fetch(this.validateAsset(), {
             signal, credentials: 'omit', redirect: 'error', cache: 'default'
         });
+        if (signal.aborted) throw new Error('aborted');
         if (!response.ok || !/^video\/mp4(?:;|$)/i.test(response.headers.get('content-type') || '')) {
             throw new Error('invalid_response');
         }
@@ -165,7 +190,8 @@ export class PreparedFilm {
         const video = this.video;
         if (restart || this.state === 'ended') video.currentTime = 0;
         const startTime = video.currentTime;
-        this.setState('starting');
+        const attempt = {};
+        this.playbackAttempt = attempt;
         return new Promise(resolve => {
             let settled = false;
             let frameId;
@@ -173,13 +199,17 @@ export class PreparedFilm {
                 if (settled) return;
                 settled = true;
                 clearTimeout(deadline);
-                if (frameId !== undefined) video.cancelVideoFrameCallback?.(frameId);
-                video.removeEventListener('timeupdate', progressed);
-                video.removeEventListener('error', failed);
-                this.stopPlaybackWait = null;
-                if (!ok) video.pause();
-                if (!['disposed', 'paused'].includes(this.state)) this.setState(ok ? 'playing' : 'failed', error);
-                resolve(ok);
+                if (frameId !== undefined) releaseSafely(() => video.cancelVideoFrameCallback?.(frameId));
+                releaseSafely(() => video.removeEventListener('timeupdate', progressed));
+                releaseSafely(() => video.removeEventListener('error', failed));
+                const ownsPlayback = this.playbackAttempt === attempt;
+                if (this.stopPlaybackWait === cancel) this.stopPlaybackWait = null;
+                if (ownsPlayback) {
+                    this.playbackAttempt = null;
+                    if (!ok && this.video === video) releaseSafely(() => video.pause());
+                    if (!['disposed', 'paused'].includes(this.state)) this.setState(ok ? 'playing' : 'failed', error);
+                }
+                resolve(ok && ownsPlayback && this.video === video && this.state === 'playing');
             };
             const failed = () => finish(false, 'playback_failed');
             const progressed = () => {
@@ -190,7 +220,13 @@ export class PreparedFilm {
                 else if (!settled) frameId = video.requestVideoFrameCallback(frame);
             };
             const deadline = setTimeout(() => finish(false, 'startup_timeout'), this.options.startupMs);
-            this.stopPlaybackWait = () => finish(false, 'interrupted');
+            const cancel = () => finish(false, 'interrupted');
+            this.stopPlaybackWait = cancel;
+            this.setState('starting');
+            if (settled || this.playbackAttempt !== attempt || this.video !== video || this.state !== 'starting') {
+                finish(false, 'interrupted');
+                return;
+            }
             video.addEventListener('error', failed);
             if (video.requestVideoFrameCallback) frameId = video.requestVideoFrameCallback(frame);
             else video.addEventListener('timeupdate', progressed);
@@ -218,24 +254,32 @@ export class PreparedFilm {
 
     releaseMedia() {
         clearTimeout(this.stallTimer);
-        this.stopPlaybackWait?.();
-        if (this.video) {
-            this.video.removeEventListener('waiting', this.onWaiting);
-            this.video.removeEventListener('timeupdate', this.onProgress);
-            this.video.pause();
-            this.video.removeAttribute('src');
-            this.video.load();
-            this.video.remove();
-            this.video = null;
-        }
-        if (this.url) this.options.revokeURL(this.url);
+        const video = this.video, url = this.url, stop = this.stopPlaybackWait;
+        const waiting = this.onWaiting, progress = this.onProgress;
+        // Retire these references before cleanup can invoke another callback.
+        this.video = null;
         this.url = null;
+        this.stopPlaybackWait = null;
+        if (video) {
+            releaseSafely(() => { video.muted = true; });
+            releaseSafely(() => { video.volume = 0; });
+        }
+        releaseSafely(() => stop?.());
+        if (video) {
+            releaseSafely(() => video.removeEventListener('waiting', waiting));
+            releaseSafely(() => video.removeEventListener('timeupdate', progress));
+            releaseSafely(() => video.pause());
+            releaseSafely(() => video.removeAttribute('src'));
+            releaseSafely(() => video.load());
+            releaseSafely(() => video.remove());
+        }
+        if (url) releaseSafely(() => this.options.revokeURL(url));
     }
 
     dispose() {
         if (this.state === 'disposed') return;
-        this.setState('disposed');
-        this.controller?.abort();
+        releaseSafely(() => this.setState('disposed'));
+        releaseSafely(() => this.controller?.abort());
         this.releaseMedia();
         this.listeners.clear();
     }

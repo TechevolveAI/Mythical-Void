@@ -20,7 +20,7 @@ describe('local save safety and recovery', () => {
             version: '1.0.0',
             savedAt: 23,
             player: { name: 'Wanderer' },
-            creature: { hatched: true, name: 'Aster' }
+            creature: { hatched: true, name: 'Aster', genetics: { id: 'fictional-older-creature' } }
         });
         localStorage.setItem(manager.saveKey, olderSave);
 
@@ -44,7 +44,7 @@ describe('local save safety and recovery', () => {
         const olderSave = JSON.stringify({
             version: '1.0.0',
             savedAt: 50,
-            creature: { hatched: true, name: 'Earlier Companion' }
+            creature: { hatched: true, name: 'Earlier Companion', genes: { id: 'fictional-migration-failure' } }
         });
         localStorage.setItem(manager.saveKey, olderSave);
         jest.spyOn(manager, 'migrateSaveData').mockImplementation(() => {
@@ -52,14 +52,15 @@ describe('local save safety and recovery', () => {
         });
 
         expect(manager.load()).toBe(false);
+        expect(manager.migrateSaveData).toHaveBeenCalledTimes(1);
         expect(manager.get('creature.name')).toBe('Current Companion');
         expect(localStorage.getItem(manager.saveKey)).toBe(olderSave);
-        expect(manager.getLocalSaveBackups()[0]).toEqual(
-            expect.objectContaining({ reason: 'migration_failed' })
-        );
+        expect(manager.getSaveAdmission().status).toBe('held');
+        expect(manager.save()).toBe(false);
+        expect(localStorage.getItem(manager.saveKey)).toBe(olderSave);
     });
 
-    test('corrupted primary data is quarantined without destroying a valid recovery save', () => {
+    test('corrupted primary data stays protected without destroying a valid recovery save', () => {
         manager.set('creature.name', 'Aster');
         expect(manager.save()).toBe(true);
         manager.set('player.cosmicCoins', 23);
@@ -71,11 +72,10 @@ describe('local save safety and recovery', () => {
 
         expect(manager.load()).toBe(false);
         expect(manager.get('creature.name')).toBe('Current Session');
-        expect(localStorage.getItem(manager.saveKey)).toBeNull();
+        expect(localStorage.getItem(manager.saveKey)).toBe('{not-json');
         expect(manager.getLocalSaveBackups()).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ id: validBackup.id }),
-                expect.objectContaining({ reason: 'corrupted' })
+                expect.objectContaining({ id: validBackup.id })
             ])
         );
 

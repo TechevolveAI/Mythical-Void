@@ -105,7 +105,7 @@ describe('Fusion Pod Sanctuary landmark', () => {
             canOpen: false
         }));
         expect(formatFusionPodLandmarkObjective(dormant)).toContain(
-            'Rescue a second creature'
+            'Hatch another egg'
         );
 
         const calibrating = getFusionPodLandmarkSnapshot(
@@ -119,12 +119,28 @@ describe('Fusion Pod Sanctuary landmark', () => {
         );
         expect(calibrating).toEqual(expect.objectContaining({
             state: 'calibrating',
-            statusLabel: 'FIELD CALIBRATION 3/5',
+            statusLabel: 'LEVEL 3/5',
             canOpen: false
         }));
         expect(formatFusionPodLandmarkObjective(calibrating)).toContain(
-            'field level 5'
+            'Level 5'
         );
+    });
+
+    test('resident rescues do not advertise a second owned Fusion parent', () => {
+        const gameState = createGameState({
+            creatures: [companion('alpha', 'adult')],
+            level: 5
+        });
+        const get = gameState.get;
+        gameState.get = key => key === 'world.rescuedResidents'
+            ? { rescuedIds: ['bloom', 'pebble'] } : get(key);
+        const snapshot = getFusionPodLandmarkSnapshot(gameState);
+        expect(snapshot).toMatchObject({ state: 'maturing', collectionCount: 1, adultCount: 1 });
+        const guidance = formatFusionPodLandmarkObjective(snapshot);
+        expect(guidance).toContain('Hatch another egg');
+        expect(guidance).toContain('Inventory');
+        expect(guidance).not.toMatch(/rescue/i);
     });
 
     test('distinguishes maturing, local-ready, and protected shared-ready signals', () => {

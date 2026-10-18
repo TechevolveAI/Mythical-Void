@@ -375,10 +375,17 @@ class NamingScene extends Phaser.Scene {
     }
 
     resetGameData() {
-        // Clear all game data and reload
-        localStorage.removeItem('mythical-creature-save');
-        console.log('🔄 Game data reset from naming scene');
-        window.location.reload();
+        const state = getGameState();
+        // A stale naming callback must not bypass protected recovery or delete a save.
+        if (state.canPersistSave?.() === false) return false;
+        try {
+            if (state.startFreshGame?.() !== true) return false;
+            window.location.reload();
+            return true;
+        } catch (error) {
+            state.showStorageWarning?.('Your saved game was not replaced. A safe recovery copy could not be made.');
+            return false;
+        }
     }
 
     createMobileLayout() {

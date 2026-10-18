@@ -413,8 +413,8 @@
 
   "hatching": {
     "visionReveal": {
-      "enabled": true,
-      "showAdultFirst": true,
+      "enabled": false,
+      "showAdultFirst": false,
       "visionDuration": 4000,
       "visionMessage": "PROJECTED MATURITY // GROWTH POTENTIAL",
       "transitionMessage": "One possible future. Trust and experience will shape the rest.",

@@ -383,7 +383,8 @@ describe('release test gate', () => {
             "SMOKE_CASE === 'katana-upgrades' && Boolean(candidate.katanaUpgradeId)"
         );
         expect(source).toContain('visible completion action');
-        expect(source).toContain('debrief installation action');
+        expect(source).toContain('regional reward summary');
+        expect(source).toContain('Summary left a repeated blocking debrief');
         expect(source).toContain('Wanderer-77 installation action');
         expect(source).toContain("await waitForScene(session, 'VictoryScene'");
         expect(release).toContain('for (const smokeCase of guardianHandoffCases)');

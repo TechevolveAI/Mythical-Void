@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection, expectPeaksCompletionConnection, expectCrystalCompletionConnection, expectReefCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const read = relativePath => fs.readFileSync(
     path.join(__dirname, '..', relativePath),
@@ -612,8 +613,15 @@ describe('Village settlement gameplay contract', () => {
         ];
 
         levelSources.forEach(levelPath => {
-            expect(read(levelPath)).toContain('getVillageCompletionCopy({ compact: true })');
+            if (levelPath.includes('MythicalForest')) { expectForestCompletionConnection(); return; }
+            if (levelPath.includes('VoidPeaks')) { expectPeaksCompletionConnection(); return; }
+            if (levelPath.includes('CrystalCaves')) { expectCrystalCompletionConnection(); return; }
+            if (levelPath.includes('ReefLevel')) { expectReefCompletionConnection(); return; }
+            if (levelPath.includes('AuroraDepths')) { expectAuroraCompletionConnection(); return; }
+            expect(read(levelPath)).toContain(levelPath.includes('FinalVoid')
+                ? 'getVillageCompletionCopy({ compact: true })' : 'this.showRegionalVictorySummary()');
         });
+        expect(read('scenes/PlatformerLevelScene.js')).toContain('summary.fieldNote = [summary.fieldNote, battleRecord, this.getVillageCompletionCopy({ compact: true })]');
     });
 
     test('completed buildings appear as connected world structures in the Sanctuary', () => {

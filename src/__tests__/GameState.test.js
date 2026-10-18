@@ -14,9 +14,12 @@ describe('GameStateManager', () => {
 
     test('reset restores default creature state and clears persistence', () => {
         manager.set('creature.hatched', true);
+        manager.set('creature.genes', { id: 'fictional-reset-creature' });
         manager.set('creature.name', 'Testy');
         manager.set('player.name', 'Player1');
-        localStorage.setItem(manager.saveKey, JSON.stringify({ creature: { hatched: true } }));
+        localStorage.setItem(manager.saveKey, JSON.stringify({ creature: {
+            hatched: true, genes: { id: 'fictional-reset-creature' }
+        } }));
 
         manager.reset();
 
@@ -139,6 +142,7 @@ describe('GameStateManager', () => {
         manager.set('session.gameStarted', true);
         manager.set('session.currentScene', 'ShopScene');
         manager.set('creature.hatched', true);
+        manager.set('creature.genes', { id: 'fictional-returning-creature' });
         manager.set('creature.name', 'Nova');
         expect(manager.save()).toBe(true);
 
@@ -154,7 +158,7 @@ describe('GameStateManager', () => {
         localStorage.setItem(manager.saveKey, JSON.stringify({
             version: manager.gameVersion,
             savedAt: Date.now(),
-            creature: { hatched: true, name: 'Nova' }
+            creature: { hatched: true, name: 'Nova', genetics: { id: 'fictional-legacy-creature' } }
         }));
 
         expect(manager.load()).toBe(true);
@@ -168,6 +172,7 @@ describe('GameStateManager', () => {
             savedAt: 5000,
             creature: {
                 hatched: true,
+                genes: { id: 'fictional-imported-creature' },
                 name: 'Comet'
             }
         }, {

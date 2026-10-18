@@ -1,3 +1,9 @@
+import { addInventoryItem, canAcceptInventoryItem, addGuaranteedInventoryReward, addInventoryShipPart,
+    captureInventoryRewardSource, captureFreshInventoryAbsence, copyInventoryRewardData as copy } from './InventoryRewardTargets.js';
+
+const initialInventoryLoads = new WeakMap();
+const loadedInventorySources = new WeakMap();
+
 /**
  * InventoryManager - Manages player inventory system
  * Handles item storage, usage, equipping, and organization
@@ -8,6 +14,7 @@ class InventoryManager {
         this.initialized = false;
         this.maxSlots = 30;
         this.inventory = [];
+        initialInventoryLoads.set(this, { phase: 'constructed', cache: this.inventory });
         this.events = new Phaser.Events.EventEmitter();
         this.lastUseResult = null;
         this.utilityLimits = {
@@ -78,6 +85,14 @@ class InventoryManager {
             return;
         }
 
+        const loadState = window.GameState, loadRoot = loadState?.state, loadEpoch = loadState?.getSaveAdmission?.().epoch;
+        const constructed = initialInventoryLoads.get(this);
+        const originalMethods = ['initialize', 'migrateLegacyMapItems', 'claimPendingBossRewards'];
+        const methodsUnchanged = () => originalMethods.every(name => this[name] === InventoryManager.prototype[name]);
+        const emptyLoad = constructed?.phase === 'constructed' && constructed.cache === this.inventory && methodsUnchanged()
+            ? captureFreshInventoryAbsence(window.GameState, this.inventory) : null;
+        initialInventoryLoads.delete(this);
+
         // Load inventory from GameState if it exists
         if (window.GameState) {
             const savedInventory = window.GameState.get('inventory.items');
@@ -89,6 +104,13 @@ class InventoryManager {
         this.migrateLegacyMapItems();
         this.initialized = true;
         this.claimPendingBossRewards();
+        if (emptyLoad?.() && this.inventory === constructed.cache && methodsUnchanged()) {
+            initialInventoryLoads.set(this, { phase: 'loaded-empty', cache: constructed.cache,
+                isCurrent: () => this.inventory === constructed.cache && methodsUnchanged() && emptyLoad() });
+        }
+        if (loadRoot && window.GameState === loadState && loadState.state === loadRoot && loadState.getSaveAdmission?.().epoch === loadEpoch) {
+            loadedInventorySources.set(this, { state: loadState, epoch: loadEpoch });
+        }
         console.log('✅ InventoryManager initialized');
     }
 
@@ -134,66 +156,17 @@ class InventoryManager {
      * @returns {boolean} - Success status
      */
     addItem(item) {
-        if (!item) {
-            console.warn('[InventoryManager] Cannot add null item');
-            return false;
-        }
-
-        // Check if item is stackable
-        const stackableTypes = ['food', 'powerup', 'utility'];
-        if (stackableTypes.includes(item.type)) {
-            // Try to find existing stack
-            const existingItem = this.inventory.find(i => i.id === item.id);
-            if (existingItem) {
-                existingItem.quantity = (existingItem.quantity || 1) + 1;
-                console.log(`[InventoryManager] Stacked ${item.name} (x${existingItem.quantity})`);
-
-                this.saveInventory();
-                this.events.emit('itemAdded', { item: existingItem, stacked: true });
-                return true;
-            }
-        }
-
-        // A full inventory can still accept an item that joins an existing
-        // stack, so capacity is checked only after the stack path above.
-        if (this.inventory.length >= this.maxSlots) {
-            console.warn('[InventoryManager] Inventory is full');
-            this.events.emit('inventoryFull');
-            return false;
-        }
-
-        // Add as new item
-        const newItem = {
-            ...item,
-            quantity: item.quantity || 1,
-            addedAt: Date.now(),
-            slot: this.inventory.length
-        };
-
-        this.inventory.push(newItem);
-        console.log(`[InventoryManager] Added ${item.name} to inventory (slot ${newItem.slot})`);
-
-        this.saveInventory();
-        this.events.emit('itemAdded', { item: newItem, stacked: false });
-
-        return true;
+        return addInventoryItem(this, item, {
+            now: () => Date.now(), persist: () => this.saveInventory(), emit: (...args) => this.events.emit(...args),
+            log: (...args) => console.log(...args), warn: (...args) => console.warn(...args)
+        });
     }
 
     /**
      * Check whether an item can be added without mutating inventory.
      */
     canAcceptItem(item) {
-        if (!item) {
-            return false;
-        }
-
-        const stackableTypes = ['food', 'powerup', 'utility'];
-        const joinsExistingStack = (
-            stackableTypes.includes(item.type) &&
-            this.inventory.some(existingItem => existingItem.id === item.id)
-        );
-
-        return joinsExistingStack || this.inventory.length < this.maxSlots;
+        return canAcceptInventoryItem(this, item);
     }
 
     /**
@@ -202,30 +175,171 @@ class InventoryManager {
      * soon as a slot or matching stack is available.
      */
     addGuaranteedReward(item) {
-        if (!item) return { accepted: false, queued: false, item: null };
+        return addGuaranteedInventoryReward(item, {
+            canAccept: value => this.canAcceptItem(value), addItem: value => this.addItem(value), hasState: () => Boolean(window.GameState),
+            readPending: () => window.GameState.get('inventory.pendingBossRewards'),
+            writePending: value => window.GameState.set('inventory.pendingBossRewards', value),
+            persist: () => window.GameState.save?.(), emit: (...args) => this.events.emit(...args)
+        });
+    }
 
-        if (this.canAcceptItem(item) && this.addItem(item)) {
-            return { accepted: true, queued: false, item };
-        }
+    // Read-only prerequisite. The caller must supply its original raw-observed
+    // save owner for storage checks; the default proves only memory/cache source.
+    captureRewardCalculationSource({ state = window.GameState, reader = null } = {}) {
+        return captureInventoryRewardSource(this, state, InventoryManager.prototype,
+            () => window.GameState === state && window.InventoryManager === this, reader,
+            initialInventoryLoads.get(this)?.isCurrent);
+    }
 
-        if (!window.GameState) {
-            return { accepted: false, queued: false, item };
-        }
-
-        const pendingPath = 'inventory.pendingBossRewards';
-        const savedPending = window.GameState.get(pendingPath);
-        const pending = Array.isArray(savedPending) ? savedPending : [];
-        window.GameState.set(pendingPath, [
-            ...pending,
-            {
-                ...item,
-                effect: { ...(item.effect || {}) },
-                quantity: 1
+    // A new Sanctuary entry loads its admitted source. This is NEVER called by
+    // a retained completion retry, and does not migrate, claim, emit or save.
+    loadSourceForSceneEntry(state = window.GameState) {
+        try {
+            if (!state || window.GameState !== state || window.InventoryManager !== this || !this.initialized ||
+                Object.getPrototypeOf(this) !== InventoryManager.prototype || state.getSaveAdmission().status !== 'ready') return false;
+            copy(state.state); copy(this.inventory);
+            if (this.captureRewardCalculationSource({ state }).status === 'captured') return true;
+            const root = state.state, epoch = state.getSaveAdmission().epoch, reader = state.captureSaveAdmissionOwner();
+            const previous = loadedInventorySources.get(this), receipt = initialInventoryLoads.get(this);
+            const newSource = previous && (previous.state !== state || previous.epoch !== epoch);
+            const names = ['initialize', 'migrateLegacyMapItems', 'claimPendingBossRewards', 'saveInventory',
+                'captureRewardCalculationSource', 'loadSourceForSceneEntry'];
+            const current = () => window.GameState === state && window.InventoryManager === this && state.state === root &&
+                state.getSaveAdmission().epoch === epoch && state.getSaveAdmission().status === 'ready' && reader.isCurrent() &&
+                names.every(name => this[name] === InventoryManager.prototype[name]);
+            const items = state.get('inventory.items');
+            let cache, absence;
+            if (items !== undefined) {
+                if (!Array.isArray(items) || !Object.isExtensible(items) || !Object.getOwnPropertyDescriptor(items, 'length').writable ||
+                    (!newSource && JSON.stringify(copy(items)) !== JSON.stringify(copy(this.inventory)))) return false;
+                cache = items;
+            } else {
+                if (!newSource && (!receipt || receipt.cache !== this.inventory || this.inventory.length !== 0)) return false;
+                cache = newSource ? [] : this.inventory;
+                absence = captureFreshInventoryAbsence(state, cache);
+                if (!absence) return false;
             }
-        ]);
-        window.GameState.save?.();
-        this.events.emit('bossRewardQueued', { item });
-        return { accepted: true, queued: true, item };
+            const slot = Object.getOwnPropertyDescriptor(this, 'inventory');
+            if (!slot?.writable || !Object.hasOwn(slot, 'value') || !current()) return false;
+            this.inventory = cache;
+            if (!current() || this.inventory !== cache) return false;
+            if (absence) initialInventoryLoads.set(this, { phase: 'entry-empty', cache,
+                isCurrent: () => this.inventory === cache && names.every(name => this[name] === InventoryManager.prototype[name]) && absence() });
+            else initialInventoryLoads.delete(this);
+            loadedInventorySources.set(this, { state, epoch });
+            return this.captureRewardCalculationSource({ state }).status === 'captured';
+        } catch { return false; }
+    }
+
+    // Prepare ordinary mutable slots before the writer. This capability never
+    // writes progress or grants rewards, and cannot publish before adoption.
+    captureCompletionCachePublication(state = window.GameState) {
+        const source = this.captureRewardCalculationSource({ state });
+        if (source.status !== 'captured') throw Error('INVENTORY_PUBLICATION_UNAVAILABLE');
+        const beforeRoot = state.state, beforeCache = this.inventory, beforeReceipt = initialInventoryLoads.get(this);
+        const admission = state.saveAdmission, epoch = state.getSaveAdmission().epoch, prototype = Object.getPrototypeOf(this);
+        const names = ['initialize', 'migrateLegacyMapItems', 'claimPendingBossRewards', 'addItem', 'canAcceptItem',
+            'addGuaranteedReward', 'addShipPart', 'saveInventory', 'loadSourceForSceneEntry', 'captureRewardCalculationSource', 'captureCompletionCachePublication'];
+        const methods = names.map(name => this[name]), apiNames = ['get', 'set', 'getSaveAdmission', 'captureSaveAdmissionOwner'];
+        const api = apiNames.map(name => state[name]), definitions = this.SHIP_PART_DEFINITIONS, events = this.events, emit = events.emit;
+        const initialised = this.initialized, maxSlots = this.maxSlots, configBytes = JSON.stringify(copy(definitions));
+        const slot = Object.getOwnPropertyDescriptor(this, 'inventory'), beforeBytes = JSON.stringify(copy(beforeCache));
+        if (!slot?.writable || !slot.enumerable || !slot.configurable || slot.value !== beforeCache) throw Error('INVENTORY_PUBLICATION_SLOT_UNAVAILABLE');
+        let after, cursor = 0, assigning = false, phase = 'captured';
+        const sameField = (owner, key, expected) => {
+            const field = Object.getOwnPropertyDescriptor(owner, key);
+            return !expected ? !field : Boolean(field) && ['value', 'get', 'set', 'enumerable', 'writable', 'configurable'].every(name => field[name] === expected[name]);
+        };
+        const mutable = (value, seen = new Set()) => {
+            if (!value || typeof value !== 'object' || seen.has(value)) return true;
+            if (!Object.isExtensible(value)) return false;
+            seen.add(value);
+            return Object.entries(Object.getOwnPropertyDescriptors(value)).every(([key, field]) =>
+                (Array.isArray(value) && key === 'length' ? field.writable : field.writable && field.configurable) &&
+                mutable(field.value, seen));
+        };
+        const pinMutable = value => {
+            const nodes = [], seen = new Set();
+            const visit = node => {
+                if (!node || typeof node !== 'object' || seen.has(node)) return;
+                seen.add(node);
+                nodes.push({ node, prototype: Object.getPrototypeOf(node), fields: Object.getOwnPropertyDescriptors(node), keys: Reflect.ownKeys(node) });
+                Object.values(node).forEach(visit);
+            };
+            visit(value);
+            return () => nodes.every(({ node, prototype: expectedPrototype, fields, keys }) => {
+                const nextKeys = Reflect.ownKeys(node);
+                return Object.isExtensible(node) && Object.getPrototypeOf(node) === expectedPrototype &&
+                    nextKeys.length === keys.length && keys.every((key, index) => nextKeys[index] === key && sameField(node, key, fields[key]));
+            });
+        };
+        const matchesCache = next => this.inventory === (next ? after.cache : beforeCache) &&
+            JSON.stringify(copy(this.inventory)) === (next ? after.cacheBytes : beforeBytes);
+        const stable = () => window.GameState === state && window.InventoryManager === this &&
+            state.saveAdmission === admission && state.getSaveAdmission().epoch === epoch && state.getSaveAdmission().status === 'ready' &&
+            Object.getPrototypeOf(this) === prototype && names.every((name, index) => this[name] === methods[index] && prototype[name] === methods[index]) &&
+            apiNames.every((name, index) => state[name] === api[index]) && this.SHIP_PART_DEFINITIONS === definitions &&
+            JSON.stringify(copy(definitions)) === configBytes && this.events === events && events.emit === emit &&
+            this.initialized === initialised && this.maxSlots === maxSlots;
+        const futureCurrent = () => !after || (Object.isExtensible(after.root) &&
+            sameField(after.root, 'inventory', after.inventoryField) && sameField(after.root, 'hubWorld', after.hubField) &&
+            sameField(after.root.hubWorld, 'shipParts', after.partsField) &&
+            ['inventoryItems', 'inventoryPresence', 'inventoryMode'].every(key => sameField(after.projection, key, after.projectionFields[key])) &&
+            after.fixedProjectionCurrent() && JSON.stringify(copy(after.cache)) === after.cacheBytes &&
+            JSON.stringify(copy({ inventory: after.root.inventory ?? null, shipParts: after.root.hubWorld.shipParts })) === after.branchBytes &&
+            (after.itemsPresent ? after.root.inventory.items === after.cache : !Object.hasOwn(after.root.inventory || {}, 'items')));
+        const isCurrent = () => {
+            try {
+                const field = Object.getOwnPropertyDescriptor(this, 'inventory');
+                if (!stable() || !futureCurrent() || !field?.writable || !field.enumerable || !field.configurable ||
+                    !(matchesCache(cursor > 0) || (assigning && cursor === 0 && matchesCache(true))) ||
+                    initialInventoryLoads.get(this) !== (cursor > 1 ? after.receipt : beforeReceipt)) return false;
+                if (state.state === beforeRoot) return cursor === 0 && source.isCurrent();
+                return Boolean(after) && state.state === after.root;
+            } catch { return false; }
+        };
+        if (!isCurrent()) throw Error('INVENTORY_PUBLICATION_UNAVAILABLE');
+        return { isCurrent, isPublished: () => phase === 'published' && isCurrent(),
+            prepare: (staged, projection) => {
+                if (phase !== 'captured' || !isCurrent() || !staged || staged === beforeRoot || Object.isFrozen(staged) || !projection) throw Error('INVENTORY_PUBLICATION_NOT_PREPARED');
+                copy(staged); copy(projection);
+                if (!Array.isArray(projection.inventoryItems) || !Object.isExtensible(projection.inventoryItems) || Object.isFrozen(projection.inventoryItems)) throw Error('INVENTORY_PUBLICATION_NOT_PREPARED');
+                const rootPresent = Object.hasOwn(staged, 'inventory'), itemsPresent = Object.hasOwn(staged.inventory || {}, 'items');
+                const cache = projection.inventoryItems;
+                if (!Object.isExtensible(staged) || !mutable(cache) || (rootPresent && !mutable(staged.inventory)) ||
+                    !mutable(staged.hubWorld.shipParts)) throw Error('INVENTORY_PUBLICATION_NOT_PREPARED');
+                if (projection.inventoryPresence?.root !== rootPresent || projection.inventoryPresence?.items !== itemsPresent ||
+                    projection.inventoryMode !== (itemsPresent ? 'canonical' : 'original-empty') ||
+                    (itemsPresent ? staged.inventory.items !== cache : source.data.itemsPresent || cache.length !== 0)) throw Error('INVENTORY_PUBLICATION_NOT_PREPARED');
+                const missingProof = itemsPresent ? null : captureFreshInventoryAbsence(state, cache, staged);
+                if (!itemsPresent && !missingProof) throw Error('INVENTORY_PUBLICATION_NOT_PREPARED');
+                after = { root: staged, cache, itemsPresent, cacheBytes: JSON.stringify(copy(cache)),
+                    inventoryField: Object.getOwnPropertyDescriptor(staged, 'inventory'),
+                    hubField: Object.getOwnPropertyDescriptor(staged, 'hubWorld'), partsField: Object.getOwnPropertyDescriptor(staged.hubWorld, 'shipParts'),
+                    projection, projectionFields: Object.fromEntries(['inventoryItems', 'inventoryPresence', 'inventoryMode'].map(key =>
+                        [key, Object.getOwnPropertyDescriptor(projection, key)])),
+                    fixedProjectionCurrent: pinMutable({ inventory: staged.inventory ?? null, shipParts: staged.hubWorld.shipParts,
+                        cache, presence: projection.inventoryPresence }),
+                    branchBytes: JSON.stringify(copy({ inventory: staged.inventory ?? null, shipParts: staged.hubWorld.shipParts })) };
+                after.receipt = itemsPresent ? undefined : { phase: 'published-empty', cache,
+                    isCurrent: () => this.inventory === cache && stable() && missingProof() };
+                if (!isCurrent()) throw Error('INVENTORY_PUBLICATION_RETIRED');
+                phase = 'prepared';
+            },
+            publish: () => {
+                if (phase !== 'prepared' || !isCurrent() || state.state !== after.root) throw Error('INVENTORY_PUBLICATION_RETIRED');
+                phase = 'publishing'; assigning = true;
+                try { this.inventory = after.cache; }
+                finally { try { if (matchesCache(true)) cursor = 1; } finally { assigning = false; } }
+                if (!isCurrent()) throw Error('INVENTORY_PUBLICATION_RETIRED');
+                if (after.receipt) initialInventoryLoads.set(this, after.receipt);
+                else initialInventoryLoads.delete(this);
+                loadedInventorySources.set(this, { state, epoch });
+                cursor = 2;
+                if (!isCurrent()) throw Error('INVENTORY_PUBLICATION_RETIRED');
+                phase = 'published';
+            }
+        };
     }
 
     claimPendingBossRewards() {
@@ -322,8 +436,8 @@ class InventoryManager {
 
     /**
      * Reserve one owned egg for HatchingScene before leaving the inventory.
-     * The reservation is written before removeItem saves, so a refresh cannot
-     * consume an egg without leaving a resumable hatch transaction.
+     * GameState stages both changes and verifies their durable bytes before
+     * inventory callbacks or the scene transition can observe success.
      */
     reserveEggForHatching(slot, spawnPosition = null) {
         const item = this.getItem(slot);
@@ -334,34 +448,27 @@ class InventoryManager {
             return { success: false, reason: 'hatch_already_reserved' };
         }
 
-        const safePosition = {
-            x: Number.isFinite(Number(spawnPosition?.x))
-                ? Number(spawnPosition.x)
-                : 400,
-            y: Number.isFinite(Number(spawnPosition?.y))
-                ? Number(spawnPosition.y)
-                : 300
-        };
-        const transaction = {
-            schemaVersion: 1,
-            status: 'reserved',
-            eggType: item.eggType || 'cosmic',
-            eggItemId: item.id,
-            inventorySlot: slot,
-            spawnPosition: safePosition,
-            reservedAt: Date.now()
-        };
-        window.GameState?.set('creature.hatchTransaction', transaction);
-
-        if (!this.removeItem(slot, 1)) {
-            window.GameState?.set('creature.hatchTransaction', null);
-            window.GameState?.save?.();
-            return { success: false, reason: 'egg_remove_failed' };
-        }
-
-        window.GameState?.save?.();
+        const state = window.GameState;
+        const cloud = window.CloudSave;
+        const campaignGuard = cloud?.captureCampaignGuard?.() || (() => true);
+        const isCurrentCampaign = () => state === window.GameState &&
+            cloud === window.CloudSave && campaignGuard();
+        const result = state?.reserveInventoryEggForHatching?.(slot, spawnPosition, {
+            expectedItem: item, isCurrentCampaign
+        });
+        if (!result?.success) return result || { success: false, reason: 'hatch_save_unavailable' };
+        const isCurrent = () => isCurrentCampaign() && result.isCurrent();
+        this.inventory = state.get('inventory.items');
+        if ((item.quantity || 1) > 1) {
+            this.events.emit('itemQuantityChanged', { item: this.inventory[slot], slot,
+                newQuantity: this.inventory[slot].quantity });
+        } else this.events.emit('itemRemoved', { item, slot });
+        if (!isCurrent()) return { success: false, reason: 'hatch_context_changed' };
+        const { transaction } = result;
         this.events.emit('eggReservedForHatching', { transaction });
-        return { success: true, transaction };
+        if (!isCurrent()) return { success: false, reason: 'hatch_context_changed' };
+        this.claimPendingBossRewards();
+        return isCurrent() ? { success: true, transaction } : { success: false, reason: 'hatch_context_changed' };
     }
 
     /**
@@ -769,6 +876,7 @@ class InventoryManager {
      * Save inventory to GameState
      */
     saveInventory() {
+        initialInventoryLoads.delete(this);
         if (window.GameState) {
             window.GameState.set('inventory.items', this.inventory);
             window.GameState.save();
@@ -803,48 +911,13 @@ class InventoryManager {
      * @returns {boolean} - Success status
      */
     addShipPart(partId) {
-        if (!window.GameState) {
-            console.warn('[InventoryManager] GameState not available');
-            return false;
-        }
-
-        // Validate part ID
-        if (!this.SHIP_PART_DEFINITIONS[partId]) {
-            console.warn(`[InventoryManager] Unknown ship part: ${partId}`);
-            return false;
-        }
-
-        // Get current collected parts
-        const collected = window.GameState.get('hubWorld.shipParts.collected') || [];
-
-        // Check if already collected
-        if (collected.includes(partId)) {
-            console.log(`[InventoryManager] Ship part already collected: ${partId}`);
-            return false;
-        }
-
-        // Add to collection
-        collected.push(partId);
-        window.GameState.set('hubWorld.shipParts.collected', collected);
-        window.GameState.save();
-
-        const partInfo = this.SHIP_PART_DEFINITIONS[partId];
-        console.log(`[InventoryManager] Collected ship part: ${partInfo.label}`);
-
-        // Emit event for UI celebrations
-        this.events.emit('shipPartCollected', {
-            partId,
-            partInfo,
-            totalCollected: collected.length,
-            totalParts: Object.keys(this.SHIP_PART_DEFINITIONS).length
+        return addInventoryShipPart(partId, {
+            hasState: () => Boolean(window.GameState), definitions: () => this.SHIP_PART_DEFINITIONS,
+            readCollected: () => window.GameState.get('hubWorld.shipParts.collected'),
+            writeCollected: value => window.GameState.set('hubWorld.shipParts.collected', value), persist: () => window.GameState.save(),
+            emit: (...args) => this.events.emit(...args), notify: () => { if (window.AudioManager) window.AudioManager.playAchievement(); },
+            log: (...args) => console.log(...args), warn: (...args) => console.warn(...args)
         });
-
-        // Play celebration sound
-        if (window.AudioManager) {
-            window.AudioManager.playAchievement();
-        }
-
-        return true;
     }
 
     /**

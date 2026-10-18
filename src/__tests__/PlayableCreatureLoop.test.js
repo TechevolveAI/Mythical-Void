@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { BreedingEngine } = require('../systems/BreedingEngine.js');
+const GameStateManager = require('../systems/GameState.js');
+const { compiledInventorySource } = require('./support/compiledInventorySource.cjs');
 
 class EventEmitter {
     constructor() {
@@ -15,7 +17,7 @@ class EventEmitter {
 
 function runSingleton(relativePath, exportName, sceneWindow) {
     const filePath = path.join(__dirname, '..', relativePath);
-    const source = fs.readFileSync(filePath, 'utf8').replace(
+    const source = relativePath === 'systems/InventoryManager.js' ? compiledInventorySource() : fs.readFileSync(filePath, 'utf8').replace(
         new RegExp(`export default ${exportName};`),
         `module.exports = ${exportName};`
     );
@@ -82,7 +84,9 @@ function loadShopScene(sceneWindow) {
 }
 
 function stateHarness() {
-    const state = {
+    localStorage.clear();
+    const gameState = new GameStateManager();
+    const initial = {
         player: { cosmicCoins: 0, stardust: 0 },
         stats: { coinsCollected: 0 },
         inventory: { items: [] },
@@ -90,27 +94,11 @@ function stateHarness() {
         world: { currentPosition: { x: 612, y: 344 } },
         hubWorld: { mapsOwned: [], gates: {} }
     };
-    const get = propertyPath => propertyPath
-        .split('.')
-        .reduce((value, key) => value?.[key], state);
-    const set = (propertyPath, value) => {
-        const keys = propertyPath.split('.');
-        const finalKey = keys.pop();
-        const target = keys.reduce((current, key) => {
-            current[key] = current[key] || {};
-            return current[key];
-        }, state);
-        target[finalKey] = value;
-    };
-    return {
-        state,
-        GameState: {
-            get: jest.fn(get),
-            set: jest.fn(set),
-            save: jest.fn(),
-            addMapToCollection: jest.fn(() => true)
-        }
-    };
+    Object.entries(initial).forEach(([key, value]) => gameState.set(key, {
+        ...gameState.get(key), ...value
+    }));
+    expect(gameState.save()).toBe(true);
+    return { state: gameState.state, GameState: gameState };
 }
 
 function hatchRecord(id, mendelianGenes) {
@@ -203,7 +191,7 @@ describe('complete collect, egg, hatch, and multigeneration Fusion loop', () => 
             })
         }));
         expect(inventory.getAllItems()).toHaveLength(0);
-        expect(state.creature.hatchTransaction).toEqual(reservation.transaction);
+        expect(GameState.get('creature.hatchTransaction')).toEqual(reservation.transaction);
 
         const engine = new BreedingEngine();
         const hatchOneGenes = engine.resolveCreatureGenes({

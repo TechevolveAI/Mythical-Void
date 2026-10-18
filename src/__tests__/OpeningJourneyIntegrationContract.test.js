@@ -14,9 +14,12 @@ describe('opening journey integration contract', () => {
         const sanctuary = read('scenes/GameScene.js');
 
         expect(hatching).toContain("recordOpeningMilestone?.('hatch_started')");
-        expect(hatching).toContain("recordOpeningMilestone?.('creature_hatched')");
-        expect(reveal).toContain("recordOpeningMilestone?.('creature_named')");
-        expect(reveal).toContain("recordOpeningMilestone?.('sanctuary_entered')");
+        expect(hatching).toContain('state.commitCreatureHatch(attempt.profile');
+        expect(read('systems/GameState.js')).toContain("draft.recordOpeningMilestone('creature_hatched')");
+        expect(reveal).toContain('state.prepareCreatureNamingDraft(name, soulData, achievements, quests)');
+        expect(read('systems/GameState.js')).toContain("draft.recordOpeningMilestone('creature_named')");
+        expect(reveal).toContain("this.saveLivingFormProgress(owner, 'continue')");
+        expect(read('systems/GameState.js')).toContain("draft.recordOpeningMilestone('sanctuary_entered')");
         expect(onboarding).toContain("recordOpeningMilestone?.('story_completed')");
         expect(controls).toContain("recordOpeningMilestone?.('controls_completed')");
         expect(sanctuary).toContain("recordOpeningMilestone?.('first_objective_ready')");
@@ -26,8 +29,9 @@ describe('opening journey integration contract', () => {
         const reveal = read('scenes/SoulRevealScene.js');
         const journey = read('systems/GameState.js');
 
-        expect(reveal).toContain("recordOpeningPortraitStatus?.('pending')");
-        expect(reveal).toContain("recordOpeningPortraitStatus?.('ready')");
+        expect(journey).toContain("draft.recordOpeningPortraitStatus('pending')");
+        expect(reveal).toContain("this.saveLivingFormProgress(owner, 'portrait')");
+        expect(journey).toContain("draft.recordOpeningPortraitStatus('ready')");
         expect(journey).toContain("return 'GameScene';");
         expect(journey).toContain("journey.milestone === 'creature_named'");
     });

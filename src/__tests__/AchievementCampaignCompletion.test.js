@@ -235,7 +235,9 @@ describe('Project Beacon completion achievement', () => {
         expect(gameScene).toContain("visitArea?.(`signal:${signal.signalId}`)");
         expect(gameScene).toContain("recordEvent?.('stage_reached'");
         expect(platformer).toContain("recordEvent?.('enemy_defeated'");
-        expect(soulReveal).toContain("recordEvent?.('creature_hatched'");
+        expect(soulReveal).toContain('state.prepareCreatureNamingDraft(name, soulData, achievements, quests)');
+        expect(fs.readFileSync(path.join(__dirname, '../systems/GameState.js'), 'utf8'))
+            .toContain('achievements.prepareHatchEventDraft(draft.state');
         expect(breedingHatch).toContain("recordEvent?.('creature_hatched'");
 
         const achievementMenu = fs.readFileSync(

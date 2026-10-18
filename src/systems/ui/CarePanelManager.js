@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 const getGameState = () => window.GameState;
+const CARE_PANEL_DEPTH = 19050;
 
 class CarePanelManager {
     constructor(scene, { careSystem, playerProvider, geneticsProvider } = {}) {
@@ -15,6 +16,9 @@ class CarePanelManager {
         this.careButtons = {};
         this.hintText = null;
         this.signalText = null;
+        this.feedbackText = null;
+        this.actionPending = false;
+        this.destroyed = false;
     }
 
     init() {
@@ -46,7 +50,7 @@ class CarePanelManager {
         const textureKey = 'carePanelTexture';
         if (!this.scene.textures.exists(textureKey)) {
             const graphics = this.scene.make.graphics({ add: false });
-            graphics.fillStyle(0x0b0a2a, 0.85);
+            graphics.fillStyle(0x0b0a2a, 0.98);
             graphics.fillRoundedRect(0, 0, 320, 420, 16);
             graphics.lineStyle(3, 0xFFD700, 0.8);
             graphics.strokeRoundedRect(0, 0, 320, 420, 16);
@@ -57,7 +61,7 @@ class CarePanelManager {
         const bg = this.scene.add.image(this.panelX, 40, textureKey);
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0);
-        bg.setDepth(1900);
+        bg.setDepth(CARE_PANEL_DEPTH);
         bg.setVisible(false);
         this.panelElements.push(bg);
 
@@ -68,7 +72,7 @@ class CarePanelManager {
             fontStyle: 'bold'
         }).setOrigin(0.5, 0);
         title.setScrollFactor(0);
-        title.setDepth(1901);
+        title.setDepth(CARE_PANEL_DEPTH + 1);
         title.setVisible(false);
         this.panelElements.push(title);
 
@@ -80,7 +84,7 @@ class CarePanelManager {
             wordWrap: { width: 270 }
         }).setOrigin(0.5, 0);
         this.signalText.setScrollFactor(0);
-        this.signalText.setDepth(1901);
+        this.signalText.setDepth(CARE_PANEL_DEPTH + 1);
         this.signalText.setVisible(false);
         this.panelElements.push(this.signalText);
 
@@ -90,11 +94,32 @@ class CarePanelManager {
             fontFamily: 'Arial, sans-serif'
         }).setOrigin(0.5);
         closeButton.setScrollFactor(0);
-        closeButton.setDepth(1901);
+        closeButton.setDepth(CARE_PANEL_DEPTH + 1);
         closeButton.setVisible(false);
         closeButton.setInteractive({ useHandCursor: true });
         closeButton.on('pointerdown', () => this.togglePanel());
         this.panelElements.push(closeButton);
+
+        this.feedbackText = this.scene.add.text(this.panelCenterX, 371, '', {
+            fontSize: '12px',
+            color: '#D6EEF2',
+            fontFamily: 'Arial, sans-serif',
+            align: 'center',
+            wordWrap: { width: 272 }
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(CARE_PANEL_DEPTH + 1).setVisible(false);
+        this.panelElements.push(this.feedbackText);
+
+        const zoom = this.scene.cameras?.main?.zoom || 1;
+        const closeSize = Math.max(44, 44 / zoom);
+        const closeZone = this.scene.add.zone(this.panelX + 300, 60, closeSize, closeSize)
+            .setScrollFactor(0).setDepth(CARE_PANEL_DEPTH + 2).setVisible(false).setInteractive({ useHandCursor: true });
+        closeZone.on('pointerdown', () => this.togglePanel());
+        this.closeZone = closeZone;
+        this.panelElements.push(closeZone);
+        const shield = this.scene.add.zone(viewportWidth / 2, this.scene.scale.height / 2,
+            viewportWidth / zoom, this.scene.scale.height / zoom)
+            .setScrollFactor(0).setDepth(CARE_PANEL_DEPTH - 1).setVisible(false).setInteractive();
+        this.panelElements.push(shield);
     }
 
     createCareButtons() {
@@ -128,24 +153,27 @@ class CarePanelManager {
         const bg = this.scene.add.image(x - width / 2, y - height / 2, textureKey);
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0);
-        bg.setDepth(1900);
+        bg.setDepth(CARE_PANEL_DEPTH);
         bg.setVisible(false);
         this.panelElements.push(bg);
 
-        const text = this.scene.add.text(x, y + 5, `${icon} ${label}`, {
-            fontSize: '14px',
+        const text = this.scene.add.text(x, y, `${icon} ${label}`, {
+            fontSize: '13px',
             color: '#FFFFFF',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            align: 'center',
+            wordWrap: { width: width - 16 }
         }).setOrigin(0.5);
         text.setScrollFactor(0);
-        text.setDepth(1901);
+        text.setDepth(CARE_PANEL_DEPTH + 1);
         text.setVisible(false);
         this.panelElements.push(text);
 
-        const zone = this.scene.add.zone(x, y, width, height);
+        const zoom = this.scene.cameras?.main?.zoom || 1;
+        const zone = this.scene.add.zone(x, y, width, Math.max(height, 44 / zoom));
         zone.setInteractive({ useHandCursor: true });
         zone.setScrollFactor(0);
-        zone.setDepth(1902);
+        zone.setDepth(CARE_PANEL_DEPTH + 2);
         zone.setVisible(false);
         zone.on('pointerdown', () => this.performAction(actionType));
         this.panelElements.push(zone);
@@ -154,7 +182,8 @@ class CarePanelManager {
     }
 
     togglePanel() {
-        if (this.focusModeActive) return false;
+        if (this.destroyed) return false;
+        if (!this.panelVisible && (this.focusModeActive || this.scene.isSanctuaryCareBlocked?.())) return false;
         this.panelVisible = !this.panelVisible;
         this.panelElements.forEach(el => el.setVisible(this.panelVisible));
         Object.values(this.careButtons).forEach(({ bg, text, zone }) => {
@@ -163,11 +192,18 @@ class CarePanelManager {
             zone.setVisible(this.panelVisible);
         });
         if (this.panelVisible) {
+            this.feedbackText?.setText('');
+            this.lastCareSummary = '';
+            this.scene.questTracker?.clearStoryMissionBriefing();
+            this.scene.sanctuaryNotices?.refresh();
+            this.restoreMobileControls = this.scene.mobileControls?.suspend?.() === true;
             this.updateSignal();
             this.updateButtons();
             if (window.UXEnhancements) {
                 window.UXEnhancements.announce('Creature care open. Choose a care action.');
             }
+        } else {
+            this.restoreControls();
         }
         return this.panelVisible;
     }
@@ -182,6 +218,7 @@ class CarePanelManager {
                 text.setVisible(false);
                 zone.setVisible(false);
             });
+            this.restoreControls();
         }
         this.hintText?.setVisible(
             !this.focusModeActive && this.scene.scale.width >= 600
@@ -189,11 +226,23 @@ class CarePanelManager {
         return this.focusModeActive;
     }
 
+    restoreControls() {
+        this.scene.joystickX = 0;
+        this.scene.joystickY = 0;
+        if (!this.scene._isShuttingDown) {
+            this.scene.input?.keyboard?.resetKeys?.();
+            if (this.restoreMobileControls) this.scene.mobileControls?.resume?.();
+        }
+        this.restoreMobileControls = false;
+    }
+
     async performAction(actionType) {
-        if (!this.careSystem) return;
+        if (!this.careSystem || this.destroyed || this.actionPending || this.scene.isSanctuaryCareBlocked?.()) return;
+        this.actionPending = true;
         try {
             const genetics = this.geneticsProvider ? this.geneticsProvider() : null;
             const result = await this.careSystem.performCareAction(actionType, genetics);
+            if (this.destroyed || this.scene._isShuttingDown) return;
             if (result?.success) {
                 this.showCareEffect(
                     actionType,
@@ -233,6 +282,8 @@ class CarePanelManager {
         } catch (error) {
             console.warn('[CarePanelManager] Care action failed', error);
             this.showCareMessage(actionType, 0, 'Action failed');
+        } finally {
+            this.actionPending = false;
         }
     }
 
@@ -240,7 +291,11 @@ class CarePanelManager {
      * Show creature's chat response
      */
     showCreatureResponse(response) {
-        if (!response) return;
+        if (!response || this.destroyed || this.scene._isShuttingDown) return;
+        if (this.panelVisible) {
+            this.feedbackText?.setText([response, this.lastCareSummary].filter(Boolean).join('\n'));
+            return;
+        }
 
         const player = this.playerProvider ? this.playerProvider() : null;
         const x = player ? player.x : 400;
@@ -282,7 +337,8 @@ class CarePanelManager {
 
     handleCareEvent(data) {
         if (!data) return;
-        this.showCareEffect(data.action, data.happinessBonus);
+        // Our awaited action supplies the complete response, including support bonuses.
+        if (!this.actionPending) this.showCareEffect(data.action, data.happinessBonus);
         this.updateButtons();
         this.updateHint();
     }
@@ -293,9 +349,19 @@ class CarePanelManager {
         villageBonus = 0,
         heartCareBonus = 0
     ) {
+        if (this.destroyed || this.scene._isShuttingDown) return;
         const creatureName = getGameState()?.get('creature.name') || 'your buddy';
         const actionCopy = this.getActionCopy(actionType);
         const foragerBonus = Math.max(0, villageBonus - heartCareBonus);
+        if (this.panelVisible) {
+            this.lastCareSummary = [
+                happinessBonus ? `+${happinessBonus} joy` : '',
+                foragerBonus > 0 ? `Forager support +${foragerBonus}` : '',
+                heartCareBonus > 0 ? `Heart support +${heartCareBonus}` : ''
+            ].filter(Boolean).join(' | ');
+            this.feedbackText?.setText(`${creatureName} ${actionCopy}\n${this.lastCareSummary}`);
+            return;
+        }
         const support = villageBonus > 0
             ? `${foragerBonus > 0 ? `\nFORAGER HUT SUPPORT +${foragerBonus}` : ''}${
                 heartCareBonus > 0 ? `\nVILLAGE HEART CARE +${heartCareBonus}` : ''
@@ -329,8 +395,13 @@ class CarePanelManager {
     }
 
     showCareMessage(actionType, happinessBonus, errorMessage = null) {
+        if (this.destroyed || this.scene._isShuttingDown) return;
         const copy = this.getActionCopy(actionType);
         const text = errorMessage ? `${copy} — ${errorMessage}` : `${copy} +${happinessBonus} joy`;
+        if (this.panelVisible) {
+            this.feedbackText?.setText(text);
+            return;
+        }
         const toast = this.scene.add.text(this.scene.scale.width / 2, 140, text, {
             fontSize: '16px',
             color: errorMessage ? '#FF8A8A' : '#90EE90',
@@ -408,6 +479,9 @@ class CarePanelManager {
     }
 
     destroy() {
+        this.destroyed = true;
+        this.panelVisible = false;
+        this.restoreControls();
         console.log('[CarePanelManager] Destroying - cleaning up event listeners');
 
         // Remove listeners from panel elements BEFORE destroying (prevents memory leaks)
@@ -430,6 +504,7 @@ class CarePanelManager {
             this.hintText = null;
         }
         this.signalText = null;
+        this.feedbackText = null;
 
         console.log('[CarePanelManager] Cleanup complete');
     }

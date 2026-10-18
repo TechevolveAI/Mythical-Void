@@ -29,8 +29,10 @@ export default class InventoryScene extends Phaser.Scene {
         this.currentSort = 'none'; // none, name, type, price
         this.currentFilter = 'all'; // all, food, accessories, consumables
 
-        // Farewell animation state - prevents accidental closure during animation
+        // Own the temporary hatch presentation until launch or recovery.
         this.hatchTransitionInProgress = false;
+        this.hatchTransition = null;
+        this.hatchRecovery = null;
         this.sortButtons = [];
         this.filterButtons = [];
         this._isShuttingDown = false;
@@ -2313,10 +2315,9 @@ export default class InventoryScene extends Phaser.Scene {
                         reservedSpawnPosition
                     );
                 if (!reservation?.success) {
-                    throw new Error(
-                        reservation?.reason ||
-                        'The selected egg could not be reserved for hatching'
-                    );
+                    hatchTriggered = false;
+                    this.showMessage('Hatching is paused. Your game could not safely save this step.', 0xFF6B6B);
+                    return;
                 }
 
                 // Clean up dialog
@@ -2542,6 +2543,8 @@ export default class InventoryScene extends Phaser.Scene {
      * Show the active companion answering a second sanctuary signal.
      */
     showSanctuaryHatchTransition(eggType, reservedSpawnPosition = null) {
+        if (this._isShuttingDown || this.hatchTransitionInProgress) return;
+        this.clearHatchRecovery();
         console.log('[InventoryScene] Starting sanctuary hatch transition:', eggType);
 
         // Defensive check for dims
@@ -2562,10 +2565,13 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Prevent accidental closure during animation
         this.hatchTransitionInProgress = true;
+        const transition = { elements: [], timer: null, timeout: null };
+        this.hatchTransition = transition;
+        const isCurrent = () => this.hatchTransition === transition && !this._isShuttingDown;
+        const own = element => { transition.elements.push(element); return element; };
 
         const launchReservedHatch = () => {
-            if (!this.hatchTransitionInProgress) return;
-            this.hatchTransitionInProgress = false;
+            if (!isCurrent()) return;
 
             try {
                 const pendingHatch = window.GameState?.get('creature.hatchTransaction');
@@ -2575,27 +2581,29 @@ export default class InventoryScene extends Phaser.Scene {
                     y: savedPos?.y || 300
                 };
                 const sceneManager = this.game?.scene;
-                if (!sceneManager || pendingHatch?.status !== 'reserved') {
+                if (typeof sceneManager?.start !== 'function' || pendingHatch?.status !== 'reserved') {
                     throw new Error('Reserved egg hatch is no longer available');
                 }
 
-                sceneManager.stop('GameScene');
+                // HatchingScene stops the Sanctuary after it starts. A failed
+                // start must leave the paused Sanctuary available to return to.
                 sceneManager.start('HatchingScene', {
                     isEggHatch: true,
                     eggType: pendingHatch.eggType || eggType,
                     spawnPosition: oldPosition
                 });
+                this.clearHatchTransition();
             } catch (error) {
-                this.hatchTransitionInProgress = true;
                 console.error('[InventoryScene] Reserved hatch launch failed:', error);
-                this.showMessage('Hatch paused. Tap the egg again to resume.', 0xFF6B6B);
+                this.clearHatchTransition();
+                this.showHatchLaunchRecovery(eggType, reservedSpawnPosition);
             }
         };
 
         try {
 
         // Dark overlay
-        const overlay = this.add.graphics();
+        const overlay = own(this.add.graphics());
         overlay.fillStyle(0x000000, 0.9);
         overlay.fillRect(0, 0, width, height);
         overlay.setDepth(300);
@@ -2615,7 +2623,7 @@ export default class InventoryScene extends Phaser.Scene {
             // If stored texture exists, use it
             if (textureName && this.textures.exists(textureName)) {
                 console.log('[InventoryScene] Using stored texture:', textureName);
-                creatureSprite = this.add.sprite(width / 2, height / 2 - 30, textureName);
+                creatureSprite = own(this.add.sprite(width / 2, height / 2 - 30, textureName));
             }
             // Otherwise, regenerate using GraphicsEngine
             else {
@@ -2630,7 +2638,7 @@ export default class InventoryScene extends Phaser.Scene {
                         console.log('[InventoryScene] Regenerated texture:', textureName);
 
                         if (textureName && this.textures.exists(textureName)) {
-                            creatureSprite = this.add.sprite(width / 2, height / 2 - 30, textureName);
+                            creatureSprite = own(this.add.sprite(width / 2, height / 2 - 30, textureName));
                         }
                     }
                 } catch (err) {
@@ -2647,16 +2655,16 @@ export default class InventoryScene extends Phaser.Scene {
             }
         }
 
-        const signalText = this.add.text(width / 2, height / 2 + 75, `${creatureName} answers a second call.`, {
+        const signalText = own(this.add.text(width / 2, height / 2 + 75, `${creatureName} answers a second call.`, {
             fontSize: '24px',
             color: '#8FE3CF',
             fontStyle: 'bold',
             align: 'center',
             wordWrap: { width: Math.min(520, width - 40) }
-        }).setOrigin(0.5).setDepth(301);
+        })).setOrigin(0.5).setDepth(301);
         signalText.setAlpha(0);
 
-        const continuityText = this.add.text(
+        const continuityText = own(this.add.text(
             width / 2,
             height / 2 + 120,
             'Their place in your sanctuary is secure.',
@@ -2666,14 +2674,14 @@ export default class InventoryScene extends Phaser.Scene {
                 align: 'center',
                 wordWrap: { width: Math.min(520, width - 40) }
             }
-        ).setOrigin(0.5).setDepth(301).setAlpha(0);
+        )).setOrigin(0.5).setDepth(301).setAlpha(0);
 
         // Sparkle particles around creature
         const sparkles = [];
         for (let i = 0; i < 20; i++) {
             const angle = (i / 20) * Math.PI * 2;
             const radius = 80;
-            const sparkle = this.add.graphics();
+            const sparkle = own(this.add.graphics());
             sparkle.fillStyle(0xFFFFFF, 0.8);
             sparkle.fillCircle(0, 0, 3);
             sparkle.setPosition(
@@ -2709,7 +2717,8 @@ export default class InventoryScene extends Phaser.Scene {
         });
 
         // 2. The active companion makes room beside them for the incoming signal.
-        this.time.delayedCall(1500, () => {
+        transition.timer = this.time.delayedCall(1500, () => {
+            if (!isCurrent()) return;
             if (creatureSprite) {
                 this.tweens.add({
                     targets: creatureSprite,
@@ -2742,38 +2751,71 @@ export default class InventoryScene extends Phaser.Scene {
         // Use wall-clock time for the handoff. Phaser scene clocks can be
         // throttled or paused by mobile browser lifecycle events.
         const hatchLaunchTimeout = setTimeout(launchReservedHatch, 3000);
+        transition.timeout = hatchLaunchTimeout;
         this.pendingTimeouts.push(hatchLaunchTimeout);
 
         } catch (err) {
             console.error('[InventoryScene] Error in sanctuary hatch transition:', err);
 
-            try {
-                const pendingHatch = window.GameState?.get(
-                    'creature.hatchTransaction'
-                );
-                if (pendingHatch?.status !== 'reserved') {
-                    this.showMessage(
-                        'The egg is still in your inventory. Please try again.',
-                        0xFF6B6B
-                    );
-                    return;
-                }
-
-                const sceneManager = this.game?.scene;
-                if (sceneManager) {
-                    sceneManager.stop('GameScene');
-                    sceneManager.start('HatchingScene', {
-                        isEggHatch: true,
-                        eggType: pendingHatch.eggType || eggType || 'cosmic',
-                        spawnPosition: pendingHatch.spawnPosition ||
-                            reservedSpawnPosition ||
-                            { x: 400, y: 300 }
-                    });
-                }
-            } catch (fallbackErr) {
-                console.error('[InventoryScene] Reserved hatch recovery failed:', fallbackErr);
-            }
+            launchReservedHatch();
         }
+    }
+
+    clearHatchTransition() {
+        const transition = this.hatchTransition;
+        this.hatchTransition = null;
+        this.hatchTransitionInProgress = false;
+        if (!transition) return;
+        if (transition.timeout !== null) {
+            clearTimeout(transition.timeout);
+            this.pendingTimeouts = this.pendingTimeouts.filter(timeout => timeout !== transition.timeout);
+        }
+        transition.timer?.remove?.(false);
+        transition.elements.forEach(element => {
+            this.tweens?.killTweensOf?.(element);
+            element.destroy?.();
+        });
+    }
+
+    clearHatchRecovery() {
+        const recovery = this.hatchRecovery;
+        this.hatchRecovery = null;
+        recovery?.destroy?.(true);
+    }
+
+    showHatchLaunchRecovery(eggType, spawnPosition) {
+        if (this._isShuttingDown) return;
+        this.clearHatchRecovery();
+        const { width, height } = this.dims;
+        const panelWidth = Math.min(360, width - 32);
+        const left = (width - panelWidth) / 2;
+        const top = Math.max(8, (height - 220) / 2);
+        const recovery = this.add.container(0, 0).setDepth(350);
+        this.hatchRecovery = recovery;
+        const shade = this.add.graphics().fillStyle(0x000000, 0.85).fillRect(0, 0, width, height);
+        const blocker = this.add.zone(0, 0, width, height).setOrigin(0).setInteractive();
+        blocker.on('pointerdown', (_pointer, _x, _y, event) => event?.stopPropagation?.());
+        const panel = this.add.graphics().fillStyle(0x142526, 1).fillRoundedRect(left, top, panelWidth, 220, 8);
+        const title = this.add.text(width / 2, top + 28, 'Egg hatch paused', {
+            fontSize: '20px', color: '#FFFFFF', align: 'center', wordWrap: { width: panelWidth - 24 }
+        }).setOrigin(0.5, 0);
+        const pending = window.GameState?.get?.('creature.hatchTransaction')?.status === 'reserved';
+        const message = this.add.text(width / 2, top + 66,
+            pending ? 'Your reserved egg is ready to try again.' : 'Open your inventory to check the egg.', {
+                fontSize: '16px', color: '#CDE7DF', align: 'center', wordWrap: { width: panelWidth - 32 }
+            }).setOrigin(0.5, 0);
+        recovery.add([shade, blocker, panel, title, message]);
+        const current = () => this.hatchRecovery === recovery && !this._isShuttingDown;
+        const addButton = (y, label, callback) => {
+            const control = this.createButton(left + 16, y, panelWidth - 32, 44, label, 0x276D67, () => {
+                if (!current()) return;
+                this.clearHatchRecovery();
+                callback();
+            });
+            recovery.add([control.button, control.text, control.zone]);
+        };
+        if (pending) addButton(top + 108, 'TRY AGAIN', () => this.showSanctuaryHatchTransition(eggType, spawnPosition));
+        addButton(top + 160, 'BACK TO INVENTORY', () => {});
     }
 
     /**
@@ -2868,6 +2910,8 @@ export default class InventoryScene extends Phaser.Scene {
             return;
         }
         this._isShuttingDown = true;
+        this.clearHatchTransition();
+        this.clearHatchRecovery();
         console.log('[InventoryScene] Shutting down - cleaning up event listeners');
         this.katanaArtifactModal?.destroy?.();
         this.katanaArtifactModal = null;

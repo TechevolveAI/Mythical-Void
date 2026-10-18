@@ -38,7 +38,7 @@ describe('living portrait modern Netlify runtime', () => {
         expect(netlifyConfig).toContain('[functions]');
         expect(netlifyConfig).toContain('node_bundler = "esbuild"');
         expect(netlifyConfig).toContain(
-            'external_node_modules = ["@google/genai", "@supabase/supabase-js", "ws"]'
+            'external_node_modules = ["@google/genai", "@supabase/supabase-js", "ws", "pg"]'
         );
     });
 });

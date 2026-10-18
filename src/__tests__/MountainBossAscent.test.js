@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parse } = require('@babel/parser');
+const { expectPeaksCompletionConnection } = require('./support/forestCompletionContract.cjs');
 const geometry = fs.readFileSync(path.join(__dirname, '../systems/MountainBossAscent.js'), 'utf8');
 const { MOUNTAIN_ASCENT, MOUNTAIN_BOSS_NAME, mountainSteps, mountainStepRise, mountainEmitter } = new Function(
     `${geometry.replace(/^export /gm, '')}; return { MOUNTAIN_ASCENT, MOUNTAIN_BOSS_NAME, mountainSteps, mountainStepRise, mountainEmitter };`
@@ -11,7 +12,7 @@ const patterns = fs.readFileSync(path.join(__dirname, '../systems/MountainBossPa
 const mountainAttackPlan = new Function(`${patterns.replace(/^export /gm, '')}; return mountainAttackPlan;`)();
 function method(name) {
     const n = declaration.body.body.find(n => n.key?.name === name);
-    return new Function('MOUNTAIN_ASCENT', 'mountainAttackPlan', `return ({${source.slice(n.start, n.end)}}).${name};`)(MOUNTAIN_ASCENT, mountainAttackPlan);
+    return new Function('MOUNTAIN_ASCENT', 'mountainAttackPlan', 'finishPeaksCompletion', `return ({${source.slice(n.start, n.end)}}).${name};`)(MOUNTAIN_ASCENT, mountainAttackPlan, scene => scene.commitPeakVictory());
 }
 
 test('25 joined, small stone steps connect the floor exactly to the summit', () => {
@@ -83,29 +84,34 @@ test('new name and art retain progression identifiers and the existing reward', 
     expect(MOUNTAIN_BOSS_NAME).toBe('The Peak of the Mountain');
     expect(source).toContain("const COSMIC_TITAN_TEXTURE = 'cosmicTitan'");
     expect(source).toContain("id: 'cosmic_titan'");
-    expect(source).toContain("shipPartId: 'hull_plating'");
+    expectPeaksCompletionConnection();
     expect(source).toContain('MOUNTAIN_BOSS_NAME.toUpperCase()');
     expect(source).toContain('peak-of-the-mountain-cosmic.webp');
-    expect(source).toContain('this.releaseBossEffect(overlap)');
+    expect(source).toContain('effects.delete(overlap)');
+    expect(source).toContain('overlap?.destroy()');
     expect(source).toContain('this.mountainSupports?.forEach(platform => platform.destroy())');
 });
 
 test('final hit commits rewards before effects, and an interrupted tween cannot lose victory', () => {
     const order = [];
     const s = {
-        completeLevelProgression: jest.fn(() => order.push('save')),
+        clearTitanEntrance: method('clearTitanEntrance'),
+        clearTitanControlTimers: method('clearTitanControlTimers'),
+        clearTitanWindup: method('clearTitanWindup'),
+        enterLevelCompletionState: jest.fn(),
+        startSavedPeakVictory: method('startSavedPeakVictory'),
+        commitPeakVictory: jest.fn(() => { order.push('save'); return s.startSavedPeakVictory({ isCurrent: () => true }); }),
         clearBossEncounterTimers: jest.fn(), clearBossEncounterEffects: jest.fn(),
         showFloatingText: jest.fn(),
-        scheduleGuardianTransition: jest.fn(),
+        scheduleGuardianTransition: jest.fn(() => ({})),
         tweens: { add: jest.fn(() => order.push('animation')) }
     };
+    const retire = jest.fn(() => s.titanControlTimers.clear());
+    s.titanControlTimers = new Map([['titanWarningTimer', { retire }]]);
     method('defeatBoss').call(s);
     method('defeatBoss').call(s);
-    expect(s.completeLevelProgression).toHaveBeenCalledTimes(1);
-    expect(s.completeLevelProgression).toHaveBeenCalledWith({
-        achievementLevelId: 'voidPeaks', shipPartId: 'hull_plating',
-        speedrunThreshold: 180000, deferPresentation: true
-    });
+    expect(retire).toHaveBeenCalledTimes(1);
+    expect(s.commitPeakVictory).toHaveBeenCalledTimes(1);
     expect(order[0]).toBe('save');
     expect(s.scheduleGuardianTransition).toHaveBeenCalledWith(
         'peaks-saved-victory', 1800, expect.any(Function)

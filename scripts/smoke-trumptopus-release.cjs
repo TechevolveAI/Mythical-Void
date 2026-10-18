@@ -63,9 +63,9 @@ async function main() {
         // The existing localhost-only preview guard prevents onboarding from
         // racing the explicit prior-campaign fixture. No test ending is selected.
         await page.goto(base + '/play/?testEnding=release-fixture');
-        const enterFixture = async () => {
+        const enterFixture = async ({ viaHub = false } = {}) => {
         await page.waitForFunction(() => window.mythicalGame?.isBooted && window.GameState?.state && window.SceneLoader, null, {timeout:60000});
-        await page.evaluate(async profile => {
+        await page.evaluate(async ({ profile, viaHub }) => {
             const state = window.GameState, game = window.mythicalGame;
             window.game = game;
             state.saveKey='release_finale_fixture'; state.saveBackupKeyPrefix='release_finale_backup_'; state.saveBackupIndexKey='release_finale_backups';
@@ -94,6 +94,7 @@ async function main() {
             }
             }
             for (const key of ['GameScene','VictoryScene','HubWorldScene','FinalVoidLevel']) {
+                if (viaHub && key === 'FinalVoidLevel') continue;
                 if (!await window.SceneLoader.loadScene(game,key)) throw Error('Could not load '+key);
             }
             window.fixtureIdentity=JSON.stringify({genes:state.get('creature.genes'),dna:state.get('creature.dna')});
@@ -101,11 +102,28 @@ async function main() {
             Object.defineProperty(window,'prototypeScene',{configurable:true,get:()=>game.scene.keys.TrumptopusArena?.sys.isActive() || game.scene.keys.TrumptopusArena?.sys.isPaused()
                 ?game.scene.keys.TrumptopusArena:game.scene.keys.FinalVoidLevel});
             for (const scene of game.scene.getScenes(false)) if (scene.sys.isActive() || scene.sys.isPaused()) game.scene.stop(scene.sys.settings.key);
-            game.scene.start('FinalVoidLevel');
-        }, profile);
+            game.scene.start(viaHub ? 'HubWorldScene' : 'FinalVoidLevel');
+        }, { profile, viaHub });
+        if (viaHub) {
+            await page.waitForFunction(()=>game.scene.keys.HubWorldScene?.sys.isActive()&&
+                game.scene.keys.HubWorldScene.gates?.some(gate=>gate.id==='final_void'));
+            await page.evaluate(()=>{
+                // Reproduce a cancelled navigation, then independently remove
+                // loading DOM. Neither may prevent a real gate transition.
+                window.dispatchEvent(new Event('beforeunload',{cancelable:true}));
+                if (!window.UXEnhancements.initialized || window.responsiveManager.isDestroyed) {
+                    throw Error('Cancelled navigation destroyed the running game');
+                }
+                document.getElementById('loading-overlay')?.remove();
+                const hub=game.scene.keys.HubWorldScene;
+                hub.enterGate(hub.gates.find(gate=>gate.id==='final_void'));
+            });
+        }
         };
-        await enterFixture();
+        await enterFixture({viaHub:true});
         await page.waitForFunction(() => prototypeScene?.productionFinale && prototypeScene?.isGrounded);
+        assert(await page.evaluate(()=>document.getElementById('loading-overlay')?.classList.contains('hidden')),
+            'Recovered loading overlay still blocks the level');
         const renderer = await page.evaluate(() => {
             const gl=game.renderer.gl,extension=gl?.getExtension('WEBGL_debug_renderer_info');
             return {webgl:Boolean(gl),name:extension?gl.getParameter(extension.UNMASKED_RENDERER_WEBGL):null,
@@ -232,6 +250,32 @@ async function main() {
             await wait(()=>!prototypeScene.pauseMenuActive&&!prototypeScene.encounter.paused);
         }
         const counters=[];
+        await page.evaluate(()=>{
+            const scene=prototypeScene,stream=game.canvas.captureStream(24),chunks=[];
+            if(stream.getAudioTracks().length)throw Error('Proof recording must be silent');
+            window.bossMotionSamples=[];
+            const sample=()=>{
+                const body=scene.characterRig?.sprites.get('body');
+                if(!body)return;
+                const position=body.getWorldTransformMatrix().transformPoint(0,0);
+                bossMotionSamples.push({state:scene.encounter.state,x:position.x,y:position.y,rotation:body.rotation});
+            };
+            scene.events.on('postupdate',sample);
+            const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8',videoBitsPerSecond:1500000});
+            recorder.ondataavailable=event=>{if(event.data.size)chunks.push(event.data);};
+            window.finishBossMotion=()=>new Promise(resolve=>{
+                scene.events.off('postupdate',sample);
+                recorder.onstop=async()=>{
+                    stream.getTracks().forEach(track=>track.stop());
+                    const bytes=new Uint8Array(await new Blob(chunks).arrayBuffer());
+                    let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);
+                    resolve({video:btoa(binary),samples:bossMotionSamples});
+                };
+                recorder.stop();
+            });
+            recorder.start(100);
+        });
+        let bodyMotion;
         for(let n=0;n<24&&!(await state()).completionReady;n++) {
             await wait(()=>prototypeScene.encounter.state==='windup');
             const locked=await state();
@@ -241,7 +285,12 @@ async function main() {
                 await wait(()=>prototypeScene.isGrounded); await face(-1);
             } else {
                 const target=locked.targetX+100<width-85?locked.targetX+100:locked.targetX-100;
-                await move(target);await face(target>locked.targetX?-1:1);await wait(()=>prototypeScene.encounter.state==='exposed');
+                await move(target);await face(target>locked.targetX?-1:1);
+                if(n===0){
+                    await wait(()=>prototypeScene.encounter.state==='windup'&&prototypeScene.encounter.snapshot().progress>=.75);
+                    await page.screenshot({path:path.join(output,`${name}-body-windup.png`)});
+                }
+                await wait(()=>prototypeScene.encounter.state==='exposed');
             }
             const before=await state();
             await move(before.hand.x+(before.player.x>=before.hand.x?80:-80));
@@ -251,6 +300,15 @@ async function main() {
             const after=await state();assert(after.health<before.health,'Real counter did not reach the boss');
             counters.push({phase:locked.phaseIndex+1,before:before.health,after:after.health});
             await wait(()=>!['exposed','recoil'].includes(prototypeScene.encounter.state));
+            if(n===0){
+                const motion=await page.evaluate(()=>finishBossMotion());
+                fs.writeFileSync(path.join(output,`${name}-body-motion-silent.webm`),Buffer.from(motion.video,'base64'));
+                bodyMotion={samples:motion.samples.length,
+                    xTravel:Math.max(...motion.samples.map(s=>s.x))-Math.min(...motion.samples.map(s=>s.x)),
+                    yTravel:Math.max(...motion.samples.map(s=>s.y))-Math.min(...motion.samples.map(s=>s.y)),
+                    states:[...new Set(motion.samples.map(s=>s.state))]};
+                assert(bodyMotion.xTravel>20&&bodyMotion.yTravel>8,'Boss torso remained visually static');
+            }
         }
         await page.getByRole('button',{name:'Repair the ship',exact:true}).waitFor({timeout:20000});
         await watch('victory');
@@ -260,7 +318,8 @@ async function main() {
         assert.equal(result.status,'won');
         const ending = await completeCampaignEnding(page,output,name,{allowPreparedFilms:true,restoreAfterReload:enterFixture,exerciseRecovery:true});
         assert.deepEqual(errors,[]);assert.deepEqual(outside,[]);assert.deepEqual(failedResponses,[]);
-        report.cases.push({name,renderer,counters,result,ending,pausePowerupsRetryChecked:true,deathRecoveryInjected:true,
+        report.cases.push({name,renderer,counters,result,ending,bodyMotion,missingOverlayHubEntryChecked:true,
+            cancelledUnloadChecked:true,pausePowerupsRetryChecked:true,deathRecoveryInjected:true,
             orientationChecked:name==='phone',errors,outside,failedResponses});
         await context.close();
     }

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection, expectPeaksCompletionConnection, expectCrystalCompletionConnection, expectReefCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 function readSource(relativePath) {
     return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
@@ -27,11 +28,15 @@ describe('level registry coverage', () => {
     test('hub level gates are present in GameState, HubWorldScene, and SceneLoader', () => {
         const gameStateSource = readSource('systems/GameState.js');
         const hubWorldSource = readSource('scenes/HubWorldScene.js');
+        const gateControllerSource = readSource('scenes/controllers/HubGateTransitionController.js');
         const sceneLoaderSource = readSource('utils/SceneLoader.js');
+
+        expect(hubWorldSource).toContain("import HubGateTransitionController from './controllers/HubGateTransitionController.js'");
+        expect(hubWorldSource).toContain('this.getGateEntryController().enter(gate)');
 
         Object.entries(playableLevelMappings).forEach(([gateId, sceneKey]) => {
             expect(gameStateSource).toContain(`${gateId}:`);
-            expect(hubWorldSource).toContain(`'${gateId}': '${sceneKey}'`);
+            expect(gateControllerSource).toContain(`${gateId}: '${sceneKey}'`);
             expect(sceneLoaderSource).toContain(`'${gateId}': '${sceneKey}'`);
             if (sceneKey === 'FinalVoidLevel') {
                 expect(sceneLoaderSource).toContain("FinalVoidLevel: () => finalVoidRelease.encounter === 'trumptopus'");
@@ -51,41 +56,42 @@ describe('level registry coverage', () => {
     test('every playable level uses the shared completion contract with its canonical reward', () => {
         Object.entries(completionContracts).forEach(([sceneKey, contract]) => {
             const levelSource = readSource(`scenes/levels/${sceneKey}.js`);
-            expect(levelSource).toContain('this.completeLevelProgression({');
-            expect(levelSource).toContain(`achievementLevelId: '${contract.levelId}'`);
-            expect(levelSource).toContain(`shipPartId: '${contract.shipPartId}'`);
+            if (sceneKey === 'MythicalForestLevel') expectForestCompletionConnection();
+            else if (sceneKey === 'VoidPeaksLevel') expectPeaksCompletionConnection();
+            else if (sceneKey === 'CrystalCavesLevel') expectCrystalCompletionConnection();
+            else if (sceneKey === 'ReefLevel') expectReefCompletionConnection();
+            else if (sceneKey === 'AuroraDepthsLevel') expectAuroraCompletionConnection();
+            else {
+                expect(levelSource).toContain('this.completeLevelProgression({');
+                expect(levelSource).toContain(`achievementLevelId: '${contract.levelId}'`);
+                expect(levelSource).toContain(`shipPartId: '${contract.shipPartId}'`);
+            }
         });
     });
 
-    test('victories return through the Hub, except the final manual repair handoff', () => {
+    test('regional victories share the Sanctuary summary; final manual repair remains separate', () => {
         Object.keys(completionContracts).forEach(sceneKey => {
             const levelSource = readSource(`scenes/levels/${sceneKey}.js`);
 
             if (sceneKey === 'FinalVoidLevel') {
                 expect(levelSource).toContain('[ INSTALL AT WANDERER-77 ]');
                 expect(levelSource).toContain('continueFinaleAfterRepair: true');
-            } else if (sceneKey === 'AuroraDepthsLevel') {
-                expect(levelSource).toContain('[ INSTALL AURORA REACTOR ]');
-                expect(levelSource).toContain('this.returnToHub()');
-            } else if (sceneKey === 'MythicalForestLevel') {
-                expect(levelSource).toContain('[ ENTER SANCTUARY ]');
-                expect(levelSource).toContain('this.returnToHub()');
-            } else if (sceneKey === 'VoidPeaksLevel') {
-                expect(levelSource).toContain("'CONTINUE'");
-                expect(levelSource).toContain('this.presentLevelCompletion()');
-                expect(levelSource).toContain('this.pendingResidentReleaseContinuation = () => this.returnToHub()');
-                expect(levelSource).not.toContain('this.returnToSanctuary()');
             } else {
-                expect(levelSource).toContain('[ RETURN TO HUB ]');
-                expect(levelSource).toContain('this.returnToHub()');
+                if (sceneKey === 'MythicalForestLevel') expectForestCompletionConnection();
+                else if (sceneKey === 'VoidPeaksLevel') expectPeaksCompletionConnection();
+                else if (sceneKey === 'CrystalCavesLevel') expectCrystalCompletionConnection();
+                else if (sceneKey === 'ReefLevel') expectReefCompletionConnection();
+                else if (sceneKey === 'AuroraDepthsLevel') expectAuroraCompletionConnection();
+                else expect(levelSource).toContain('this.showRegionalVictorySummary()');
                 expect(levelSource).not.toContain('this.returnToSanctuary()');
             }
         });
 
         const baseLevelSource = readSource('scenes/PlatformerLevelScene.js');
         expect(baseLevelSource).toMatch(
-            /returnToHub\(\) \{[\s\S]*?this\.scene\.start\('HubWorldScene'\)/
+            /returnToHub\([\s\S]*?this\.scene\.start\('HubWorldScene'\)/
         );
+        expect(baseLevelSource).toContain('shipReconstructionHandoff: result.shipPartAwarded === true');
     });
 
     test('every playable boss route implements test mode', () => {

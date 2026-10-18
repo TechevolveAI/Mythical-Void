@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { compiledInventorySource } = require('./support/compiledInventorySource.cjs');
 
 class EventEmitter {
     constructor() {
@@ -39,11 +40,7 @@ class EventEmitter {
 
 function loadInventoryManager(initialItems = []) {
     const filePath = path.join(__dirname, '../systems/InventoryManager.js');
-    const source = fs.readFileSync(filePath, 'utf8')
-        .replace(
-            'export default inventoryManager;',
-            'module.exports = { InventoryManager, inventoryManager };'
-        );
+    const source = compiledInventorySource('both');
     const state = {
         inventory: {
             items: initialItems
@@ -96,6 +93,9 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
     const filePath = path.join(__dirname, '../scenes/PlatformerLevelScene.js');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
+        .replace("import ExpeditionDebriefPanel from '../ui/ExpeditionDebriefPanel.js';", '')
+        .replace("import { getRegionalVictorySummary } from '../systems/RegionalVictorySummary.js';", '')
+        .replace("import { shareGuardianRestoration } from '../utils/GuardianRestorationShare.js';", '')
         .replace(
             /import \{[\s\S]*?\} from '\.\.\/systems\/ProjectBeaconStory\.js';/,
             'const queueProjectBeaconDebrief = () => {};\n' +
@@ -107,6 +107,7 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
         )
         .replace("import '../systems/ProjectBeaconFieldKit.js';", '')
         .replace("import { createDecorativeFlag } from '../systems/world/DecorativeFlags.js';", '')
+        .replace("import { PATROL_SENTINEL_FRAME, drawPatrolSentinelArtwork } from '../systems/PatrolSentinelArtwork.js';", '')
         .replace(
             "import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
             'const getCampaignEntryStackLayout = () => ({ positions: [], overflow: 0 });\n' +
@@ -162,6 +163,10 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const resolveTextureContactGeometry = () => null;'
         )
         .replace(
+            "import { getExpeditionCheckpointDefinition } from '../systems/ExpeditionCheckpoints.js';",
+            'const getExpeditionCheckpointDefinition = () => null;'
+        )
+        .replace(
             'export default PlatformerLevelScene;',
             'module.exports = PlatformerLevelScene;'
         );
@@ -189,6 +194,65 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
 }
 
 describe('purchased expedition power-ups', () => {
+    test('an open supply menu redraws against the new viewport before the camera catches up', () => {
+        const scene = new (loadPlatformerLevelScene({
+            addEventListener: jest.fn(),
+            InventoryManager: { getAllItems: () => Array.from({ length: 6 }, (_, id) => ({
+                id, name: `Supply ${id}`, type: 'powerup', usableInLevel: true, quantity: 1
+            })) }
+        }))();
+        const textRows = [];
+        const drawable = fields => {
+            const node = { ...fields };
+            for (const method of ['fillStyle', 'fillRect', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect',
+                'setOrigin', 'setScrollFactor', 'setDepth', 'setInteractive', 'on']) node[method] = () => node;
+            return node;
+        };
+        scene.add = {
+            graphics: () => drawable({}),
+            text: (x, y, text, style) => {
+                const node = drawable({ x, y, text, style }); textRows.push(node); return node;
+            }
+        };
+        scene.scale = { gameSize: { width: 844, height: 390 } };
+        scene.cameras = { main: { width: 390, height: 844 } };
+        scene.pauseMenuElements = [];
+        scene.clearPauseMenuElements = jest.fn();
+        scene.pauseMenuActive = true;
+        scene.pauseMenuView = 'powerups';
+        scene.detectMobile = () => false;
+        scene.handlePlatformerMobileResize(scene.scale.gameSize);
+        expect(textRows.filter(row => row.text === 'USE')).toHaveLength(3);
+        expect(textRows.find(row => row.text === '1 / 2')).toBeDefined();
+        for (const row of textRows.filter(row => ['USE', '←', '→'].includes(row.text))) {
+            expect(row.style.fixedHeight).toBeGreaterThanOrEqual(44);
+            expect(row.style.fixedWidth).toBeGreaterThanOrEqual(44);
+        }
+        expect(scene.pauseMenuActive).toBe(true);
+    });
+
+    test.each([[390, 844], [844, 390], [1280, 720], [320, 568]])(
+        'paginates the whole power-up bag within %sx%s without crowding the exit', (width, height) => {
+            const scene = new (loadPlatformerLevelScene())();
+            const first = scene.getPowerupMenuLayout(width, height, 13);
+            const pages = [];
+            for (let page = 0; page < first.pageCount; page++) {
+                scene.powerupPage = page;
+                const layout = scene.getPowerupMenuLayout(width, height, 13);
+                const visible = Math.min(layout.rowsPerPage, 13 - page * layout.rowsPerPage);
+                const rowBottom = layout.panelY + 98 + (visible - 1) * layout.rowHeight + 48;
+                const footerTop = layout.panelY + layout.panelHeight - 78;
+                expect(rowBottom).toBeLessThan(footerTop);
+                expect(layout.panelY).toBeGreaterThanOrEqual(12);
+                expect(layout.panelY + layout.panelHeight).toBeLessThanOrEqual(height - 12);
+                for (let index = 0; index < visible; index++) pages.push(page * layout.rowsPerPage + index);
+            }
+            expect(pages).toEqual(Array.from({ length: 13 }, (_, index) => index));
+            scene.powerupPage = 5;
+            expect(scene.getPowerupMenuLayout(width, height, 1).page).toBe(0);
+        }
+    );
+
     const powerShot = {
         id: 'power_shot',
         name: 'Power Shot',

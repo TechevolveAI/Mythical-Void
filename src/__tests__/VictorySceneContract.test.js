@@ -180,22 +180,23 @@ describe('VictoryScene campaign contract', () => {
         expect(victorySceneSource).not.toContain('COURSE // EARTH');
     });
 
-    test('requires confirmation and exposes a protected New Game+ handoff', () => {
+    test('requires explicit confirmation before replacing the campaign with a fresh egg', () => {
         expect(victorySceneSource).toContain(
             'This decides what you prepare first. No message is sent.'
         );
         expect(victorySceneSource).toContain('GO BACK');
-        expect(victorySceneSource).toContain('REPLAY PROJECT BEACON?');
+        expect(victorySceneSource).toContain('START A FRESH GAME?');
         expect(victorySceneSource).toContain(
-            'Your expeditions, ship parts, and active priority will reset.'
+            'Begin with a new egg.'
         );
         expect(victorySceneSource).toContain(
-            'Purchased route maps stay open.'
+            'Your creatures, levels, coins, buildings, items and story progress will be replaced.'
         );
         expect(victorySceneSource).toContain(
-            'your bond, achievements, field kit, katana upgrades, and prior legacy record will remain.'
+            'Sound and safety settings stay.'
         );
-        expect(victorySceneSource).toContain('KEEP PRIORITY');
+        expect(victorySceneSource).toContain('KEEP MY GAME');
+        expect(victorySceneSource).toContain('() => this.startFreshGame(body)');
     });
 
     test('offers a privacy-safe share action only after the final epilogue', () => {

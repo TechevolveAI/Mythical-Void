@@ -43,9 +43,12 @@ export default class CreatureProfileScene extends Phaser.Scene {
         this.fieldMemoryReplay = null;
         this.fieldMemoryReplayRequest = 0;
         this.initialIdentityArchiveChapter = null;
+        this.farewellSoundStop = null;
     }
 
     init(data) {
+        this.farewellSoundStop?.();
+        this.farewellSoundStop = null;
         this.identityArchivePreview = [
             'identity',
             'living_form',
@@ -1178,26 +1181,58 @@ export default class CreatureProfileScene extends Phaser.Scene {
         return window.GameState?.getCreaturePortrait?.(stage) || null;
     }
 
+    createProfilePortraitMatcher(stage, initialRecord, creatureData) {
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        const expectedIdentityKey = window.CreaturePortraitSpec
+            ?.create?.({ ...creatureData, stage })?.identityKey;
+        // Keep a valid saved portrait from an older prompt version. Do not
+        // infer its ownership by parsing the opaque identity string.
+        const savedIdentityKey = mediaService.isActivePortrait(initialRecord)
+            ? initialRecord.identityKey
+            : null;
+        return record => Boolean(
+            record?.identityKey && record.stage === stage && (
+                record.identityKey === expectedIdentityKey ||
+                record.identityKey === savedIdentityKey
+            )
+        );
+    }
+
     async waitForProfilePortrait(stage, initialRecord = null, creatureData = null) {
         const mediaService = window.CompanionMediaService || companionMediaService;
         const portraitService = window.LivingPortraitService;
+        const matchesPortrait = this.createProfilePortraitMatcher(stage, initialRecord, creatureData);
+        const requestId = this.profilePortraitRequest;
+        const isCurrentRequest = () => this.scene?.isActive?.() &&
+            requestId === this.profilePortraitRequest;
+        const acceptResult = async promise => {
+            const resolved = await promise;
+            if (!isCurrentRequest()) return null;
+            if (!matchesPortrait(resolved)) {
+                throw new Error('Living portrait does not match this creature');
+            }
+            return resolved;
+        };
+        if (!isCurrentRequest()) return null;
         const activeJob = portraitService?.getActiveJob?.(stage);
         const activeIdentityKey = window.CreaturePortraitSpec
-            ?.create?.(creatureData)?.identityKey;
+            ?.create?.({ ...creatureData, stage })?.identityKey;
         if (
             activeJob?.promise &&
-            (!activeIdentityKey || activeJob.identityKey === activeIdentityKey)
+            matchesPortrait(activeJob)
         ) {
-            return activeJob.promise;
+            return acceptResult(activeJob.promise);
         }
 
         if (initialRecord) {
             try {
                 const resolved = await mediaService?.resolvePortrait?.(stage);
-                if (resolved?.imageUrl) return resolved;
-                if (initialRecord.imageUrl) return initialRecord;
+                if (!isCurrentRequest()) return null;
+                if (resolved?.imageUrl) return acceptResult(resolved);
+                if (initialRecord.imageUrl) return acceptResult(initialRecord);
                 throw new Error('Protected portrait is still forming');
             } catch (error) {
+                if (!isCurrentRequest()) return null;
                 if (
                     error?.code !== 'generation_failed' ||
                     !portraitService?.getEligibility?.().eligible ||
@@ -1214,7 +1249,11 @@ export default class CreatureProfileScene extends Phaser.Scene {
             portraitService?.generate &&
             creatureData?.genes
         ) {
-            return portraitService.generate({
+            if (
+                portraitService.isCurrentCreaturePortrait?.({ identityKey: activeIdentityKey, stage }) === false ||
+                (window.GameState?.get?.('creature.lifecycle.stage') || stage) !== stage
+            ) return null;
+            return acceptResult(portraitService.generate({
                 creatureData: {
                     name: creatureData.name,
                     stage,
@@ -1224,28 +1263,35 @@ export default class CreatureProfileScene extends Phaser.Scene {
                 sprite: this.creatureSprite,
                 style: 'cinematic',
                 source: 'profile_recovery'
-            });
+            }));
         }
 
         const deadline = Date.now() + 240000;
-        while (Date.now() < deadline && this.scene?.isActive?.()) {
+        while (Date.now() < deadline && isCurrentRequest()) {
             const persisted = window.GameState?.getCreaturePortrait?.(stage);
-            if (persisted) {
-                return mediaService?.resolvePortrait?.(stage) || persisted;
+            if (matchesPortrait(persisted)) {
+                const resolved = await mediaService?.resolvePortrait?.(stage);
+                return acceptResult(resolved || persisted);
             }
 
             const pendingJob = portraitService?.getActiveJob?.(stage);
-            if (pendingJob?.promise) {
-                return pendingJob.promise;
+            if (pendingJob?.promise && matchesPortrait(pendingJob)) {
+                return acceptResult(pendingJob.promise);
             }
 
             await new Promise(resolve => window.setTimeout(resolve, 750));
         }
 
+        if (!isCurrentRequest()) return null;
         throw new Error('Living portrait is not available yet');
     }
 
     createLivingPortraitFrame({ x, y, size, record, stage, creatureData }) {
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        const matchesPortrait = this.createProfilePortraitMatcher(stage, record, creatureData);
+        const canDisplay = candidate => this.profilePortraitPreview || (
+            matchesPortrait(candidate) && mediaService.isActivePortrait(candidate)
+        );
         const frame = this.add.graphics();
         frame.fillStyle(0x07100F, 0.98);
         frame.fillRoundedRect(
@@ -1295,7 +1341,10 @@ export default class CreatureProfileScene extends Phaser.Scene {
                     : this.waitForProfilePortrait(stage, record, creatureData);
             return Promise.resolve(recordPromise)
             .then(resolved => {
-                if (!resolved?.imageUrl) return null;
+                if (nextRequestId !== this.profilePortraitRequest || !this.scene.isActive()) return null;
+                if (!resolved?.imageUrl || !canDisplay(resolved)) {
+                    throw new Error('Living portrait is not available for this profile');
+                }
                 return Promise.resolve(
                     window.CompanionMediaService?.ensureTexture?.(
                         this,
@@ -1305,12 +1354,17 @@ export default class CreatureProfileScene extends Phaser.Scene {
             })
             .then(result => {
                 if (
-                    !result?.textureKey ||
                     nextRequestId !== this.profilePortraitRequest ||
                     portraitLoaded ||
                     !this.scene.isActive()
                 ) {
                     return;
+                }
+                if (!result?.textureKey) {
+                    throw new Error('Living portrait image could not be loaded');
+                }
+                if (!canDisplay(result.resolved)) {
+                    throw new Error('Living portrait is not available for this profile');
                 }
                 portraitLoaded = true;
                 const portrait = this.add.image(
@@ -1344,7 +1398,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
                 if (
                     nextRequestId !== this.profilePortraitRequest ||
                     portraitLoaded ||
-                    !placeholder.active
+                    !placeholder.active ||
+                    !this.scene.isActive()
                 ) {
                     return;
                 }
@@ -1353,7 +1408,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
                     .setPadding(8, 8)
                     .setInteractive({ useHandCursor: true });
                 placeholder.once('pointerup', () => {
-                    record = window.GameState?.getCreaturePortrait?.(stage) || record;
+                    const currentRecord = window.GameState?.getCreaturePortrait?.(stage);
+                    if (canDisplay(currentRecord)) record = currentRecord;
                     loadPortrait();
                 });
                 devLog(
@@ -1371,7 +1427,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
                     if (
                         !portraitLoaded &&
                         nextRecord?.stage === stage &&
-                        nextRecord?.imageUrl
+                        nextRecord?.imageUrl &&
+                        canDisplay(nextRecord)
                     ) {
                         loadPortrait(nextRecord);
                     }
@@ -3169,37 +3226,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
      * Play sad/melancholic farewell sound sequence
      */
     playSadFarewellSound() {
-        if (!window.AudioManager?.audioContext) return;
-
-        const ctx = window.AudioManager.audioContext;
-        const now = ctx.currentTime;
-
-        // Sad descending melody (minor key)
-        const notes = [
-            { freq: 440, time: 0, duration: 0.8 },      // A4
-            { freq: 392, time: 0.9, duration: 0.8 },    // G4
-            { freq: 349, time: 1.8, duration: 0.8 },    // F4
-            { freq: 330, time: 2.7, duration: 1.2 },    // E4 (held)
-            { freq: 294, time: 4.0, duration: 1.5 },    // D4 (final, fading)
-        ];
-
-        notes.forEach(note => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.value = note.freq;
-
-            gain.gain.setValueAtTime(0, now + note.time);
-            gain.gain.linearRampToValueAtTime(0.15, now + note.time + 0.1);
-            gain.gain.linearRampToValueAtTime(0, now + note.time + note.duration);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start(now + note.time);
-            osc.stop(now + note.time + note.duration + 0.1);
-        });
+        this.farewellSoundStop?.();
+        this.farewellSoundStop = window.AudioManager?.playFarewell?.() ?? null;
     }
 
     /**
@@ -3539,6 +3567,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
     shutdown() {
         console.log('[CreatureProfileScene] Shutting down');
+        this.farewellSoundStop?.();
+        this.farewellSoundStop = null;
         this.profilePortraitRequest += 1;
         this.profilePortraitUnsubscribe?.();
         this.profilePortraitUnsubscribe = null;

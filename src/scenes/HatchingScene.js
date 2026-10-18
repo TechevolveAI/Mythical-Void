@@ -59,6 +59,7 @@ class HatchingScene extends Phaser.Scene {
         this.hatchingStarted = false;
         this.creatureAppeared = false;
         this.creatureGenetics = null; // Store the generated genetics
+        this.creatureDisplayAttempt = null;
 
         // Egg hatching mode properties
         this.isEggHatch = false;
@@ -70,6 +71,7 @@ class HatchingScene extends Phaser.Scene {
      * Initialize scene with data (used for egg hatching)
      */
     init(data) {
+        this.finishCreatureDisplayLoading();
         // Reset all scene state properties (important for scene restarts)
         this.hatchingProgress = 0;
         this.isHatching = false;
@@ -77,6 +79,13 @@ class HatchingScene extends Phaser.Scene {
         this.creatureAppeared = false;
         this.creatureGenetics = null;
         this.creatureDNA = null;
+        this.generatedHatchDNA = undefined;
+        this.creaturePersonalityState = undefined;
+        this.hatchPityData = null;
+        this.hatchRerollData = null;
+        this.hatchCommitAttempt = null;
+        this.hatchSceneRetired = false;
+        this.clearHatchSaveRecovery();
         this.rarityInfo = null;
         this.eggTextureName = null;
         this.isStartingGame = false; // Reset START button state
@@ -84,6 +93,7 @@ class HatchingScene extends Phaser.Scene {
         this.themeMusicWanted = false;
         this.startButtonPressed = false;
         this.startFlowQueued = false;
+        this.openingStartAttempt = null;
         this.homeContentReady = false;
         this.homeStartRecoveryTimer = null;
         this.nextHomeStartHealthCheck = 0;
@@ -106,6 +116,7 @@ class HatchingScene extends Phaser.Scene {
         this.isEggHatch = data?.isEggHatch === true || Boolean(resumableHatch);
         this.eggType = data?.eggType || resumableHatch?.eggType || null;
         this.spawnPosition = data?.spawnPosition || resumableHatch?.spawnPosition || null;
+        this.captureHatchSaveOwner();
     }
 
     preload() {
@@ -177,87 +188,90 @@ class HatchingScene extends Phaser.Scene {
         SceneTransitionHelper.stopScenes(this, scenesToStop);
         SceneTransitionHelper.bringToTop(this);
 
+        this.continueHatchEntry();
+    }
+
+    continueHatchEntry() {
         const GameState = getGameState();
-
-        // A reserved inventory egg may be resumed after the phone was locked or
-        // the tab was closed. Reset only the active slot; the previous companion
-        // is already preserved in the collection.
-        const reservedHatch = GameState.get('creature.hatchTransaction');
-        if (this.isEggHatch && reservedHatch?.status === 'reserved') {
-            const freshCreature = GameState.createInitialState().creature;
-            freshCreature.hatchTransaction = reservedHatch;
-            freshCreature.spawnPosition = this.spawnPosition || reservedHatch.spawnPosition || null;
-            GameState.set('creature', freshCreature);
-            GameState.set('tutorial.livingFormPending', false);
-            GameState.set('tutorial.livingFormSeen', false);
-            GameState.save();
+        const owner = this.hatchSaveOwner;
+        const ownsEntry = () => owner === this.hatchSaveOwner && owner?.state === GameState && owner.isCurrent();
+        if (!ownsEntry()) return;
+        if (!this.canCommitHatch()) {
+            if (ownsEntry()) this.showHatchSaveRecovery(() => this.continueHatchEntry());
+            return;
         }
-
-        // Set current scene in GameState
-        GameState.set('session.currentScene', 'HatchingScene');
-
-        // Check game flow state
-        const gameStarted = GameState.get('session.gameStarted') || false;
-        let creatureHatched = GameState.get('creature.hatched') || false;
-        const creatureIdentity = GameState.get('creature.genes') || GameState.get('creature.genetics');
-        if (creatureHatched && (!creatureIdentity || !creatureIdentity.id)) {
-            console.warn('[HatchingScene] Repairing interrupted hatch with no durable creature identity');
-            GameState.set('creature.hatched', false);
-            GameState.set('creature.named', false);
-            GameState.set('creature.name', 'Your Creature');
-            GameState.set('tutorial.livingFormPending', false);
-            GameState.save();
-            creatureHatched = false;
-        }
-        const creatureName = GameState.get('creature.name');
-        const creatureNamed = GameState.get('creature.named') === true || (
-            creatureName && creatureName !== 'Your Creature'
-        );
-        const livingFormPending = GameState.get('tutorial.livingFormPending') === true;
-
-        // ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC
-        // This logic ensures the correct scene flow: Home → Hatch → Personality → Name → Game
-        // See GAME_FLOW_DOCUMENTATION.md for details
-        // 🚨 PROTECTED CODE - ANY CHANGES REQUIRE TEAM REVIEW 🚨
-
-        // Special handling for egg hatching from inventory
-        if (this.isEggHatch) {
-            // Store spawn position for GameScene
-            if (this.spawnPosition) {
-                GameState.set('creature.spawnPosition', this.spawnPosition);
+        if (!ownsEntry()) return;
+        let reader;
+        try {
+            const initial = JSON.stringify(GameState.state);
+            const raw = localStorage.getItem(GameState.saveKey);
+            if (!ownsEntry() || JSON.stringify(GameState.state) !== initial) return;
+            const lease = GameState.cloudWriteLease;
+            const notifications = [];
+            const draft = { state: cloneConfig(GameState.state),
+                emit: (event, data) => notifications.push({ event, data }),
+                reportStateMutationError: error => { throw error; } };
+            GameState.set.call(draft, 'session.currentScene', 'HatchingScene');
+            if (!ownsEntry() || GameState.cloudWriteLease !== lease ||
+                JSON.stringify(GameState.state) !== initial) return;
+            if (!GameState.state.session || typeof GameState.state.session !== 'object') GameState.state.session = {};
+            GameState.state.session.currentScene = draft.state.session.currentScene;
+            reader = GameState.captureSaveAdmissionOwner({ raw });
+            const canContinue = () => {
+                if (!ownsEntry() || GameState.cloudWriteLease !== lease) return false;
+                reader.assertCurrent();
+                if (!this.canCommitHatch() || !ownsEntry()) return false;
+                reader.assertCurrent();
+                return true;
+            };
+            // Preserve the original setter's notification order without letting
+            // its first callback deliver the remaining event to a successor.
+            for (const notification of notifications) {
+                if (!canContinue()) return;
+                GameState.emit(notification.event, notification.data);
             }
-            this.showHatchingScreen();
-            return;
-        }
+            if (!canContinue()) return;
 
-        // Determine which state to show based on game progress
-        if (!gameStarted) {
-            // Show home screen first if game hasn't been started
-            this.showHomeScreen();
-            return;
-        } else if (gameStarted && !creatureHatched) {
-            // Game started but creature not hatched - show hatching process
-            this.showHatchingScreen();
-        } else if (gameStarted && creatureHatched && !creatureNamed) {
-            // Hatched but not named - go to soul reveal scene
-            this.scene.start('SoulRevealScene');
-            return;
-        } else if (gameStarted && creatureHatched && creatureNamed && livingFormPending) {
-            // Naming is saved before the reveal so a mobile interruption cannot
-            // lose the chosen name. Resume the reveal until the player confirms
-            // entry to the Sanctuary.
-            this.scene.start('SoulRevealScene', { resumeLivingForm: true });
-            return;
-        } else if (gameStarted && creatureHatched && creatureNamed) {
-            // Fully set up - go to game scene
-            this.scene.start('GameScene');
-            return;
-        } else {
-            // Fallback to home screen
-            this.showHomeScreen();
-            return;
+            const gameStarted = GameState.get('session.gameStarted') || false;
+            const creatureHatched = GameState.get('creature.hatched') || false;
+            const creatureName = GameState.get('creature.name');
+            const creatureNamed = GameState.get('creature.named') === true || (
+                creatureName && creatureName !== 'Your Creature'
+            );
+            const livingFormPending = GameState.get('tutorial.livingFormPending') === true;
+            if (!canContinue()) return;
+
+            // Keep the established Home -> Hatch -> Reveal -> Sanctuary order.
+            if (this.isEggHatch) {
+                this.showHatchingScreen();
+                return;
+            }
+            if (!gameStarted) {
+                this.showHomeScreen();
+                return;
+            } else if (gameStarted && !creatureHatched) {
+                this.showHatchingScreen();
+            } else if (gameStarted && creatureHatched && !creatureNamed) {
+                this.scene.start('SoulRevealScene');
+                return;
+            } else if (gameStarted && creatureHatched && creatureNamed && livingFormPending) {
+                this.scene.start('SoulRevealScene', { resumeLivingForm: true });
+                return;
+            } else if (gameStarted && creatureHatched && creatureNamed) {
+                this.scene.start('GameScene');
+                return;
+            } else {
+                this.showHomeScreen();
+                return;
+            }
+        } catch (error) {
+            // No draft/reset was published here. A route failure can retry only
+            // while its unchanged reader and original scene still own entry.
+            if (ownsEntry() && reader?.isCurrent()) {
+                try { this.showHatchSaveRecovery(() => this.continueHatchEntry()); }
+                catch (recoveryError) { console.warn('[HatchingScene] Entry remains paused.'); }
+            }
         }
-        // ⚠️ END CRITICAL SECTION - DO NOT MODIFY ⚠️
     }
 
     showHomeScreen() {
@@ -648,6 +662,7 @@ class HatchingScene extends Phaser.Scene {
     }
 
     showHatchingScreen() {
+        if (!this.canCommitHatch()) { this.showHatchSaveRecovery(() => this.showHatchingScreen()); return; }
         console.log('[HatchingScene] 🥚 Showing hatching screen with audio');
         if (!this.isEggHatch) this.loadThemeMusicInBackground();
 
@@ -662,7 +677,7 @@ class HatchingScene extends Phaser.Scene {
         this.graphicsEngine = new GraphicsEngine(this);
 
         // Generate creature genetics early so egg can have proper rarity pattern
-        this.generateCreatureGenetics();
+        if (!this.generateCreatureGenetics()) { this.showHatchSaveRecovery(() => this.showHatchingScreen()); return; }
 
         // Create enhanced programmatic sprites (now with rarity info)
         this.createEnhancedSprites();
@@ -1822,8 +1837,6 @@ class HatchingScene extends Phaser.Scene {
         const rarityConfigKey = rarityKey === 'uncommon' ? 'unusual' : rarityKey;
         const rarityConfig = this.rarityConfig?.[rarityConfigKey] || this.rarityConfig?.common || {};
         const hatchEffects = rarityConfig.hatchingEffects || {};
-        const celebrationMsg = rarityConfig.celebrationMessage ||
-            'First contact confirmed. A living creature has answered.';
 
         // Play celebration sound
         if (window.AudioManager) {
@@ -1867,8 +1880,7 @@ class HatchingScene extends Phaser.Scene {
             });
         }
 
-        // Show celebration banner
-        this.showCelebrationBanner(celebrationMsg, rarityConfig);
+        // The baby reveal owns rarity text; a second banner would cover it.
 
         this.hatchingTimer.destroy();
         this.isHatching = false;
@@ -1990,16 +2002,21 @@ class HatchingScene extends Phaser.Scene {
     }
 
     showCreature() {
+        if (this.creatureAppeared || this.creatureDisplayAttempt) return;
         console.log('hatch:info [HatchingScene] === showCreature() called ===');
         this.creatureAppeared = true;
+        const attempt = { active: true, timer: null };
+        this.creatureDisplayAttempt = attempt;
 
-        // Show loading overlay
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Generating your creature...');
+        try {
+            window.UXEnhancements?.showLoading?.('Showing your creature...', attempt);
+        } catch (error) {
+            console.warn('[HatchingScene] Optional loading display unavailable');
         }
 
-        // Use setTimeout to allow loading overlay to render
-        this.time.delayedCall(100, () => {
+        const display = () => {
+            if (this.creatureDisplayAttempt !== attempt || !attempt.active) return;
+            attempt.timer = null;
             try {
                 // Generate genetics if not already generated (should be generated in showHatchingScreen)
                 if (!this.creatureGenetics) {
@@ -2008,9 +2025,6 @@ class HatchingScene extends Phaser.Scene {
 
                     if (!this.creatureGenetics) {
                         console.error('hatch:error [HatchingScene] CRITICAL: generateCreatureGenetics() returned null!');
-                        if (window.UXEnhancements) {
-                            window.UXEnhancements.hideLoading();
-                        }
                         this.showCriticalError('Failed to generate creature genetics');
                         return;
                     }
@@ -2028,19 +2042,35 @@ class HatchingScene extends Phaser.Scene {
                 } else {
                     console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite (no vision)...');
                     const creatureResult = this.createUniqueCreature('baby');
-                    if (window.UXEnhancements) {
-                        window.UXEnhancements.hideLoading();
-                    }
                     this.completeCreatureDisplay(creatureResult);
                 }
             } catch (error) {
                 console.error('hatch:error [HatchingScene] Error during creature generation:', error);
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
-                }
                 this.showCriticalError('An error occurred during creature generation');
+            } finally {
+                this.finishCreatureDisplayLoading(attempt);
             }
-        });
+        };
+        try {
+            // Let the loading display paint without making it own the hatch operation.
+            attempt.timer = this.time.delayedCall(100, display);
+        } catch (error) {
+            this.finishCreatureDisplayLoading(attempt);
+            this.showCriticalError('The creature display could not start');
+        }
+    }
+
+    finishCreatureDisplayLoading(attempt = this.creatureDisplayAttempt) {
+        if (!attempt?.active) return;
+        attempt.active = false;
+        attempt.timer?.remove?.(false);
+        attempt.timer = null;
+        if (this.creatureDisplayAttempt === attempt) this.creatureDisplayAttempt = null;
+        try {
+            window.UXEnhancements?.hideLoading?.(attempt);
+        } catch (error) {
+            console.warn('[HatchingScene] Optional loading cleanup unavailable');
+        }
     }
 
     /**
@@ -2067,10 +2097,6 @@ class HatchingScene extends Phaser.Scene {
         // Create the ADULT version of the creature
         console.log('hatch:info [HatchingScene] Creating adult vision creature...');
         const adultResult = this.createUniqueCreature('adult');
-
-        if (window.UXEnhancements) {
-            window.UXEnhancements.hideLoading();
-        }
 
         if (!adultResult || !adultResult.textureName) {
             console.error('hatch:error [HatchingScene] Failed to create adult vision');
@@ -2435,7 +2461,11 @@ class HatchingScene extends Phaser.Scene {
     }
 
     completeCreatureDisplay(creatureResult) {
-
+        const displayedGenetics = this.creatureGenetics;
+        const displayOwner = this.hatchSaveOwner;
+        let displayedCreature = null;
+        const isCurrentDisplay = () => displayOwner?.isCurrent() && displayedCreature?.active !== false &&
+            this.creature === displayedCreature && this.creatureGenetics === displayedGenetics;
         console.log('hatch:info [HatchingScene] Step 3: Creature result:', creatureResult ? 'SUCCESS' : 'FAILED');
 
         if (creatureResult && creatureResult.textureName) {
@@ -2457,6 +2487,7 @@ class HatchingScene extends Phaser.Scene {
 
             // Create the enhanced creature with the new texture
             this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
+            displayedCreature = this.creature;
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -2464,10 +2495,6 @@ class HatchingScene extends Phaser.Scene {
 
             // Store genetics data on the sprite for later access
             this.creature.genetics = this.creatureGenetics;
-
-            // Start the protected living-form realization as soon as the exact
-            // hatch texture exists. Hatching and naming now hide provider time.
-            this.beginLivingPortraitPrewarm();
 
             console.log('hatch:info [HatchingScene] Step 5: Fading in creature...');
             // Fade in the creature
@@ -2478,6 +2505,7 @@ class HatchingScene extends Phaser.Scene {
                 duration: 1000,
                 ease: 'Back.easeOut',
                 onComplete: () => {
+                    if (!isCurrentDisplay() || !this.hatchCommitAttempt?.complete) return;
                     console.log('hatch:info [HatchingScene] Creature fade-in complete');
 
                     // 🎉 CELEBRATION BURST - Dramatic effect for creature reveal!
@@ -2491,6 +2519,7 @@ class HatchingScene extends Phaser.Scene {
                         window.AudioManager.playBabyCoo();
                         // Add a small delay then play achievement sound for extra celebration
                         this.time.delayedCall(300, () => {
+                            if (!isCurrentDisplay()) return;
                             window.AudioManager.playAchievement();
                         });
                     }
@@ -2502,6 +2531,7 @@ class HatchingScene extends Phaser.Scene {
                             this.markTutorialSeen();
                         } else {
                             this.time.delayedCall(500, () => {
+                                if (!isCurrentDisplay()) return;
                                 this.showTutorialHint('postHatch');
                                 this.markTutorialSeen();
                             });
@@ -2514,8 +2544,13 @@ class HatchingScene extends Phaser.Scene {
             this.addGeneticEffects();
 
             // Save genetics to GameState
-            this.saveCreatureGenetics();
-            this.exportLocalPortraitQASpecimen();
+            this.saveCreatureGenetics(() => {
+                if (!isCurrentDisplay()) return;
+                this.beginLivingPortraitPrewarm();
+                this.exportLocalPortraitQASpecimen();
+                this.finishHatchReveal(isCurrentDisplay);
+            });
+            return;
 
         } else {
             // Fallback to default creature
@@ -2536,6 +2571,7 @@ class HatchingScene extends Phaser.Scene {
             const targetScale = layout.creatureScale;
 
             this.creature = this.add.image(centerX, creatureY, 'enhancedCreature0');
+            displayedCreature = this.creature;
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -2550,6 +2586,15 @@ class HatchingScene extends Phaser.Scene {
             });
         }
 
+        if (!this.creatureGenetics) {
+            this.showCriticalError('Creature identity could not be created');
+            return;
+        }
+        this.saveCreatureGenetics(() => this.finishHatchReveal(isCurrentDisplay));
+    }
+
+    finishHatchReveal(isCurrentDisplay) {
+        if (!isCurrentDisplay()) return;
         console.log('hatch:info [HatchingScene] Step 6: Creating sparkle effects...');
         // Create sparkle effects around the creature
         this.createSparkles();
@@ -2566,6 +2611,7 @@ class HatchingScene extends Phaser.Scene {
         // Classification is local game data and must never disappear because an
         // optional reroll or hosted-media service is unavailable.
         this.time.delayedCall(650, () => {
+            if (!isCurrentDisplay()) return;
             console.log('hatch:info [HatchingScene] Showing classification and genetic trait');
             this.showRarityReveal();
             this.showRerollOptions();
@@ -2584,23 +2630,30 @@ class HatchingScene extends Phaser.Scene {
             return;
         }
 
-        this.portraitPromise = window.LivingPortraitService.prewarm({
-            creatureData: {
-                name: 'Mythical Creature',
-                stage: 'baby',
-                genes: this.creatureGenetics,
-                dna: this.creatureDNA
-            },
-            sprite: this.creature,
-            style: 'cinematic',
-            source: 'post_hatch'
-        });
-        this.portraitPromise?.catch?.(error => {
-            console.warn(
-                'hatch:warn [HatchingScene] Living portrait prewarm unavailable:',
-                error.message
-            );
-        });
+        try {
+            const job = window.LivingPortraitService.prewarm({
+                creatureData: {
+                    name: 'Mythical Creature',
+                    stage: 'baby',
+                    genes: this.creatureGenetics,
+                    dna: this.creatureDNA
+                },
+                sprite: this.creature,
+                style: 'cinematic',
+                source: 'post_hatch'
+            });
+            if (!job) return;
+            const observed = Promise.resolve(job);
+            this.portraitPromise = observed;
+            observed.catch(error => {
+                if (this.portraitPromise !== observed) return;
+                this.portraitError = error;
+                console.warn('[HatchingScene] Optional living portrait unavailable');
+            });
+        } catch (error) {
+            this.portraitError = error;
+            console.warn('[HatchingScene] Optional living portrait unavailable');
+        }
     }
 
     exportLocalPortraitQASpecimen() {
@@ -2648,19 +2701,19 @@ class HatchingScene extends Phaser.Scene {
      * Show critical error message to user
      */
     showCriticalError(message) {
+        this.finishCreatureDisplayLoading();
         // MOBILE-RESPONSIVE error message
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const fontSize = Math.max(18, Math.min(24, width * 0.055));
+        const fontSize = width < 600 ? 18 : 24;
 
-        const errorText = this.add.text(centerX, height * 0.5, `❌ ${message}\n\nPlease refresh the page`, {
+        const errorText = this.add.text(centerX, height * 0.5, `${message}\n\nPlease refresh the page`, {
             fontSize: `${fontSize}px`,
             color: '#FF4444',
-            wordWrap: { width: width * 0.8 },
             stroke: '#000000',
             strokeThickness: 4,
             align: 'center',
-            wordWrap: { width: 600 }
+            wordWrap: { width: Math.min(560, width - 32) }
         }).setOrigin(0.5);
 
         errorText.setDepth(1000);
@@ -2772,9 +2825,10 @@ class HatchingScene extends Phaser.Scene {
      * Generate unique genetics for this creature with rarity system
      */
     generateCreatureGenetics() {
+        if (!this.canCommitHatch()) return false;
         if (!window.CreatureGenetics) {
             console.warn('hatch:warn [HatchingScene] CreatureGenetics system not available');
-            return;
+            return false;
         }
 
         // Check if RaritySystem is available
@@ -2783,12 +2837,12 @@ class HatchingScene extends Phaser.Scene {
             this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics();
             this.attachMendelianGenome();
             this.rarityInfo = { name: 'Unknown', emoji: '🔮', displayColor: '#9370DB' };
-            return;
+            return Boolean(this.creatureGenetics);
         }
 
         // Get pity data from GameState
         const state = getGameState();
-        let pityData = state.get('pitySystem');
+        let pityData = cloneConfig(state.get('pitySystem') || null);
 
         // Initialize pity system if needed
         if (!pityData || typeof pityData.hatchesSinceEpic === 'undefined') {
@@ -2809,8 +2863,8 @@ class HatchingScene extends Phaser.Scene {
             const rollResult = window.raritySystem.rollRarity(pityData);
             rarity = rollResult.rarity;
 
-            // Update pity data in GameState
-            state.set('pitySystem', rollResult.pityData);
+            // Keep the updated pity counter with this uncommitted hatch.
+            this.hatchPityData = rollResult.pityData;
         }
 
         // Generate creature with the rolled rarity
@@ -2823,10 +2877,9 @@ class HatchingScene extends Phaser.Scene {
         // Generate DNA profile (DNA v1)
         if (window.CreatureDNA) {
             this.creatureDNA = window.CreatureDNA.generateDNA({ forcedRarity: rarity });
+            this.generatedHatchDNA = this.creatureDNA;
 
-            // Store DNA in GameState for persistence
-            state.set('creature.dna', this.creatureDNA);
-
+            // DNA and personality stay local until the complete hatch is saved.
             console.log(`hatch:info [HatchingScene] Generated DNA profile:`, {
                 id: this.creatureDNA.id,
                 body: this.creatureDNA.bodyArchetype,
@@ -2839,7 +2892,7 @@ class HatchingScene extends Phaser.Scene {
             // Initialize personality shaping system (Personality v1)
             if (window.PersonalitySystem) {
                 const personalityState = window.PersonalitySystem.initializePersonalityState(this.creatureDNA);
-                state.set('creature.personalityState', personalityState);
+                this.creaturePersonalityState = personalityState;
                 console.log('hatch:info [HatchingScene] Initialized personality shaping system');
             }
         } else {
@@ -2858,12 +2911,13 @@ class HatchingScene extends Phaser.Scene {
             specialFeatures: this.creatureGenetics.traits.features.specialFeatures?.length || 0,
             pityCounter: pityInfo
         });
+        return true;
     }
 
     /**
      * Create unique creature sprite using GraphicsEngine
      */
-    createUniqueCreature(stage = 'adult') {
+    createUniqueCreature(stage = 'baby') {
         console.log('hatch:debug [HatchingScene] createUniqueCreature() called with stage:', stage);
 
         if (!this.graphicsEngine) {
@@ -3122,51 +3176,125 @@ class HatchingScene extends Phaser.Scene {
         }
     }
 
-    /**
-     * Save creature genetics to GameState
-     */
-    saveCreatureGenetics() {
-        if (!this.creatureGenetics) {
-            console.error('hatch:error [HatchingScene] Cannot save - no genetics generated!');
-            return;
-        }
-
-        // Save the complete genetic profile
+    captureHatchSaveOwner() {
         const state = getGameState();
+        const cloud = window.CloudSave;
+        const epoch = state.getSaveAdmission().epoch;
+        const campaignGuard = cloud?.captureCampaignGuard?.() || (() => true);
+        this.hatchSaveOwner = { state,
+            reservation: cloneConfig(state.get('creature.hatchTransaction') || null),
+            activeIdentity: state.getHatchActiveIdentity(),
+            ownsUpload: lease => state === window.GameState && cloud === window.CloudSave &&
+                cloud?.gameState === state && cloud?.activeCloudWrite === lease && campaignGuard(),
+            isCurrent: () => !this.hatchSceneRetired && state === window.GameState && cloud === window.CloudSave &&
+                state.getSaveAdmission().epoch === epoch && campaignGuard() };
+    }
 
-        // Save to BOTH paths for compatibility across different systems
-        state.set('creature.genetics', this.creatureGenetics);
-        state.set('creature.genes', this.creatureGenetics);  // Required for addCreatureToCollection
+    canCommitHatch() {
+        const owner = this.hatchSaveOwner;
+        return Boolean(owner?.isCurrent() && owner.state.canCommitHatchSave() &&
+            owner.state.getHatchActiveIdentity() === owner.activeIdentity);
+    }
 
-        // Save the texture name for consistency across scenes
-        const textureName = this.creature?.texture?.key || `creature_${this.creatureGenetics.id}_0`;
-        state.set('creature.textureName', textureName);
-
-        // Save key traits for easy access
-        state.set('creature.species', this.creatureGenetics.species);
-        state.set('creature.personality', this.creatureGenetics.personality.core);
-        state.set('creature.rarity', this.creatureGenetics.rarity);
-        state.set('creature.cosmicElement', this.creatureGenetics.cosmicAffinity.element);
-
-        // Generate a descriptive name based on genetics
-        const descriptiveName = this.generateCreatureName();
-        state.set('creature.descriptiveName', descriptiveName);
-
-        // Commit the identity and the hatched flag together. A refresh before
-        // this point safely restarts hatching instead of exposing a partial save.
-        if (!state.completeHatching()) {
-            this.showCriticalError('Creature identity could not be saved');
-            return;
+    saveCreatureGenetics(onSaved = () => {}) {
+        let attempt = this.hatchCommitAttempt;
+        const sameAttempt = attempt?.genetics === this.creatureGenetics;
+        const owner = this.hatchSaveOwner;
+        if (!this.creatureGenetics?.id || !owner?.isCurrent() ||
+            (!sameAttempt && owner.state.getHatchActiveIdentity() !== owner.activeIdentity)) {
+            this.showHatchSaveRecovery();
+            return false;
         }
-        state.recordOpeningMilestone?.('creature_hatched');
-        state.set('creature.hatchTransaction', null);
+        if (!attempt || attempt.genetics !== this.creatureGenetics) {
+            attempt = { genetics: this.creatureGenetics, owner: this.hatchSaveOwner,
+                profile: cloneConfig({ genetics: this.creatureGenetics,
+                    dna: this.generatedHatchDNA !== undefined ? this.generatedHatchDNA : this.creatureDNA || undefined,
+                    personalityState: this.creaturePersonalityState,
+                    pitySystem: this.hatchPityData, rerollSystem: this.hatchRerollData,
+                    textureName: this.creature?.texture?.key || `creature_${this.creatureGenetics.id}_0`,
+                    descriptiveName: this.generateCreatureName(), spawnPosition: this.spawnPosition }),
+                onSaved, saving: false, complete: false };
+            this.hatchCommitAttempt = attempt;
+        }
+        return this.retryHatchCommit(attempt);
+    }
 
-        // CRITICAL: Force save to localStorage immediately
-        state.save();
+    retryHatchCommit(attempt = this.hatchCommitAttempt, { probeStorage = false } = {}) {
+        if (!attempt || attempt !== this.hatchCommitAttempt || attempt.saving ||
+            attempt.owner !== this.hatchSaveOwner || !attempt.owner.isCurrent()) return false;
+        const state = attempt.owner.state;
+        if (probeStorage && state.storageMode === 'memory') state.checkStorageAvailability();
+        if (!attempt.complete && !state.canCommitHatchSave()) { this.showHatchSaveRecovery(); return false; }
+        attempt.saving = true;
+        try {
+            if (!attempt.complete) {
+                const result = state.commitCreatureHatch(attempt.profile, {
+                    isInventoryHatch: this.isEggHatch, expectedReservation: attempt.owner.reservation,
+                    expectedActiveIdentity: attempt.owner.activeIdentity,
+                    isCurrentUpload: attempt.owner.ownsUpload,
+                    isCurrentCampaign: () => attempt === this.hatchCommitAttempt &&
+                        attempt.owner.isCurrent() && attempt.genetics === this.creatureGenetics
+                });
+                if (!result.success) { this.showHatchSaveRecovery(); return false; }
+                attempt.complete = true;
+                attempt.isCurrent = result.isCurrent;
+                attempt.owner.activeIdentity = state.getHatchActiveIdentity();
+            }
+            this.clearHatchSaveRecovery();
+            if (!attempt.owner.isCurrent() || !attempt.isCurrent()) return false;
+            if (!attempt.continuationComplete) {
+                attempt.onSaved();
+                attempt.continuationComplete = true;
+            }
+            return attempt.owner.isCurrent() && attempt.isCurrent();
+        } catch (error) {
+            console.warn('[HatchingScene] Hatch commit paused:', error);
+            this.showHatchSaveRecovery();
+            return false;
+        } finally { attempt.saving = false; }
+    }
 
-        console.log(`hatch:info [HatchingScene] Saved genetics for ${descriptiveName} with texture ${textureName}`);
-        console.log(`hatch:debug [HatchingScene] Genetics body type: ${this.creatureGenetics.traits.bodyShape.type}`);
-        console.log(`hatch:debug [HatchingScene] Genetics colors:`, this.creatureGenetics.traits.colorGenome);
+    clearHatchSaveRecovery() {
+        this.hatchSaveRecovery?.remove();
+        this.hatchSaveRecovery = null;
+    }
+
+    showHatchSaveRecovery(retryEntry = null) {
+        if (!this.hatchSaveOwner?.isCurrent()) return;
+        this.clearHatchSaveRecovery();
+        const overlay = document.createElement('div');
+        overlay.className = 'save-recovery-gate';
+        overlay.dataset.mythicalHatchSave = 'true';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Hatch paused');
+        const panel = document.createElement('section');
+        const title = document.createElement('h1'); title.textContent = 'Hatch paused';
+        const text = document.createElement('p');
+        text.textContent = 'We could not save your creature yet. Keep this page open and try again.';
+        panel.append(title, text); overlay.append(panel);
+        if ((this.hatchCommitAttempt || retryEntry) && this.hatchSaveOwner.state.getSaveAdmission().status === 'ready') {
+            const button = document.createElement('button');
+            button.type = 'button'; button.textContent = retryEntry ? 'Try again' : 'Try saving again';
+            const attempt = this.hatchCommitAttempt;
+            button.addEventListener('click', () => {
+                if (overlay !== this.hatchSaveRecovery) return;
+                if (retryEntry) {
+                    if (!this.hatchSaveOwner?.isCurrent()) return;
+                    if (this.hatchSaveOwner.state.storageMode === 'memory') this.hatchSaveOwner.state.checkStorageAvailability();
+                    if (!this.canCommitHatch()) { this.showHatchSaveRecovery(retryEntry); return; }
+                    this.clearHatchSaveRecovery();
+                    retryEntry();
+                } else this.retryHatchCommit(attempt, { probeStorage: true });
+            });
+            panel.append(button);
+            overlay.addEventListener('keydown', event => {
+                if (event.key === 'Tab') { event.preventDefault(); button.focus(); }
+            });
+        } else text.textContent = 'Your saved game needs checking. Keep this page open and ask a grown-up to help.';
+        this.hatchSaveRecovery = overlay;
+        document.body.append(overlay);
+        panel.querySelector('button')?.focus();
     }
 
     /**
@@ -3213,9 +3341,11 @@ class HatchingScene extends Phaser.Scene {
     transitionToPersonality() {
         // Genetics persistence commits the hatch before this transition.
         const state = getGameState();
-        if (!state.get('creature.hatched') || !state.get('creature.genes')?.id) {
+        const attempt = this.hatchCommitAttempt;
+        if (!attempt?.complete || !attempt.owner.isCurrent() || !attempt.isCurrent() ||
+            !state.get('creature.hatched') || !state.get('creature.genes')?.id) {
             console.error('[HatchingScene] Blocked transition without a committed creature identity');
-            this.showCriticalError('Creature identity is still stabilizing');
+            this.showHatchSaveRecovery();
             return;
         }
 
@@ -3230,6 +3360,7 @@ class HatchingScene extends Phaser.Scene {
             alpha: 1,
             duration: 1000,
             onComplete: () => {
+                if (!attempt.owner.isCurrent() || !attempt.isCurrent()) return;
                 this.scene.start('SoulRevealScene');
             }
         });
@@ -3322,6 +3453,12 @@ class HatchingScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
+        this.hatchSceneRetired = true;
+        this.openingStartAttempt = null;
+        this.hatchCommitAttempt = null;
+        this.clearHatchSaveRecovery();
+        this.finishCreatureDisplayLoading();
+        this.portraitPromise = null;
         this.stopThemeMusic(true);
         this.themeMusicSettingsCleanup?.();
         this.themeMusicSettingsCleanup = null;
@@ -3470,14 +3607,14 @@ class HatchingScene extends Phaser.Scene {
             this.ensureHomeStartReady();
         }
 
-        // Check for space key to start cinematic hatch or transition
+        // Keyboard and touch share the same hatch, identity and rarity reveal.
         if (
             this.spaceKey &&
             Date.now() >= this.eggHatchReadyAt &&
             Phaser.Input.Keyboard.JustDown(this.spaceKey)
         ) {
             if (this.egg && !this.isHatching && !this.creatureAppeared) {
-                this.startCinematicHatch();
+                this.activateEggHatch();
             } else if (this.creatureAppeared) {
                 this.transitionToPersonality();
             }
@@ -3886,6 +4023,8 @@ class HatchingScene extends Phaser.Scene {
      * Handle KEEP button click
      */
     handleKeepCreature() {
+        if (!this.hatchCommitAttempt?.complete || !this.hatchCommitAttempt.owner.isCurrent() ||
+            !this.hatchCommitAttempt.isCurrent()) { this.showHatchSaveRecovery(); return; }
         console.log('hatch:info [HatchingScene] Player kept creature');
 
         // Cleanup UI
@@ -3919,6 +4058,8 @@ class HatchingScene extends Phaser.Scene {
      * Handle REROLL button click
      */
     handleRerollCreature() {
+        if (!this.canCommitHatch() || !this.hatchCommitAttempt?.complete ||
+            !this.hatchCommitAttempt.isCurrent()) { this.showHatchSaveRecovery(); return; }
         console.log('hatch:info [HatchingScene] 🔄 REROLL BUTTON CLICKED!');
 
         if (!this.creatureGenetics) {
@@ -3937,12 +4078,12 @@ class HatchingScene extends Phaser.Scene {
 
         // Track reroll in GameState
         const state = getGameState();
-        let rerollData = state.get('rerollSystem');
+        let rerollData = cloneConfig(state.get('rerollSystem') || null);
         if (!rerollData) {
             rerollData = window.rerollSystem.initializeRerollData();
         }
         rerollData = window.rerollSystem.trackReroll(originalRarity, 'pending', rerollData);
-        state.set('rerollSystem', rerollData);
+        this.hatchRerollData = rerollData;
 
         // Cleanup current UI
         this.cleanupRerollUI();
@@ -3976,6 +4117,7 @@ class HatchingScene extends Phaser.Scene {
      * Perform the creature regeneration after reroll
      */
     performRerollRegeneration(originalRarity, rerollData, state) {
+        if (!this.canCommitHatch() || state !== this.hatchSaveOwner.state) return;
         console.log('hatch:info [HatchingScene] Generating new creature after reroll...');
 
         // Generate NEW creature with retry logic
@@ -4039,6 +4181,7 @@ class HatchingScene extends Phaser.Scene {
         this.creature.setDepth(20);
         this.creature.genetics = this.creatureGenetics;
         this.applyFirstContactCreaturePresentation(this.creature, layout);
+        const rerolledGenetics = this.creatureGenetics;
 
         // Fade in new creature with audio feedback
         this.tweens.add({
@@ -4048,6 +4191,9 @@ class HatchingScene extends Phaser.Scene {
             duration: 1000,
             ease: 'Back.easeOut',
             onComplete: () => {
+                const attempt = this.hatchCommitAttempt;
+                if (!attempt?.complete || attempt.genetics !== rerolledGenetics ||
+                    this.creatureGenetics !== rerolledGenetics || !attempt.owner.isCurrent()) return;
                 // Play reveal sound for dramatic effect
                 if (window.AudioManager) {
                     window.AudioManager.playLevelUp();
@@ -4060,27 +4206,19 @@ class HatchingScene extends Phaser.Scene {
         this.addGeneticEffects();
 
         // Persist latest genetics/texture to GameState so downstream scenes use the rerolled creature
-        this.saveCreatureGenetics();
-
-        // Update reroll tracking with new rarity
         rerollData = window.rerollSystem.trackReroll(originalRarity, this.creatureGenetics.rarity, rerollData);
-        state.set('rerollSystem', rerollData);
-
-        console.log(`hatch:info [HatchingScene] Reroll complete: ${originalRarity} → ${this.creatureGenetics.rarity}`);
-
-        // Set rerolled creature in system
-        window.rerollSystem.setRerolledCreature({
-            genetics: this.creatureGenetics,
-            rarity: this.creatureGenetics.rarity
-        });
-
-        // Show new rarity reveal
-        this.time.delayedCall(1000, () => {
-            console.log('hatch:info [HatchingScene] Showing new rarity reveal and final keep button');
-            this.showRarityReveal();
-
-            // Show ONLY keep button (no second reroll)
-            this.showFinalKeepButton();
+        this.hatchRerollData = rerollData;
+        this.saveCreatureGenetics(() => {
+            window.rerollSystem.setRerolledCreature({
+                genetics: this.creatureGenetics,
+                rarity: this.creatureGenetics.rarity
+            });
+            const attempt = this.hatchCommitAttempt;
+            this.time.delayedCall(1000, () => {
+                if (attempt !== this.hatchCommitAttempt || !attempt.owner.isCurrent() || !attempt.isCurrent()) return;
+                this.showRarityReveal();
+                this.showFinalKeepButton();
+            });
         });
     }
 
@@ -4698,30 +4836,60 @@ class HatchingScene extends Phaser.Scene {
 
     onStartRelease(buttonContainer, buttonX, buttonY) {
         // Prevent double-clicks and re-entry into transition path
-        if (this.isStartingGame || this.startFlowQueued) return;
+        if (this.isStartingGame || this.startFlowQueued || this.openingStartAttempt ||
+            this.hatchSceneRetired || this.sys?.isActive?.() === false) return false;
 
         if (this.startButtonPressedAt && Date.now() - this.startButtonPressedAt > 18000) {
             this.startButtonPressedAt = null;
             this.startButtonPressed = false;
-            return;
+            return false;
         }
 
+        const owner = this.hatchSaveOwner;
+        if (!this.canCommitHatch()) {
+            this.showHatchSaveRecovery(() => this.onStartRelease(buttonContainer, buttonX, buttonY));
+            return false;
+        }
+        const state = owner.state;
+        let attempt;
+        try {
+            attempt = { owner, state, memory: state.state,
+                snapshot: JSON.stringify(state.createSaveSnapshot()), raw: localStorage.getItem(state.saveKey) };
+            attempt.reader = state.captureLocalSaveWrite(attempt.snapshot);
+        } catch (error) {
+            // Start is still visible; no live reset or presentation handoff has begun.
+            return false;
+        }
+        if (this.hatchSaveOwner !== owner || this.openingStartAttempt || this.hatchSceneRetired ||
+            this.sys?.isActive?.() === false || !owner.isCurrent() || state.state !== attempt.memory ||
+            JSON.stringify(state.createSaveSnapshot()) !== attempt.snapshot) return false;
+        attempt.ownsScene = () => this.openingStartAttempt === attempt && this.hatchSaveOwner === owner &&
+            !this.hatchSceneRetired && this.sys?.isActive?.() !== false && owner.isCurrent();
+        attempt.isCurrent = () => {
+            try {
+                if (!attempt.ownsScene()) return false;
+                if (attempt.result?.success) return attempt.result.isCurrent();
+                if (state.state !== attempt.memory || JSON.stringify(state.createSaveSnapshot()) !== attempt.snapshot) return false;
+                attempt.reader.assertCurrent(attempt.raw);
+                return true;
+            } catch (error) { return false; }
+        };
+        this.openingStartAttempt = attempt;
+        if (!attempt.isCurrent()) return false;
         this.isStartingGame = true;
         this.startFlowQueued = true;
         this.startButtonPressed = false;
-        this.removeHomeStartFallback();
-
-        // Show loading indicator immediately for user feedback
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Preparing your adventure...');
+        try {
+            this.removeHomeStartFallback();
+            if (!attempt.isCurrent()) return false;
+            if (!this.performOpeningStartFeedback(attempt,
+                () => window.UXEnhancements?.showLoading('Preparing your adventure...'))) return false;
+            if (!this.performOpeningStartFeedback(attempt, () => this.animateStartRelease(buttonContainer))) return false;
+            // The release commits directly; it never waits on a tween or timer.
+            return this.handleStartGame(attempt);
+        } catch (error) {
+            return this.recoverOpeningStart(attempt);
         }
-
-        this.animateStartRelease(buttonContainer);
-
-        // Persist and advance from the release gesture itself. The old flow
-        // waited for an animation callback, so an interrupted tween could fade
-        // the only Start control without ever reaching the egg.
-        this.handleStartGame();
     }
 
     /**
@@ -4997,82 +5165,80 @@ class HatchingScene extends Phaser.Scene {
      * Handle start game button click
      * ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC ⚠️
      */
-    handleStartGame() {
-        const GameState = getGameState();
+    createOpeningStartDraft(state) {
+        const notifications = [];
+        const draft = { state: cloneConfig(state.get()), set: state.set,
+            recordOpeningMilestone: state.recordOpeningMilestone,
+            emit: (event, data) => notifications.push({ event, data }),
+            reportStateMutationError: error => { throw error; } };
+        draft.set('session.gameStarted', true);
+        // Preserve the original calculation order, including legacy active-creature milestones.
+        draft.recordOpeningMilestone('hatch_started');
+        for (const [key, value] of [
+            ['creature.hatched', false], ['creature.hatchTransaction', null],
+            ['creature.name', 'Your Creature'], ['creature.named', false],
+            ['tutorial.livingFormPending', false], ['tutorial.livingFormSeen', false],
+            ['creature.hatchTime', null], ['creature.experience', 0], ['creature.level', 1],
+            ['creature.stats', { happiness: 100, energy: 100, health: 100 }],
+            ['creature.personality', null], ['creature.genes', null], ['creature.genetics', null],
+            ['creature.dna', null], ['creature.personalityState', null], ['creature.isOffspring', false],
+            ['creature.generation', null], ['creature.parentIds', null], ['creature.offspringBonus', null],
+            ['creature.hasAncientLineage', false], ['creature.ancientProphecy', null]
+        ]) draft.set(key, value);
+        return { state: draft.state, notifications };
+    }
 
-        // Mark game as started - CRITICAL for game flow validation
-        GameState.set('session.gameStarted', true);
-        GameState.recordOpeningMilestone?.('hatch_started');
-        console.log('✅ Set gameStarted to true');
+    performOpeningStartFeedback(attempt, callback) {
+        if (!attempt.isCurrent()) return false;
+        try { callback(); }
+        catch (error) { console.warn('[HatchingScene] Start feedback unavailable:', error); }
+        return attempt.isCurrent();
+    }
 
-        // NOTE: Do NOT reset creature collection here!
-        // The collection persists across hatchings so players can have multiple creatures.
-        // resetCreatureCollection() should only be called on explicit "New Game" with confirmation.
-        console.log(`✅ Creature collection preserved (${GameState.get('creatures')?.length || 0} creatures)`);
-
-        // CRITICAL: Reset creature to unhatched state for fresh game flow
-        GameState.set('creature.hatched', false);
-        GameState.set('creature.hatchTransaction', null);
-        GameState.set('creature.name', 'Your Creature');
-        GameState.set('creature.named', false);
-        GameState.set('tutorial.livingFormPending', false);
-        GameState.set('tutorial.livingFormSeen', false);
-        GameState.set('creature.hatchTime', null);
-        GameState.set('creature.experience', 0);
-        GameState.set('creature.level', 1);
-        console.log('✅ Set creature.hatched to false');
-
-        // Reset creature stats to defaults
-        GameState.set('creature.stats', {
-            happiness: 100,
-            energy: 100,
-            health: 100
+    recoverOpeningStart(attempt) {
+        if (!attempt?.isCurrent()) return false;
+        this.isStartingGame = false;
+        this.startFlowQueued = false;
+        if (!this.performOpeningStartFeedback(attempt, () => window.UXEnhancements?.hideLoading())) return false;
+        this.showHatchSaveRecovery(() => {
+            if (!attempt.isCurrent() || this.isStartingGame || this.startFlowQueued) return;
+            this.isStartingGame = true;
+            this.startFlowQueued = true;
+            if (this.performOpeningStartFeedback(attempt,
+                () => window.UXEnhancements?.showLoading('Preparing your adventure...'))) this.handleStartGame(attempt);
         });
+        return false;
+    }
 
-        // Clear personality, genes, DNA, and personality state to regenerate fresh
-        GameState.set('creature.personality', null);
-        GameState.set('creature.genes', null);
-        GameState.set('creature.genetics', null);
-        GameState.set('creature.dna', null);
-        GameState.set('creature.personalityState', null);
-
-        // CRITICAL: Reset breeding/lineage fields to prevent old data persisting
-        GameState.set('creature.isOffspring', false);
-        GameState.set('creature.generation', null);
-        GameState.set('creature.parentIds', null);
-        GameState.set('creature.offspringBonus', null);
-        GameState.set('creature.hasAncientLineage', false);
-        GameState.set('creature.ancientProphecy', null);
-
-        console.log('🔄 Creature reset complete - forcing save before scene transition...');
-
-        // CRITICAL: Force immediate save to localStorage before scene restart
-        GameState.save();
-
-        // Verify the state before restarting
-        console.log('🔍 Pre-restart verification:');
-        console.log('  gameStarted:', GameState.get('session.gameStarted'));
-        console.log('  creatureHatched:', GameState.get('creature.hatched'));
-
-        // GameState.save() is synchronous. Restart immediately so no timer or
-        // visual tween can strand the player on a home screen without a CTA.
-        if (window.UXEnhancements) {
-            window.UXEnhancements.hideLoading();
-        }
+    handleStartGame(attempt = this.openingStartAttempt) {
+        if (!attempt?.isCurrent()) return false;
         try {
+            if (!attempt.result?.success) {
+                const draft = this.createOpeningStartDraft(attempt.state);
+                if (!attempt.isCurrent()) return false;
+                const result = attempt.state.commitHatchSaveDraft(draft.state, {
+                    isCurrentCampaign: attempt.ownsScene,
+                    notifications: draft.notifications,
+                    isCurrentResult: (live, durable, serialized) =>
+                        JSON.stringify(attempt.state.createSaveSnapshot({ state: live })) === serialized &&
+                        JSON.stringify(durable) === serialized
+                });
+                if (!result.success) return this.recoverOpeningStart(attempt);
+                attempt.result = result;
+                attempt.owner.activeIdentity = attempt.state.getHatchActiveIdentity();
+            }
+            if (!attempt.isCurrent()) return false;
+            if (!this.performOpeningStartFeedback(attempt, () => window.UXEnhancements?.hideLoading())) return false;
             this.scene.restart();
+            return true;
         } catch (error) {
-            console.error('[HatchingScene] Restart failed, attempting direct start', error);
-            this.startFlowQueued = false;
-            this.isStartingGame = false;
+            if (!attempt.isCurrent()) return false;
             try {
+                if (!attempt.result?.success) return this.recoverOpeningStart(attempt);
                 this.scene.start('HatchingScene');
+                return true;
             } catch (startError) {
-                console.error('[HatchingScene] Scene start fallback failed', startError);
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
-                }
-                this.ensureHomeStartReady();
+                return this.recoverOpeningStart(attempt);
             }
         }
     }

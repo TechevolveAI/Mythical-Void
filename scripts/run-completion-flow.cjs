@@ -51,7 +51,10 @@ async function runCase(name, mode, testCase, width, height) {
             if (line.startsWith('[smoke-renderer]') || line.startsWith('[guardian-opening]')) console.log(line);
         }
         console.log(`PASS ${name}`);
-        return { name, mode, testCase, width, height, logPath };
+        return { name, mode, testCase, width, height, logPath,
+            stagedCombat: mode === 'guardian-handoff' || mode === 'supplies-loop',
+            stagedInventory: mode === 'interaction' || mode === 'supplies-loop',
+            stagedFusionParents: mode === 'fusion-pod-lifecycle' };
     } finally {
         await stop(child);
         fs.closeSync(log);
@@ -76,8 +79,15 @@ async function main() {
         ['finale-phone', 'guardian-handoff', 'finalVoid', 390, 844],
         ['recovery-phone', 'completion-recovery', 'all', 390, 844],
         ['forest-desktop', 'guardian-handoff', 'mythicalForest', 1280, 720],
+        ['caves-phone', 'guardian-handoff', 'crystalCaves', 390, 844],
+        ['caves-desktop', 'guardian-handoff', 'crystalCaves', 1280, 720],
+        ['reef-phone', 'guardian-handoff', 'reef', 390, 844],
+        ['peaks-phone', 'guardian-handoff', 'voidPeaks', 390, 844],
+        ['aurora-phone', 'guardian-handoff', 'auroraDepths', 390, 844],
         ['finale-desktop', 'guardian-handoff', 'finalVoid', 1280, 720],
-        ['recovery-desktop', 'completion-recovery', 'all', 1280, 720]
+        ['recovery-desktop', 'completion-recovery', 'all', 1280, 720],
+        ['supplies-phone', 'supplies-loop', 'all', 390, 844],
+        ['supplies-desktop', 'supplies-loop', 'all', 1280, 720]
     ];
     const selected = process.env.COMPLETION_CASES?.split(',') || cases.map(item => item[0]);
     if (selected.some(name => !cases.some(item => item[0] === name))) throw new Error('Unknown completion case');

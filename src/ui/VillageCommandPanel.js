@@ -868,10 +868,12 @@ export default class VillageCommandPanel {
         this.lastDecisionResult = null;
         this.companionPortraitRecord = null;
         this.runtimeResidentAvatarCache = new Map();
+        this.helperSelections = new Map();
         this.activeView = 'plan';
         this.keyboardHandler = null;
         this.refreshTimer = null;
         this.inputActivationTimer = null;
+        this.inputWasEnabled = null;
         this.physicsWasPaused = false;
         this.physicsSuspended = false;
         this.restoreMobileControls = false;
@@ -970,10 +972,16 @@ export default class VillageCommandPanel {
         this.root = root;
         this.render();
 
+        // DOM touches must not also activate Phaser controls underneath.
+        this.inputWasEnabled = this.scene.input?.enabled;
+        if (this.scene.input) this.scene.input.enabled = false;
         this.keyboardHandler = event => {
-            if (event.key === 'Escape') this.destroy();
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.destroy();
         };
-        window.addEventListener('keydown', this.keyboardHandler);
+        window.addEventListener('keydown', this.keyboardHandler, true);
 
         const physicsWorld = this.scene.physics?.world;
         this.physicsWasPaused = physicsWorld?.isPaused === true;
@@ -993,7 +1001,7 @@ export default class VillageCommandPanel {
         }, 220);
         this.refreshTimer = window.setInterval(() => {
             this.onTick?.();
-            if (this.root) this.render();
+            if (this.root) this.render({ background: true });
         }, 1000);
         root.querySelector('.village-command-close')?.focus({ preventScroll: true });
         return true;
@@ -1002,8 +1010,48 @@ export default class VillageCommandPanel {
     setCompanionPortrait(record) {
         if (!record?.imageUrl || !this.root) return false;
         this.companionPortraitRecord = record;
-        this.render();
+        this.render({ background: true });
         return true;
+    }
+
+    createHelperSelect(building, roster, label) {
+        const select = createElement('select', 'village-creature-select');
+        select.setAttribute('aria-label', label);
+        const hasDraft = this.helperSelections.has(building.id);
+        const selectedId = hasDraft
+            ? this.helperSelections.get(building.id)
+            : building.assignedCreatureId;
+        if (hasDraft && !roster.some(creature => creature.id === selectedId)) {
+            const unavailable = createElement('option', '', 'Choose another helper');
+            unavailable.value = '';
+            unavailable.disabled = true;
+            unavailable.selected = true;
+            select.append(unavailable);
+        }
+        roster.forEach(creature => {
+            const option = createElement('option', '', formatCommunityMemberOption(creature));
+            option.value = creature.id;
+            option.selected = creature.id === selectedId;
+            select.append(option);
+        });
+        select.addEventListener('change', () => {
+            this.helperSelections.set(building.id, select.value);
+        });
+        return select;
+    }
+
+    inviteHelper(buildingId, select) {
+        const snapshot = this.getSnapshot();
+        const building = snapshot.buildings.find(entry => entry.id === buildingId);
+        const available = snapshot.roster.some(creature => creature.id === select.value);
+        const result = building?.status !== 'complete' || !building.definition.production
+            ? { reason: 'building_not_assignable' }
+            : !available
+                ? { reason: 'unknown_creature' }
+                : this.onAssign?.({ buildingId, creatureId: select.value });
+        if (result?.changed) this.helperSelections.delete(buildingId);
+        this.statusMessage = formatResult(result);
+        this.render();
     }
 
     renderGuided(snapshot, definitionById) {
@@ -1357,29 +1405,16 @@ export default class VillageCommandPanel {
                 copy.append(build);
             } else if (intent === 'assign' && targetBuilding) {
                 const assignment = createElement('div', 'village-guided-assignment');
-                const select = document.createElement('select');
-                select.className = 'village-creature-select';
-                select.setAttribute(
-                    'aria-label',
+                const select = this.createHelperSelect(
+                    targetBuilding,
+                    snapshot.roster,
                     `Choose a helper for ${targetBuilding.definition.label}`
                 );
-                snapshot.roster.forEach(creature => {
-                    const option = document.createElement('option');
-                    option.value = creature.id;
-                    option.textContent = formatCommunityMemberOption(creature);
-                    option.selected = creature.id === targetBuilding.assignedCreatureId;
-                    select.append(option);
-                });
                 const invite = createElement('button', 'village-guided-primary', 'INVITE TO HELP');
                 invite.type = 'button';
                 invite.disabled = snapshot.roster.length === 0;
                 invite.addEventListener('click', () => {
-                    const result = this.onAssign?.({
-                        buildingId: targetBuilding.id,
-                        creatureId: select.value
-                    });
-                    this.statusMessage = formatResult(result);
-                    this.render();
+                    this.inviteHelper(targetBuilding.id, select);
                 });
                 assignment.append(select, invite);
                 copy.append(assignment);
@@ -1474,11 +1509,17 @@ export default class VillageCommandPanel {
         this.root.append(shell);
     }
 
-    render() {
+    render({ background = false } = {}) {
         if (!this.root || !this.getSnapshot) return;
+        // Keep native pickers and in-progress presses alive while the model ticks.
+        const choosingHelper = this.root.contains(document.activeElement) &&
+            document.activeElement?.matches('.village-creature-select');
+        if (background && (choosingHelper || this.root.matches(':active'))) return;
         const scrollState = [
             '.village-command-shell',
             '.village-command-body',
+            '.village-building-catalog',
+            '.village-site-plan',
             '.village-guided-stage'
         ].map(selector => ({
             selector,
@@ -1949,27 +1990,15 @@ export default class VillageCommandPanel {
                     summaryCopy
                 );
                 const controls = createElement('div', 'village-assignment-controls');
-                const select = createElement('select', 'village-creature-select');
-                select.setAttribute('aria-label', `Creature for ${building.definition.label}`);
-                snapshot.roster.forEach(creature => {
-                    const option = createElement(
-                        'option',
-                        '',
-                        formatCommunityMemberOption(creature)
-                    );
-                    option.value = creature.id;
-                    option.selected = creature.id === building.assignedCreatureId;
-                    select.append(option);
-                });
+                const select = this.createHelperSelect(
+                    building,
+                    snapshot.roster,
+                    `Creature for ${building.definition.label}`
+                );
                 const invite = createElement('button', 'village-invite-button', 'INVITE');
                 invite.type = 'button';
                 invite.addEventListener('click', () => {
-                    const result = this.onAssign?.({
-                        buildingId: building.id,
-                        creatureId: select.value
-                    });
-                    this.statusMessage = formatResult(result);
-                    this.render();
+                    this.inviteHelper(building.id, select);
                 });
                 controls.append(select, invite);
                 row.append(summary, controls);
@@ -2024,8 +2053,12 @@ export default class VillageCommandPanel {
         this.refreshTimer = null;
         if (this.inputActivationTimer) window.clearTimeout(this.inputActivationTimer);
         this.inputActivationTimer = null;
-        if (this.keyboardHandler) window.removeEventListener('keydown', this.keyboardHandler);
+        if (this.keyboardHandler) window.removeEventListener('keydown', this.keyboardHandler, true);
         this.keyboardHandler = null;
+        if (this.scene.input && this.inputWasEnabled !== null) {
+            this.scene.input.enabled = this.inputWasEnabled;
+        }
+        this.inputWasEnabled = null;
         if (this.restoreMobileControls) this.scene.mobileControls?.resume?.();
         this.restoreMobileControls = false;
         if (this.physicsSuspended && this.scene.physics?.world) {
@@ -2055,6 +2088,7 @@ export default class VillageCommandPanel {
         this.onClose = null;
         this.companionPortraitRecord = null;
         this.runtimeResidentAvatarCache.clear();
+        this.helperSelections.clear();
         closeHandler?.();
     }
 }

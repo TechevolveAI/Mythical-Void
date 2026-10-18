@@ -16,6 +16,8 @@ import {
 import { getExpeditionDiagnosticSnapshot } from '../systems/ExpeditionDiagnostics.js';
 import { getShipReconstructionSnapshot } from '../systems/ShipReconstruction.js';
 import ExpeditionDebriefPanel from '../ui/ExpeditionDebriefPanel.js';
+import { getExpeditionCheckpointDefinition, getExpeditionCheckpointResume } from '../systems/ExpeditionCheckpoints.js';
+import HubGateTransitionController from './controllers/HubGateTransitionController.js';
 
 const PRE_FINAL_SHIP_PART_IDS = Object.freeze([
     'crystal_core',
@@ -64,69 +66,6 @@ const DEBRIEF_PREVIEW_CONTEXTS = Object.freeze({
 
 const EXPEDITION_CHECKPOINT_PATH =
     'story.projectBeacon.expeditionCheckpoint';
-const EXPEDITION_CHECKPOINT_VERSION = 2;
-const EXPEDITION_CHECKPOINTS_BY_GATE = Object.freeze({
-    mythical_forest: {
-        sceneKey: 'MythicalForestLevel',
-        levelId: 'mythical_forest_1',
-        levelStateId: 'mythicalForest',
-        checkpoints: [
-            ['forest_anchor_1', 'Rootway'],
-            ['forest_anchor_2', 'Crown Path'],
-            ['forest_anchor_3', 'Guardian Approach']
-        ]
-    },
-    crystal_caves: {
-        sceneKey: 'CrystalCavesLevel',
-        levelId: 'crystal_caves_1',
-        levelStateId: 'crystalCaves',
-        checkpoints: [
-            ['caves_anchor_1', 'Echo Pass'],
-            ['caves_anchor_2', 'Living Chamber'],
-            ['caves_anchor_3', 'Guardian Threshold']
-        ]
-    },
-    stellar_reef: {
-        sceneKey: 'ReefLevel',
-        levelId: 'reef_1',
-        levelStateId: 'cosmicReef',
-        checkpoints: [
-            ['reef_waypoint_1', 'Drift Marker'],
-            ['reef_waypoint_2', 'Traveler Relay'],
-            ['reef_waypoint_3', 'Passage Vector']
-        ]
-    },
-    void_peaks: {
-        sceneKey: 'VoidPeaksLevel',
-        levelId: 'void_peaks_1',
-        levelStateId: 'voidPeaks',
-        checkpoints: [
-            ['peaks_relay_1', 'Lower Relay'],
-            ['peaks_relay_2', 'Ridge Relay'],
-            ['peaks_relay_3', 'Summit Relay']
-        ]
-    },
-    aurora_depths: {
-        sceneKey: 'AuroraDepthsLevel',
-        levelId: 'aurora_depths_1',
-        levelStateId: 'auroraDepths',
-        checkpoints: [
-            ['aurora_prism_1', 'Lower Prism'],
-            ['aurora_prism_2', 'Heart Prism'],
-            ['aurora_prism_3', 'Sky Prism']
-        ]
-    },
-    final_void: {
-        sceneKey: 'FinalVoidLevel',
-        levelId: 'final_void_1',
-        levelStateId: 'finalVoid',
-        checkpoints: [
-            ['final_bond_1', 'Living Systems'],
-            ['final_bond_2', 'Return Route'],
-            ['final_bond_3', 'Trust Marker']
-        ]
-    }
-});
 
 function countCollectedPreFinalParts(collected = []) {
     return PRE_FINAL_SHIP_PART_IDS.filter(partId => collected.includes(partId)).length;
@@ -153,6 +92,7 @@ export default class HubWorldScene extends Phaser.Scene {
      * Reset state on scene start - called before create()
      */
     init(data = {}) {
+        this.gateEntryController?.reset();
         // CRITICAL: Reset all state flags on scene start
         this.isTransitioning = false;
         this._isShuttingDown = false;
@@ -168,6 +108,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.projectBeaconDebriefElements = [];
         this.projectBeaconDebriefPanel?.destroy();
         this.projectBeaconDebriefPanel = null;
+        this.projectBeaconDebriefHandoff = null;
         this.restoreProjectBeaconDebriefInput();
         this.isProjectBeaconDebriefOpen = false;
         this.firstExpeditionElements = [];
@@ -620,30 +561,69 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     completeProjectBeaconDebrief(debrief, onComplete) {
-        if (this._isShuttingDown || !this.isProjectBeaconDebriefOpen) return false;
-        if (!debrief.isPreview) {
-            acknowledgeProjectBeaconDebrief(window.GameState, debrief.id);
-        }
-        this.projectBeaconDebriefPanel?.destroy();
-        this.projectBeaconDebriefPanel = null;
-        this.isProjectBeaconDebriefOpen = false;
+        if (this._isShuttingDown || !this.isProjectBeaconDebriefOpen || this.projectBeaconDebriefHandoff) return false;
+        const handoff = {};
+        const panel = this.projectBeaconDebriefPanel;
+        const inputState = this.projectBeaconDebriefInputState;
+        this.projectBeaconDebriefHandoff = handoff;
+        const isCurrent = () => this.projectBeaconDebriefHandoff === handoff &&
+            this.projectBeaconDebriefPanel === panel && this.isProjectBeaconDebriefOpen && !this._isShuttingDown;
+        const closePanel = () => {
+            if (!isCurrent()) return;
+            panel?.destroy();
+            this.projectBeaconDebriefPanel = null;
+            this.isProjectBeaconDebriefOpen = false;
+        };
+        try {
+            if (!debrief.isPreview) acknowledgeProjectBeaconDebrief(window.GameState, debrief.id);
+            if (!isCurrent()) return false;
 
-        // A transition must not depend on a tween or optional media finishing.
-        if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
-            this.showPendingProjectBeaconDebrief(onComplete);
-        } else if (!debrief.isPreview && debrief.shipPartId) {
-            this.restoreProjectBeaconDebriefInput();
-            this.scene.start('GameScene', {
-                biome: 'nebula',
-                shipReconstructionHandoff: true,
-                shipReconstructionNextGateLabel: debrief.nextGate?.label || null
-            });
-        } else {
-            this.restoreProjectBeaconDebriefInput();
-            if (!debrief.isPreview) this.focusProjectBeaconNextRoute(debrief);
-            onComplete?.();
+            // A transition must not depend on a tween or optional media finishing.
+            if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
+                // Keep the old native control until its replacement has mounted.
+                panel?.setVisible?.(false);
+                this.projectBeaconDebriefPanel = null;
+                this.isProjectBeaconDebriefOpen = false;
+                try {
+                    if (!this.showPendingProjectBeaconDebrief(onComplete)) {
+                        throw new Error('Queued expedition summary did not open');
+                    }
+                    panel?.destroy();
+                } catch (error) {
+                    if (this.projectBeaconDebriefHandoff === handoff && !this._isShuttingDown) {
+                        this.projectBeaconDebriefPanel?.destroy();
+                        this.projectBeaconDebriefPanel = panel;
+                        this.isProjectBeaconDebriefOpen = true;
+                        panel?.setVisible?.(true);
+                    } else panel?.destroy();
+                    throw error;
+                }
+            } else {
+                this.restoreProjectBeaconDebriefInput();
+                if (!debrief.isPreview && debrief.shipPartId) {
+                    this.scene.start('GameScene', {
+                        biome: 'nebula',
+                        shipReconstructionHandoff: true,
+                        shipReconstructionNextGateLabel: debrief.nextGate?.label || null
+                    });
+                } else {
+                    if (!debrief.isPreview) this.focusProjectBeaconNextRoute(debrief);
+                    onComplete?.();
+                }
+                closePanel();
+            }
+            return true;
+        } catch (error) {
+            // Keep the existing summary retryable when its route request throws.
+            // Never restore this lease into a replaced or shutting-down Hub.
+            if (isCurrent() && inputState && this.input === inputState.input) {
+                this.projectBeaconDebriefInputState = inputState;
+                inputState.input.enabled = false;
+            }
+            throw error;
+        } finally {
+            if (this.projectBeaconDebriefHandoff === handoff) this.projectBeaconDebriefHandoff = null;
         }
-        return true;
     }
 
     focusProjectBeaconNextRoute(debrief) {
@@ -1682,13 +1662,11 @@ export default class HubWorldScene extends Phaser.Scene {
         if (this.progressionPreview) return false;
 
         const checkpoint = window.GameState?.get?.(EXPEDITION_CHECKPOINT_PATH);
-        const config = Object.values(EXPEDITION_CHECKPOINTS_BY_GATE).find(
-            candidate =>
-                candidate.sceneKey === checkpoint?.sceneKey &&
-                candidate.levelId === checkpoint?.levelId
-        );
+        const config = getExpeditionCheckpointDefinition(checkpoint?.sceneKey);
         if (
             !config ||
+            config.sceneKey !== checkpoint?.sceneKey ||
+            config.levelId !== checkpoint?.levelId ||
             window.GameState?.get?.(
                 `levels.${config.levelStateId}.completed`
             ) !== true
@@ -1708,7 +1686,7 @@ export default class HubWorldScene extends Phaser.Scene {
                     gateId,
                     sceneKey: 'MythicalForestLevel',
                     checkpointId: 'forest_anchor_3',
-                    label: 'Guardian Approach',
+                    label: getExpeditionCheckpointDefinition(gateId).checkpoints[2][1],
                     current: 3,
                     total: 3
                 }
@@ -1716,34 +1694,7 @@ export default class HubWorldScene extends Phaser.Scene {
         }
         if (this.progressionPreview) return null;
 
-        const checkpoint = window.GameState?.get?.(EXPEDITION_CHECKPOINT_PATH);
-        const config = EXPEDITION_CHECKPOINTS_BY_GATE[gateId];
-        const checkpointIndex = Number(checkpoint?.checkpointIndex);
-        const signal = config?.checkpoints?.[checkpointIndex];
-
-        if (
-            ![1, EXPEDITION_CHECKPOINT_VERSION].includes(checkpoint?.version) ||
-            checkpoint?.sceneKey !== config?.sceneKey ||
-            checkpoint?.levelId !== config?.levelId ||
-            !signal ||
-            signal[0] !== checkpoint?.checkpointId ||
-            window.GameState?.get?.(
-                `levels.${config.levelStateId}.completed`
-            ) === true
-        ) {
-            return null;
-        }
-
-        return {
-            gateId,
-            sceneKey: config.sceneKey,
-            checkpointId: signal[0],
-            label: signal[1],
-            current: Number.isInteger(checkpoint.routeSignalMask)
-                ? config.checkpoints.filter((_, index) => checkpoint.routeSignalMask & (1 << index)).length
-                : checkpointIndex + 1,
-            total: config.checkpoints.length
-        };
+        return getExpeditionCheckpointResume(window.GameState, gateId);
     }
 
     updateInfoPanel(gate) {
@@ -2062,96 +2013,42 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     enterGate(gate) {
-        if (this.isTransitioning || this.isProjectBeaconDebriefOpen) return;
-
-        // Double-check for in-development gates (should be caught earlier)
-        if (gate.data.inDevelopment) {
-            this.showComingSoonModal(gate);
-            return;
-        }
-
-        const entryResult = this.progressionPreview
-            ? { success: true }
-            : window.GameState?.enterGate(gate.id);
-        if (entryResult && entryResult.success !== true) {
-            this.showUnlockConfirmation(gate);
-            return;
-        }
-
-        this.isTransitioning = true;
-        this.gateTransitionStarted = false;
-
-        console.log(`[HubWorldScene] Entering gate: ${gate.id}`);
-        const resume = this.getExpeditionResumeForGate(gate.id);
-
-        if (gate.id === 'mythical_forest') {
-            (window.CompanionMediaService || companionMediaService)
-                ?.prepareCinematic?.(this, {
-                    momentId: 'first_forest_arrival',
-                    stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby'
-                });
-        }
-
-        // Show loading (will appear after transition)
-        if (window.UXEnhancements) {
-            this.time.delayedCall(800, () => {
-                if (this._isShuttingDown || !this.isTransitioning || this.gateTransitionStarted) return;
-                window.UXEnhancements.showLoading(
-                    resume
-                        ? `Reconnecting at ${resume.label}...`
-                        : `Traveling to ${gate.data.name}...`
-                );
-            });
-        }
-
-        // Cinematic transition
-        this.playCinematicGateEntry(gate);
-
-        // A scene launch must not depend solely on a tween/timer callback. This
-        // independent watchdog handles backgrounded mobile tabs and interrupted FX.
-        this.gateTransitionFallback = setTimeout(() => {
-            this.beginGateSceneTransition(gate);
-        }, 1800);
+        return this.getGateEntryController().enter(gate);
     }
 
-    beginGateSceneTransition(gate) {
-        if (this.gateTransitionStarted || this._isShuttingDown) return false;
-        this.gateTransitionStarted = true;
-        if (this.gateTransitionFallback) {
-            clearTimeout(this.gateTransitionFallback);
-            this.gateTransitionFallback = null;
-        }
-        Promise.resolve(this.transitionToGateScene(gate)).catch(error => {
-            console.error('[HubWorldScene] Gate transition failed:', error);
-            this.isTransitioning = false;
-            this.gateTransitionStarted = false;
-            this.showLevelLoadError(gate.data?.name || gate.id);
-        });
-        return true;
+    getGateEntryController() {
+        this.gateEntryController ??= new HubGateTransitionController(this, companionMediaService);
+        return this.gateEntryController;
+    }
+
+    beginGateSceneTransition(gate, attempt = this.gateEntryController?.current) {
+        return this.getGateEntryController().begin(gate, attempt);
     }
 
     /**
      * Play cinematic gate entry sequence
      * Timeline: zoom → particles → radial wipe → transition
      */
-    playCinematicGateEntry(gate) {
+    playCinematicGateEntry(gate, attempt) {
+        if (!attempt?.isCurrent()) return;
         const { width, height, isMobile } = this.dims;
         const gateX = gate.x;
         const gateY = gate.y;
 
         // 0ms: Camera zoom toward gate (400ms)
-        this.tweens.add({
+        attempt.keepTween(this.tweens.add({
             targets: this.cameras.main,
             zoom: 1.5,
             scrollX: gateX - width / 2,
             scrollY: gateY - height / 2,
             duration: 400,
             ease: 'Power2'
-        });
+        }));
 
         // 300ms: Particle burst from gate
-        this.time.delayedCall(300, () => {
-            this.createGateEntryBurst(gateX, gateY, gate.config.color);
+        attempt.later(300, () => {
+            this.createGateEntryBurst(gateX, gateY, gate.config.color, attempt);
+            if (!attempt.isCurrent()) return;
 
             // Play whoosh/portal sound
             if (window.AudioManager) {
@@ -2160,24 +2057,26 @@ export default class HubWorldScene extends Phaser.Scene {
         });
 
         // 500ms: Expanding radial wipe from gate center
-        this.time.delayedCall(500, () => {
+        attempt.later(500, () => {
             this.createRadialWipe(gateX, gateY, gate.config.color, () => {
                 // 900ms: Scene transition
-                this.beginGateSceneTransition(gate);
-            });
+                this.beginGateSceneTransition(gate, attempt);
+            }, attempt);
         });
     }
 
     /**
      * Create particle burst effect at gate position
      */
-    createGateEntryBurst(x, y, color) {
+    createGateEntryBurst(x, y, color, attempt = null) {
         // Particle count based on device
         const particleCount = this.dims.isMobile ? 20 : 40;
         const colors = [color, 0xFFD700, 0xFFFFFF];
 
         for (let i = 0; i < particleCount; i++) {
+            if (attempt && !attempt.isCurrent()) return;
             const particle = this.add.graphics();
+            attempt?.keepObject(particle);
             const size = Phaser.Math.FloatBetween(2, 6);
             const particleColor = Phaser.Utils.Array.GetRandom(colors);
 
@@ -2192,7 +2091,7 @@ export default class HubWorldScene extends Phaser.Scene {
             const targetX = x + Math.cos(angle) * speed;
             const targetY = y + Math.sin(angle) * speed;
 
-            this.tweens.add({
+            const tween = this.tweens.add({
                 targets: particle,
                 x: targetX,
                 y: targetY,
@@ -2202,6 +2101,7 @@ export default class HubWorldScene extends Phaser.Scene {
                 ease: 'Power2',
                 onComplete: () => particle.destroy()
             });
+            attempt?.keepTween(tween);
         }
 
         // Add FXLibrary burst if available
@@ -2217,7 +2117,8 @@ export default class HubWorldScene extends Phaser.Scene {
     /**
      * Create expanding radial wipe effect
      */
-    createRadialWipe(centerX, centerY, color, onComplete) {
+    createRadialWipe(centerX, centerY, color, onComplete, attempt = null) {
+        if (attempt && (!attempt.isCurrent() || attempt.started)) return;
         const { width, height } = this.dims;
         const maxRadius = Math.max(width, height) * 1.5;
 
@@ -2225,6 +2126,7 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Create circular mask/wipe
         const wipe = this.add.graphics();
+        attempt?.keepObject(wipe);
         wipe.setDepth(300);
         this.gateTransitionWipe = wipe;
 
@@ -2234,6 +2136,10 @@ export default class HubWorldScene extends Phaser.Scene {
         const wipeTimer = this.time.addEvent({
             delay: 16, // ~60fps
             callback: () => {
+                if (!wipe.active || (attempt && (!attempt.isCurrent() || attempt.started))) {
+                    wipeTimer.destroy();
+                    return;
+                }
                 currentRadius += 30; // Expansion speed
 
                 wipe.clear();
@@ -2254,6 +2160,7 @@ export default class HubWorldScene extends Phaser.Scene {
             },
             loop: true
         });
+        attempt?.keepTimer(wipeTimer);
         this.gateTransitionWipeTimer = wipeTimer;
     }
 
@@ -2275,79 +2182,8 @@ export default class HubWorldScene extends Phaser.Scene {
      * Transition to appropriate scene based on gate
      * Uses lazy loading for platformer levels to reduce initial bundle size
      */
-    async transitionToGateScene(gate) {
-        // Map gate IDs to scene names for lazy loading
-        const levelSceneMap = {
-            'crystal_caves': 'CrystalCavesLevel',
-            'stellar_reef': 'ReefLevel',
-            'mythical_forest': 'MythicalForestLevel',
-            'void_peaks': 'VoidPeaksLevel',
-            'aurora_depths': 'AuroraDepthsLevel',
-            'final_void': 'FinalVoidLevel'
-        };
-
-        if (gate.id === 'main') {
-            // Main sanctuary - top-down exploration (not lazy loaded)
-            this.scene.start('GameScene', { biome: 'nebula' });
-            return;
-        }
-
-        // Check if this is a platformer level that needs lazy loading
-        const sceneName = levelSceneMap[gate.id];
-        if (sceneName) {
-            // Show loading indicator
-            if (window.UXEnhancements) {
-                window.UXEnhancements.showLoading(`Loading ${gate.data?.name || 'level'}...`);
-            }
-
-            try {
-                // Use SceneLoader for lazy loading
-                if (window.SceneLoader) {
-                    const loaded = await window.SceneLoader.loadScene(this.game, sceneName);
-                    if (this._isShuttingDown) return;
-                    if (loaded) {
-                        if (window.UXEnhancements) {
-                            window.UXEnhancements.hideLoading();
-                        }
-                        this.clearGateTransitionFx(false);
-                        this.scene.start(sceneName);
-                        return;
-                    }
-                    throw new Error(`${sceneName} could not be loaded`);
-                }
-
-                // Fallback only when the scene is already registered. Starting an
-                // unknown Phaser key produces the same blank-screen failure as a
-                // rejected chunk load.
-                const registeredScene = this.game?.scene?.keys?.[sceneName] ||
-                    this.game?.scene?.scenes?.find?.(
-                        scene => scene?.sys?.settings?.key === sceneName
-                    );
-                if (!registeredScene) {
-                    throw new Error(`${sceneName} is not registered`);
-                }
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
-                }
-                this.clearGateTransitionFx(false);
-                this.scene.start(sceneName);
-            } catch (error) {
-                if (this._isShuttingDown) return;
-                console.error(`[HubWorldScene] Failed to load ${sceneName}:`, error);
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
-                }
-                this.clearGateTransitionFx(true);
-                // Show error to user
-                this.showLevelLoadError(gate.data?.name || sceneName);
-                this.isTransitioning = false;
-                this.gateTransitionStarted = false;
-            }
-            return;
-        }
-
-        // Other biomes - top-down for now (will become platformer levels)
-        this.scene.start('GameScene', { biome: gate.data?.biome });
+    async transitionToGateScene(gate, attempt = this.gateEntryController?.current) {
+        return this.getGateEntryController().loadAndStart(gate, attempt);
     }
 
     /**
@@ -3415,6 +3251,7 @@ export default class HubWorldScene extends Phaser.Scene {
     shutdown() {
         if (this._isShuttingDown) return;
         this._isShuttingDown = true;
+        this.gateEntryController?.retire();
 
         console.log('[HubWorldScene] Shutting down');
         if (this.gateTransitionFallback) {
@@ -3424,6 +3261,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.closeFirstExpeditionInvitation({ markSeen: false });
         this.projectBeaconDebriefPanel?.destroy();
         this.projectBeaconDebriefPanel = null;
+        this.projectBeaconDebriefHandoff = null;
         this.restoreProjectBeaconDebriefInput();
 
         // Remove keyboard listeners

@@ -212,49 +212,11 @@ test('defeat freezes controls/physics before any withdrawal or celebration anima
     expect(defeat).toContain('if (this.bossDefeated || !this.boss?.active) return;');
 });
 
-test.each([true, false])('victory measures wrapped rewards and keeps the exit reachable (first completion: %s)', firstCompletion => {
-    const layoutSource = fs.readFileSync(path.join(__dirname, '../systems/MobileControlLayout.js'), 'utf8');
-    const getCampaignEntryStackLayout = new Function(
-        `${layoutSource.replace(/export /g, '')}; return getCampaignEntryStackLayout;`
-    )();
-    const texts = [];
-    const s = {
-        bindLevelCompletionReturn: jest.fn(), syncCampaignObjectiveDisplay: jest.fn(),
-        completeLevelProgression: jest.fn(() => ({ firstCompletion, coinsAwarded: 600 })),
-        forestBossDuration: 6500, forestBossHits: 1,
-        getBossPowerupRewardCopy: () => 'Energy Crystal SAVED\nRestores 3 crystal energy\nCLEAR A SLOT // RESTOCK LATER IN THE SHOP',
-        getGuardianSanctuaryArrivalCopy: () => 'Bloom FREED -> SANCTUARY // Forager',
-        getVillageCompletionCopy: () => 'SANCTUARY // Coins +20%\nGuard +1',
-        getLevelModalLayout: () => ({ width: 390, panelWidth: 350, panelHeight: 680, panelX: 20, panelY: 82,
-            contentWidth: 302, y: offset => 82 + offset, font: (_, compact) => `${compact}px`, buttonPadding: { x: 16, y: 10 } }),
-        tweens: { add: jest.fn() },
-        add: {
-            graphics: () => {
-                const g = graphic();
-                for (const name of ['setScrollFactor', 'strokeRoundedRect']) g[name] = jest.fn(() => g);
-                return g;
-            },
-            text: (x, y, text) => {
-                const t = { x, y, text, height: text.includes("Guardian's Gift") ? 130 : text.includes('COMPLETE') ? 58 : 44 };
-                for (const name of ['setOrigin', 'setScrollFactor', 'setDepth', 'setAlpha', 'setInteractive', 'on']) t[name] = () => t;
-                t.setName = name => { t.name = name; return t; };
-                t.setY = value => { t.y = value; return t; };
-                texts.push(t);
-                return t;
-            }
-        }
+test.each([true, false])('victory delegates acceptance=%s to the retained transaction, without a second live grant path', accepted => {
+    const finishForestCompletion = jest.fn(() => accepted), s = {
+        completeLevelProgression: jest.fn(), showRegionalVictorySummary: jest.fn()
     };
-    const victory = method('showBossVictory', { getCampaignEntryStackLayout });
-    expect(victory.call(s)).toBe(true);
-    expect(victory.call(s)).toBe(false);
-    expect(s.completeLevelProgression).toHaveBeenCalledTimes(1);
-    expect(texts.some(t => t.text.endsWith('1 successful strike'))).toBe(true);
-    expect(texts.at(-1).text).toBe('[ ENTER SANCTUARY ]');
-    expect(texts.some(t => t.text === '[ SECRET MESSAGE ]')).toBe(true);
-    expect(texts.length).toBe(firstCompletion ? 9 : 8);
-    for (const [index, text] of texts.entries()) {
-        expect(text.y - text.height / 2).toBeGreaterThanOrEqual(82);
-        expect(text.y + text.height / 2).toBeLessThanOrEqual(762);
-        if (index) expect(text.y - text.height / 2).toBeGreaterThan(texts[index - 1].y + texts[index - 1].height / 2);
-    }
+    expect(method('showBossVictory', { finishForestCompletion }).call(s)).toBe(accepted);
+    expect(finishForestCompletion).toHaveBeenCalledTimes(1); expect(finishForestCompletion).toHaveBeenCalledWith(s);
+    expect(s.completeLevelProgression).not.toHaveBeenCalled(); expect(s.showRegionalVictorySummary).not.toHaveBeenCalled();
 });

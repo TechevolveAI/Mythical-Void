@@ -63,6 +63,24 @@ class AchievementNotification {
             rewardClaimed: true
         };
 
+        if (this.scene.sanctuaryNotices) {
+            this.scene.sanctuaryNotices.enqueue(this, `achievement:${notificationKey}`, finish => {
+                this.currentNotification = notification;
+                this.isVisible = true;
+                this.closing = false;
+                this.finishPresentation = finish;
+                this.createNotification(notification);
+                return () => {
+                    this.finishPresentation = null;
+                    this.clearNotification();
+                    this.currentNotification = null;
+                    this.isVisible = false;
+                    this.closing = false;
+                };
+            }, 2);
+            return;
+        }
+
         if (
             this.currentNotification?.notificationKey === notificationKey ||
             this.queue.some(entry => entry.notificationKey === notificationKey)
@@ -242,7 +260,7 @@ class AchievementNotification {
      * Claim the reward and close notification
      */
     claimAndClose(achievement) {
-        if (this.closing) return false;
+        if (this.closing || !this.isVisible) return false;
         this.closing = true;
         // Cancel auto-dismiss
         if (this.autoDismissTimer) {
@@ -255,7 +273,9 @@ class AchievementNotification {
             return;
         }
 
-        // Animate out
+        const content = this.contentContainer;
+        const finish = this.finishPresentation;
+        // Animate out. A preempted presentation must not close its successor.
         this.scene.tweens.add({
             targets: this.contentContainer,
             alpha: 0,
@@ -263,6 +283,11 @@ class AchievementNotification {
             duration: 200,
             ease: 'Power2',
             onComplete: () => {
+                if (this.contentContainer !== content) return;
+                if (finish) {
+                    finish();
+                    return;
+                }
                 this.clearNotification();
                 this.showNext();
             }
@@ -438,6 +463,7 @@ class AchievementNotification {
     destroy() {
         if (this.destroyed) return;
         this.destroyed = true;
+        this.scene?.sanctuaryNotices?.cancel(this);
         if (this.autoDismissTimer) {
             this.autoDismissTimer.destroy();
             this.autoDismissTimer = null;
@@ -450,6 +476,11 @@ class AchievementNotification {
     }
 
     clearNotification() {
+        this.autoDismissTimer?.destroy?.();
+        this.autoDismissTimer = null;
+        [this.contentContainer, this.overlay].filter(Boolean).forEach(target => {
+            this.scene?.tweens?.killTweensOf?.(target);
+        });
         this.scene?.events?.off?.('update', this.syncCameraZoom, this);
         if (this.container) {
             this.container.destroy(true);

@@ -29,11 +29,13 @@ const mainCss = fs.readFileSync(
 describe('Hatching home start flow', () => {
     test('restarts immediately after persisting the first-session state', () => {
         const startFlow = source.slice(
-            source.indexOf('handleStartGame() {'),
+            source.indexOf('handleStartGame(attempt = this.openingStartAttempt) {'),
             source.indexOf('\n}\n\nexport default HatchingScene')
         );
 
-        expect(startFlow).toContain('GameState.save();');
+        expect(startFlow).toContain('attempt.state.commitHatchSaveDraft(draft.state');
+        expect(startFlow).toContain('if (!result.success) return this.recoverOpeningStart(attempt);');
+        expect(startFlow).toContain('if (!attempt.isCurrent()) return false;');
         expect(startFlow).toContain('this.scene.restart();');
         expect(startFlow).not.toContain('this.time.delayedCall(100');
     });
@@ -94,7 +96,7 @@ describe('Hatching home start flow', () => {
             source.indexOf('createFeatureCards()', source.indexOf('onStartRelease(buttonContainer'))
         );
 
-        expect(releaseFlow).toContain('this.handleStartGame();');
+        expect(releaseFlow).toContain('this.handleStartGame(attempt);');
         expect(releaseFlow).not.toContain('onComplete: () =>');
         expect(source).toContain('.setDepth(10000)');
         expect(source).toContain('ensureHomeStartReady()');
