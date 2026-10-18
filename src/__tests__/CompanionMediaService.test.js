@@ -74,6 +74,93 @@ function createGameState(portrait) {
     };
 }
 
+describe('saved creature video job recovery', () => {
+    const portrait = { identityKey: 'synthetic-hatchling:portrait', stage: 'baby',
+        assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee' };
+    const assetRef = 'video-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074';
+    const options = { momentId: 'first_forest_arrival', record: portrait };
+    const flush = async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); };
+    const setup = (statuses, timeouts = {}) => {
+        const gameState = createGameState(portrait);
+        const fetch = jest.fn(async () => {
+            const status = statuses.shift() || 'processing';
+            return { ok: true, status: status === 'succeeded' ? 200 : 202, json: async () => ({
+                status, assetRef, ...(status === 'succeeded' ? { videoUrl: 'https://example.test/fictional-scene.mp4' } : {})
+            }) };
+        });
+        const sceneWindow = { GameState: gameState, fetch,
+            LivingPortraitService: { getAccessToken: jest.fn(async () => 'synthetic-access-token') } };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService({ timeouts });
+        service.saveVideoRecord(options.momentId, portrait, { status: 'processing', assetRef });
+        gameState.set.mockClear(); gameState.save.mockClear(); gameState.emit.mockClear();
+        return { gameState, fetch, service, sceneWindow };
+    };
+    const onlyExistingJobReads = fetch => {
+        for (const [url, request] of fetch.mock.calls) {
+            expect(url).toBe(`/.netlify/functions/generate-companion-video?assetRef=${encodeURIComponent(assetRef)}`);
+            expect(request?.method).not.toBe('POST');
+            expect(request?.body).toBeUndefined();
+        }
+    };
+    beforeEach(() => { jest.useFakeTimers(); });
+    afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
+
+    test.each(['starting', 'processing'])('reload follows an existing %s job to a ready film without generating again', async status => {
+        const h = setup([status, 'processing', 'succeeded']);
+        const pending = h.service.prepareGeneratedVideo(options);
+        const joined = h.service.prepareGeneratedVideo(options);
+        await flush();
+        expect(h.fetch).toHaveBeenCalledTimes(1);
+        await jest.advanceTimersByTimeAsync(5500);
+        await expect(pending).resolves.toMatchObject({ status: 'succeeded', assetRef, portraitRecord: portrait });
+        await expect(joined).resolves.toMatchObject({ status: 'succeeded', assetRef });
+        expect(h.fetch).toHaveBeenCalledTimes(3); onlyExistingJobReads(h.fetch);
+        expect(h.gameState.save).toHaveBeenCalledTimes(1);
+        expect(h.service.getUnviewedGeneratedVideos()).toHaveLength(1);
+        const saved = JSON.stringify(h.gameState.state.story.companionMedia);
+        expect(saved).not.toContain('videoUrl'); expect(saved).not.toContain('synthetic-access-token');
+        expect(h.service.videoJobs.size).toBe(0); expect(h.service.videoResolutions.size).toBe(0);
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test.each(['failed', 'canceled', 'queued', 'unknown_status'])('a %s lookup never starts another job or unbounded polling', async status => {
+        const h = setup([status]);
+        await expect(h.service.prepareGeneratedVideo(options)).resolves.toBeNull();
+        expect(h.fetch).toHaveBeenCalledTimes(1); onlyExistingJobReads(h.fetch);
+        expect(jest.getTimerCount()).toBe(0);
+        expect(h.service.getUnviewedGeneratedVideos()).toHaveLength(0);
+    });
+
+    test('a resumed job cannot fetch or save after New Game replaces the owner', async () => {
+        const h = setup(['processing', 'succeeded']);
+        const pending = h.service.prepareGeneratedVideo(options);
+        await flush();
+        const fresh = createGameState(portrait);
+        h.sceneWindow.GameState = fresh;
+        await jest.advanceTimersByTimeAsync(2500);
+        await expect(pending).resolves.toBeNull();
+        expect(h.fetch).toHaveBeenCalledTimes(1);
+        expect(h.gameState.save).not.toHaveBeenCalled(); expect(fresh.save).not.toHaveBeenCalled();
+        expect(fresh.state.story.companionMedia).toBeNull();
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test('polling cannot start another request after its declared window expires during backoff', async () => {
+        const h = setup(['processing', 'processing'], { pollWindowMs: 3000 });
+        const pending = h.service.waitForGeneratedVideo({ momentId: options.momentId, portraitRecord: portrait,
+            assetRef, accessToken: 'synthetic-access-token' });
+        await jest.advanceTimersByTimeAsync(2500);
+        expect(h.fetch).toHaveBeenCalledTimes(1);
+        await jest.advanceTimersByTimeAsync(3000);
+        await expect(pending).resolves.toBeNull();
+        expect(h.fetch).toHaveBeenCalledTimes(1); onlyExistingJobReads(h.fetch);
+        expect(h.gameState.save).not.toHaveBeenCalled();
+        expect(h.service.getVideoRecord(options.momentId, portrait.identityKey)).toMatchObject({ status: 'processing', assetRef });
+        expect(jest.getTimerCount()).toBe(0);
+    });
+});
+
 describe('CompanionMediaService', () => {
     test('a pending video response cannot repopulate the campaign replaced by New Game', async () => {
         const portrait = { identityKey: 'old-campaign', stage: 'baby',

@@ -671,6 +671,12 @@ class CompanionMediaService {
                 this.saveVideoRecord(momentId, portraitRecord, result);
                 return null;
             }
+            if (['starting', 'processing'].includes(result.status)) {
+                // Re-entry must follow the owned job, not abandon it or submit another generation.
+                return this.waitForGeneratedVideo({
+                    momentId, portraitRecord, assetRef: record.assetRef, accessToken, isCurrentCampaign
+                });
+            }
             if (result.status !== 'succeeded' || !result.videoUrl) return null;
             this.saveVideoRecord(momentId, portraitRecord, result);
             return isCurrentCampaign() && session.isCurrent() ? { ...result, portraitRecord } : null;
@@ -696,7 +702,7 @@ class CompanionMediaService {
         while (isCurrentCampaign() && Date.now() - startedAt < this.timeouts.pollWindowMs) {
             const delay = Math.min(8000, 2500 + pollCount * 500);
             await new Promise(resolve => setTimeout(resolve, delay));
-            if (!(isCurrentCampaign() && session.isCurrent())) return null;
+            if (!(isCurrentCampaign() && session.isCurrent()) || Date.now() - startedAt >= this.timeouts.pollWindowMs) return null;
             pollCount += 1;
             const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
