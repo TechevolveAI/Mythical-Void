@@ -524,33 +524,52 @@ export default class HubWorldScene extends Phaser.Scene {
 
         const levelName = LEVEL_NAMES[debrief.levelId] || 'Unknown Realm';
         const partName = SHIP_PART_NAMES[debrief.shipPartId] || 'Ship System';
-        // DOM touches also reach Phaser's window listeners; isolate the Hub until the queue closes.
-        if (this.input && !this.projectBeaconDebriefInputState) {
-            this.projectBeaconDebriefInputState = {
-                input: this.input,
-                enabled: this.input.enabled
-            };
-            this.input.enabled = false;
+        const ownsInputLease = Boolean(this.input && !this.projectBeaconDebriefInputState);
+        let panel = null;
+        try {
+            panel = new ExpeditionDebriefPanel({
+                onContinue: () => this.completeProjectBeaconDebrief(debrief, onComplete)
+            });
+            this.projectBeaconDebriefPanel = panel;
+            this.isProjectBeaconDebriefOpen = true;
+            // DOM touches also reach Phaser's window listeners; isolate the Hub until the queue closes.
+            if (ownsInputLease) {
+                this.projectBeaconDebriefInputState = {
+                    input: this.input,
+                    enabled: this.input.enabled
+                };
+                this.input.enabled = false;
+            }
+            if (panel.show({
+                title: debrief.title,
+                context: `${levelName} / ${partName} recovered`,
+                finding: debrief.finding,
+                creatureMoment: debrief.companionMoment,
+                fieldNote: debrief.fieldNote,
+                nextStep: debrief.nextGate?.label
+                    ? `NEXT: ${debrief.nextGate.label}`
+                    : 'NEXT: Return to Wanderer-77 to fit the recovered system.',
+                actionLabel: debrief.shipPartId
+                    ? `INSTALL ${partName.toUpperCase()}`
+                    : 'CONTINUE',
+                color: debrief.color
+            }) !== true) throw new Error('Expedition summary did not open');
+            if (this._isShuttingDown || this.projectBeaconDebriefPanel !== panel || !this.isProjectBeaconDebriefOpen) {
+                panel.destroy();
+                return false;
+            }
+            return true;
+        } catch {
+            panel?.destroy();
+            if (this.projectBeaconDebriefPanel === panel) {
+                this.projectBeaconDebriefPanel = null;
+                this.isProjectBeaconDebriefOpen = false;
+                // A queued replacement borrows its predecessor's lease; its caller still owns that pause.
+                if (ownsInputLease) this.restoreProjectBeaconDebriefInput();
+            }
+            console.warn('[HubWorldScene] Expedition summary could not open; its result remains pending');
+            return false;
         }
-        this.isProjectBeaconDebriefOpen = true;
-        this.projectBeaconDebriefPanel = new ExpeditionDebriefPanel({
-            onContinue: () => this.completeProjectBeaconDebrief(debrief, onComplete)
-        });
-        this.projectBeaconDebriefPanel.show({
-            title: debrief.title,
-            context: `${levelName} / ${partName} recovered`,
-            finding: debrief.finding,
-            creatureMoment: debrief.companionMoment,
-            fieldNote: debrief.fieldNote,
-            nextStep: debrief.nextGate?.label
-                ? `NEXT: ${debrief.nextGate.label}`
-                : 'NEXT: Return to Wanderer-77 to fit the recovered system.',
-            actionLabel: debrief.shipPartId
-                ? `INSTALL ${partName.toUpperCase()}`
-                : 'CONTINUE',
-            color: debrief.color
-        });
-        return true;
     }
 
     restoreProjectBeaconDebriefInput() {

@@ -114,15 +114,22 @@ export default class ExpeditionDebriefPanel {
         shell.append(header, story, footer);
         root.append(shell);
         this.root = root;
-        document.body.append(root);
-        this.onVisibilityChange(true);
-        this.updateViewport();
-        window.addEventListener('resize', this.updateViewport);
-        window.visualViewport?.addEventListener('resize', this.updateViewport);
-        window.visualViewport?.addEventListener('scroll', this.updateViewport);
-        window.addEventListener('keydown', this.onKeyDown, true);
-        this.button.focus({ preventScroll: true });
-        return true;
+        try {
+            document.body.append(root);
+            this.onVisibilityChange(true);
+            if (this.root !== root) return false;
+            this.updateViewport();
+            window.addEventListener('resize', this.updateViewport);
+            window.visualViewport?.addEventListener('resize', this.updateViewport);
+            window.visualViewport?.addEventListener('scroll', this.updateViewport);
+            window.addEventListener('keydown', this.onKeyDown, true);
+            this.button.focus({ preventScroll: true });
+            return this.root === root;
+        } catch (error) {
+            try { this.destroy(); }
+            catch { /* Keep the setup error when an application cleanup callback also fails. */ }
+            throw error;
+        }
     }
 
     setVisible(visible) {
