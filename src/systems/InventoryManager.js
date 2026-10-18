@@ -158,7 +158,7 @@ class InventoryManager {
     addItem(item) {
         return addInventoryItem(this, item, {
             now: () => Date.now(), persist: () => this.saveInventory(), emit: (...args) => this.events.emit(...args),
-            log: (...args) => console.log(...args), warn: (...args) => console.warn(...args)
+            log: (...args) => { console.log(...args); }, warn: (...args) => console.warn(...args)
         });
     }
 
@@ -916,7 +916,7 @@ class InventoryManager {
             readCollected: () => window.GameState.get('hubWorld.shipParts.collected'),
             writeCollected: value => window.GameState.set('hubWorld.shipParts.collected', value), persist: () => window.GameState.save(),
             emit: (...args) => this.events.emit(...args), notify: () => { if (window.AudioManager) window.AudioManager.playAchievement(); },
-            log: (...args) => console.log(...args), warn: (...args) => console.warn(...args)
+            log: (...args) => { console.log(...args); }, warn: (...args) => console.warn(...args)
         });
     }
 
