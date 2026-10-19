@@ -34,6 +34,11 @@
   ENABLE_AI_VIDEOS = "false"
   VITE_ENABLE_AI_VIDEOS = "false"
 
+# Preserve the reviewed scheduled monitor after normal Functions bundling.
+# Runs before deployment; it cannot enable gameplay counting.
+[[plugins]]
+  package = "./plugins/netlify-plugin-off-only-monitor"
+
 # Redirect rules for single-page application behavior
 [[redirects]]
   # Keep the stable runtime-observability alias explicit. A function-level

@@ -20,6 +20,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Verify OFF-only monitor release safeguard
+        run: |
+          node plugins/netlify-plugin-off-only-monitor/test-monitor-release.cjs
+          node --test plugins/netlify-plugin-off-only-monitor/test-plugin.cjs
       - run: npm run gate:onboarding:static
       - run: npm run build:onboarding-ci
       - name: Run golden browser journeys

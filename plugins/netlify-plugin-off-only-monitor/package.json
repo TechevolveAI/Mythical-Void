@@ -1,0 +1,6 @@
+{
+  "name": "netlify-plugin-off-only-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js"
+}
