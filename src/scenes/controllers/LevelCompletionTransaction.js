@@ -73,6 +73,8 @@ const safe = callback => {
         try { Promise.prototype.then.call(returned, undefined, () => {}); } catch { /* Not a native promise. */ }
     } catch { /* Optional feedback cannot undo a verified save. */ }
 };
+const failureCode = error => /^FOREST_[A-Z_]{1,64}$/.test(error?.message || '')
+    ? error.message : 'COMPLETION_UNAVAILABLE';
 const sameMethods = (object, names) => {
     const prototype = Object.getPrototypeOf(object);
     const methods = names.map(name => object[name]), inherited = names.map(name => prototype?.[name]);
@@ -194,7 +196,8 @@ export function createLevelCompletionHandler(blueprint, levelId) {
                     attempt.audioAttempted = true; safe(() => selected.AudioManager?.playLevelUp?.());
                 }
                 return true;
-            } catch {
+            } catch (error) {
+                attempt.failureCode = failureCode(error);
                 if (!core()) return false;
                 if ((scene.regionalVictoryPanel && scene.regionalVictoryPanel !== ownedPanel) ||
                     (scene.residentReleasePresentation && scene.residentReleasePresentation !== ownedRelease)) {
@@ -273,7 +276,8 @@ export function createLevelCompletionHandler(blueprint, levelId) {
                     if (profile.requireAfterCommit) { recover(); return false; }
                 }
                 return present();
-            } catch {
+            } catch (error) {
+                attempt.failureCode = failureCode(error);
                 if (attempt.closed) return false;
                 if (attempt.phase !== 'committed') {
                     attempt.phase = 'protected';
@@ -428,7 +432,8 @@ export function createLevelCompletionHandler(blueprint, levelId) {
             const shutdown = () => attempt.retire(); events.once('shutdown', shutdown); offShutdown = () => events.off('shutdown', shutdown);
             if (initialUpload) { attempt.phase = 'waiting'; recover(); return false; }
             prepare();
-        } catch {
+        } catch (error) {
+            attempt.failureCode = failureCode(error);
             attempt.phase = 'protected';
             recover(); return false;
         }

@@ -60,3 +60,10 @@ jobs:
           SMOKE_NATIVE_OPENGL: '1'
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: xvfb-run -a -s '-screen 0 1280x1024x24' node scripts/run-completion-flow.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-completion-evidence
+          path: |
+            /tmp/mythical-debrief-evidence
+            /tmp/mythical-completion-evidence

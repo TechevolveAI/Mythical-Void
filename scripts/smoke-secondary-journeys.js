@@ -14545,6 +14545,15 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                     active: scene.scene.isActive(), timePaused: scene.time.paused,
                     restorationActive: scene.forestRestorationActive, victoryShown: scene.forestVictoryShown,
                     paused: scene.physics.world.isPaused, inputEnabled: scene.input.enabled,
+                    completionAttempt: scene.forestCompletionAttempt ? {
+                        phase: scene.forestCompletionAttempt.phase, failureCode: scene.forestCompletionAttempt.failureCode,
+                        busy: scene.forestCompletionAttempt.busy, closed: scene.forestCompletionAttempt.closed
+                    } : null,
+                    saveAdmission: window.GameState.getSaveAdmission().status,
+                    recoveryScreen: document.querySelector('[data-completion-save-recovery]')?.querySelector('h1')?.textContent || null,
+                    guardianId: scene.guardianEncounter?.id, levelId: scene.levelId,
+                    sourceActors: { playerActive: scene.player?.active, playerOwned: scene.player?.scene === scene,
+                        bodyOwned: scene.player?.body?.gameObject === scene.player, worldOwned: scene.player?.body?.world === scene.physics.world },
                     camera: { zoom: scene.cameras.main.zoom, x: scene.cameras.main.scrollX, y: scene.cameras.main.scrollY },
                     skipAction: ${JSON.stringify(skipAction)},
                     canvas: (() => { const r = window.mythicalGame.canvas.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })(),

@@ -175,6 +175,7 @@ describe('actual Forest completion caller and recovery through the actual local 
         }
         const raw = f.storage.getItem(f.state.saveKey), writer = jest.spyOn(f.state, 'commitHatchSaveDraft');
         expect(scene.showBossVictory()).toBe(false); expect(writer).not.toHaveBeenCalled();
+        expect(scene.forestCompletionAttempt.failureCode).toBe('FOREST_ORIGINAL_SAVE_UNAVAILABLE');
         expect(f.state.state).toBe(root); expect(f.storage.getItem(f.state.saveKey)).toBe(raw); expect(f.state.getSaveAdmission().status).toBe('held');
         expect(f.state.get('levels.mythicalForest.completed')).toBe(false); expect(scene.levelCompletionResult).toBeNull();
     });
