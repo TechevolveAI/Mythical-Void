@@ -932,6 +932,10 @@ describe('LivingPortraitService identity continuity', () => {
         expect(h.gameState.saveCreaturePortrait).not.toHaveBeenCalled();
         expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
         expect(h.service.jobs.size).toBe(0);
+        h.setCreature(first);
+        await expect(h.service.generate({ creatureData: first })).resolves.toMatchObject(firstRecord);
+        expect(h.fetchMock).toHaveBeenCalledTimes(2);
+        expect(h.getPortrait()).toMatchObject(firstRecord);
     });
 
     test.each(['switched', 'cleared'])('a late protected resolution does not write to a %s creature slot', async mode => {
