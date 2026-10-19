@@ -1720,6 +1720,15 @@ class GameStateManager {
      * Persist generated portrait metadata for the active creature.
      */
     saveCreaturePortrait(record) {
+        let reader;
+        try {
+            reader = this.captureSaveAdmissionOwner();
+            if (!this.canCommitHatchSave() || !reader.isCurrent()) return false;
+        } catch { return false; }
+        const original = this.state, identity = this.getHatchActiveIdentity();
+        const game = typeof window === 'undefined' ? undefined : window.GameState;
+        const cloud = typeof window === 'undefined' ? undefined : window.CloudSave;
+        const cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
         const allowedStages = new Set(['baby', 'juvenile', 'adult', 'elder']);
         if (!record || typeof record !== 'object' || !allowedStages.has(record.stage)) {
             return false;
@@ -1794,7 +1803,12 @@ class GameStateManager {
 
         portraits.activeStage = record.stage;
         portraits.byStage[record.stage] = normalized;
-        this.set('creature.portraits', portraits);
+
+        // Keep canonical state untouched until the existing verified writer
+        // has checked the exact durable bytes, including the roster copy.
+        const staged = { ...original, player: { ...original.player }, session: { ...original.session },
+            creature: { ...original.creature, portraits } };
+        const changes = [{ path: 'creature.portraits', oldValue: current, newValue: portraits }];
 
         const currentCreatures = this.get('creatures');
         const activeIndex = Number(this.get('activeCreatureIndex')) || 0;
@@ -1808,12 +1822,39 @@ class GameStateManager {
                     byStage: { ...portraits.byStage }
                 }
             };
-            this.set('creatures', creatures);
+            staged.creatures = creatures;
+            changes.push({ path: 'creatures', oldValue: currentCreatures, newValue: creatures });
         }
 
-        this.save();
+        const portraitBytes = JSON.stringify(portraits);
+        const durablePortrait = { creature: { portraits: JSON.parse(portraitBytes) } };
+        this.stripTransientPortraitUrls(durablePortrait);
+        const durableBytes = JSON.stringify(durablePortrait.creature.portraits);
+        const isCurrentCampaign = () => (this.state === original || this.state === staged) &&
+            this.getHatchActiveIdentity() === identity &&
+            (typeof window === 'undefined' || (window.GameState === game && window.CloudSave === cloud)) &&
+            cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser;
+        const isCurrentResult = (live, durable) => JSON.stringify(live.creature?.portraits) === portraitBytes &&
+            JSON.stringify(durable?.creature?.portraits) === durableBytes &&
+            (staged.creatures === currentCreatures || (
+                JSON.stringify(live.creatures?.[activeIndex]?.portraits) === portraitBytes &&
+                JSON.stringify(durable?.creatures?.[activeIndex]?.portraits) === durableBytes));
+        const notifications = changes.flatMap(change => [
+            { event: 'stateChanged', args: [{ ...change, timestamp: Date.now() }] },
+            { event: `changed:${change.path}`, args: [change.newValue, change.oldValue] }
+        ]);
+        if (!reader.isCurrent() || !isCurrentCampaign()) return false;
+        const result = this.commitHatchSaveDraft(staged, {
+            isCurrentCampaign, isCurrentResult,
+            isCurrentUpload: lease => typeof window !== 'undefined' && window.CloudSave === cloud &&
+                cloud?.gameState === this && cloud?.activeCloudWrite === lease &&
+                cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser,
+            notifications, onPublished: () => {},
+            onNotification: notification => { this.emit(notification.event, ...notification.args); }
+        });
+        if (!result.success || !result.isCurrent()) return false;
         this.emit('creaturePortraitReady', normalized);
-        return true;
+        return result.isCurrent();
     }
 
     getCreaturePortrait(stage = null) {
