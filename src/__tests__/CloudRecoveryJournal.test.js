@@ -217,4 +217,18 @@ describe('independent cloud recovery custody', () => {
             expect(client.rpc).toHaveBeenCalledTimes(1);
         } finally { cloud.destroy(); }
     });
+    test('a confirmed rejection retains server revision zero rather than the UI fallback', async () => {
+        const client = { rpc: jest.fn(async () => ({ data: null,
+            error: { code: '40001', message: 'save_revision_conflict',
+                details: JSON.stringify({ expectedRevision: 7, currentRevision: 0 }) } })) };
+        const cloud = new CloudSaveManager({ client, gameState: state, storage: localStorage, lockManager: null });
+        cloud.currentUser = { id: 'fictional-owner' }; cloud.remoteRevision = 7; cloud.ensureSession = async () => {};
+        try {
+            await expect(cloud.upload(state.createSaveSnapshot(), 7)).rejects.toMatchObject({ code: '40001' });
+            expect(JSON.parse(journal().inspect().envelopes.outcome.payload)).toMatchObject({
+                outcome: 'rejected', expectedRevision: 7, revision: 0
+            });
+            expect(new GameStateManager().load()).toBe(true);
+        } finally { cloud.destroy(); }
+    });
 });

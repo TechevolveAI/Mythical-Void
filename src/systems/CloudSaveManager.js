@@ -812,7 +812,7 @@ class CloudSaveManager {
                 // unlike a lost reply or an unclassified service error.
                 if (data === null && this.isConfirmedUploadRejection(error, expectedRevision)) {
                     this.gameState.recordCloudWriteOutcome?.(lease, { outcome: 'rejected',
-                        revision: this.normalizeRevisionConflict(error).currentRevision });
+                        revision: JSON.parse(error.details).currentRevision });
                     this.gameState.finishCloudWrite(lease);
                     this.activeCloudWrite = null;
                     this.remoteWriteUncertain = false;
