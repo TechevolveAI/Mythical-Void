@@ -58,6 +58,7 @@ class CompanionMediaService {
         this.preparedMoments = new Map();
         this.videoJobs = new Map();
         this.videoResolutions = new Map();
+        this.volatileVideos = new Map();
         this.mediaSession = null;
         this.videoUnavailableUntil = 0;
         this.campaignOwner = null;
@@ -78,7 +79,13 @@ class CompanionMediaService {
             this.unsubscribeCampaignReset = owner?.on?.('reset', () => this.invalidateCampaignWork());
         }
         const epoch = this.campaignEpoch;
-        return () => window.GameState === owner && this.campaignEpoch === epoch;
+        const admissionEpoch = owner?.getSaveAdmission?.().epoch;
+        const cloud = window.CloudSave, cloudUser = cloud?.currentUser?.id;
+        const ownsCampaign = () => window.GameState === owner && this.campaignEpoch === epoch &&
+            window.CloudSave === cloud && cloud?.currentUser?.id === cloudUser;
+        const current = () => ownsCampaign() && owner?.getSaveAdmission?.().epoch === admissionEpoch;
+        current.ownsCampaign = ownsCampaign;
+        return current;
     }
 
     invalidateCampaignWork() {
@@ -87,6 +94,57 @@ class CompanionMediaService {
         this.preparedMoments.clear();
         this.videoJobs.clear();
         this.videoResolutions.clear();
+        this.volatileVideos.clear();
+    }
+
+    canPublishMedia(isCurrent) {
+        const owner = window.GameState;
+        return Boolean(owner && typeof owner.get === 'function' && typeof owner.set === 'function' &&
+            typeof owner.save === 'function' && isCurrent() && owner?.getSaveAdmission?.().status !== 'held' &&
+            owner?.storageMode !== 'memory' && !owner?.cloudWriteLease &&
+            owner?.canPersistSave?.() !== false && isCurrent());
+    }
+
+    publishMediaState(next, event, packet, isCurrent = this.captureCampaignGuard()) {
+        if (!this.canPublishMedia(isCurrent)) return false;
+        const owner = window.GameState, story = owner.get('story');
+        const previous = owner.get('story.companionMedia');
+        const rollbackOwnedField = () => {
+            if (window.GameState === owner && owner.get('story') === story &&
+                owner.get('story.companionMedia') === next) story.companionMedia = previous;
+        };
+        try {
+            owner.set('story.companionMedia', next);
+            if (!this.canPublishMedia(isCurrent) || owner.get('story.companionMedia') !== next ||
+                owner.save?.() === false || !isCurrent() ||
+                owner.getSaveAdmission?.().status === 'held') {
+                rollbackOwnedField();
+                return false;
+            }
+            owner.emit?.(event, packet);
+            return true;
+        } catch (error) {
+            rollbackOwnedField();
+            return false;
+        }
+    }
+
+    retainVideoResponse(momentId, portraitRecord, result, isCurrent) {
+        if (!(isCurrent.ownsCampaign?.() ?? isCurrent()) ||
+            !MOMENT_ID_PATTERN.test(momentId || '') || !portraitRecord?.identityKey ||
+            !PORTRAIT_ASSET_REF_PATTERN.test(portraitRecord.assetRef || '') ||
+            !VIDEO_ASSET_REF_PATTERN.test(result?.assetRef || '')) return;
+        const key = `${momentId}:${hashText(portraitRecord.identityKey.slice(0, 180))}`;
+        this.volatileVideos.set(key, {
+            owner: window.GameState, isCurrent: isCurrent.ownsCampaign || isCurrent,
+            record: { momentId, identityKey: portraitRecord.identityKey.slice(0, 180),
+                stage: portraitRecord.stage, portraitAssetRef: portraitRecord.assetRef,
+                assetRef: result.assetRef.toLowerCase(), status: normalizeVideoStatus(result.status) },
+            displayUrl: typeof result.videoUrl === 'string' ? result.videoUrl.slice(0, 2048) : null
+        });
+        while (this.volatileVideos.size > MAX_APPEARANCES) {
+            this.volatileVideos.delete(this.volatileVideos.keys().next().value);
+        }
     }
 
     createEmptyState() {
@@ -239,7 +297,12 @@ class CompanionMediaService {
         const portraitRecord = record || window.GameState?.getCreaturePortrait?.();
         if (!portraitRecord?.identityKey) return [];
         const state = this.getState();
-        return Object.values(state.videos)
+        const videos = { ...state.videos };
+        for (const [key, cached] of this.volatileVideos) {
+            if (cached.owner === window.GameState && cached.isCurrent() &&
+                (!videos[key] || videos[key].assetRef === cached.record.assetRef)) videos[key] = cached.record;
+        }
+        return Object.values(videos)
             .filter(video => (
                 video.identityKey === portraitRecord.identityKey &&
                 video.status === 'succeeded' &&
@@ -434,6 +497,7 @@ class CompanionMediaService {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !record?.identityKey) {
             return false;
         }
+        const isCurrent = this.captureCampaignGuard();
         const state = this.getState();
         const now = Date.now();
         const identityKey = record.identityKey.slice(0, 180);
@@ -470,25 +534,26 @@ class CompanionMediaService {
                 .forEach(id => delete appearances[id]);
         }
 
-        window.GameState?.set?.('story.companionMedia', {
+        const published = this.publishMediaState({
             schemaVersion: COMPANION_MEDIA_SCHEMA_VERSION,
             activeIdentityKey: appearance.identityKey,
             appearances,
             videos: state.videos,
             lastMomentId: momentId,
             lastViewedAt: now
-        });
-        window.GameState?.save?.();
-        window.GameState?.emit?.('companionMediaAppearance', appearance);
-        return appearance;
+        }, 'companionMediaAppearance', appearance, isCurrent);
+        return published ? appearance : false;
     }
 
     getVideoRecord(momentId, identityKey) {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !identityKey) return null;
-        return this.getState().videos[`${momentId}:${hashText(String(identityKey))}`] || null;
+        const key = `${momentId}:${hashText(String(identityKey))}`;
+        const stored = this.getState().videos[key];
+        const cached = this.volatileVideos.get(key);
+        return stored || (cached?.owner === window.GameState && cached.isCurrent() ? cached.record : null);
     }
 
-    saveVideoRecord(momentId, portraitRecord, result) {
+    saveVideoRecord(momentId, portraitRecord, result, isCurrent = this.captureCampaignGuard()) {
         if (
             !MOMENT_ID_PATTERN.test(momentId || '') ||
             !portraitRecord?.identityKey ||
@@ -497,6 +562,8 @@ class CompanionMediaService {
         ) {
             return null;
         }
+        this.retainVideoResponse(momentId, portraitRecord, result, isCurrent);
+        if (!this.canPublishMedia(isCurrent)) return null;
         const state = this.getState();
         const identityKey = portraitRecord.identityKey.slice(0, 180);
         const key = `${momentId}:${hashText(identityKey)}`;
@@ -518,7 +585,7 @@ class CompanionMediaService {
             shotVersion: Math.max(1, Number(result.shotVersion) || 1),
             generatedAt: result.status === 'succeeded' ? Date.now() : null
         };
-        window.GameState?.set?.('story.companionMedia', {
+        const published = this.publishMediaState({
             schemaVersion: COMPANION_MEDIA_SCHEMA_VERSION,
             activeIdentityKey: identityKey,
             appearances: state.appearances,
@@ -528,10 +595,8 @@ class CompanionMediaService {
             },
             lastMomentId: state.lastMomentId,
             lastViewedAt: state.lastViewedAt
-        });
-        window.GameState?.save?.();
-        window.GameState?.emit?.('companionVideoStatus', record);
-        return record;
+        }, 'companionVideoStatus', record, isCurrent);
+        return published ? record : null;
     }
 
     async prepareGeneratedVideo({
@@ -593,6 +658,7 @@ class CompanionMediaService {
                 })
             }
         );
+        this.retainVideoResponse(momentId, portraitRecord, request?.result, isCurrentCampaign);
         if (!(isCurrentCampaign() && session.isCurrent())) return null;
         if (!request) {
             this.deferVideoRequests();
@@ -619,7 +685,7 @@ class CompanionMediaService {
             throw new Error(result.error || `Video service error (${response.status})`);
         }
         if (result.assetRef) {
-            this.saveVideoRecord(momentId, portraitRecord, result);
+            this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
         }
         if (!session.isCurrent()) return null;
         if (result.status === 'succeeded' && result.videoUrl) {
@@ -658,6 +724,7 @@ class CompanionMediaService {
                     }
                 }
             );
+            this.retainVideoResponse(momentId, portraitRecord, request?.result, isCurrentCampaign);
             if (!(isCurrentCampaign() && session.isCurrent())) return null;
             if (!request) {
                 this.deferVideoRequests();
@@ -668,7 +735,7 @@ class CompanionMediaService {
                 return null;
             }
             if (['failed', 'canceled'].includes(result.status)) {
-                this.saveVideoRecord(momentId, portraitRecord, result);
+                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
                 return null;
             }
             if (['starting', 'processing'].includes(result.status)) {
@@ -678,7 +745,7 @@ class CompanionMediaService {
                 });
             }
             if (result.status !== 'succeeded' || !result.videoUrl) return null;
-            this.saveVideoRecord(momentId, portraitRecord, result);
+            this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
             return isCurrentCampaign() && session.isCurrent() ? { ...result, portraitRecord } : null;
         })().finally(() => {
             if (this.videoResolutions.get(record.assetRef) === resolution) {
@@ -715,6 +782,7 @@ class CompanionMediaService {
                     }
                 }
             );
+            this.retainVideoResponse(momentId, portraitRecord, request?.result, isCurrentCampaign);
             if (!(isCurrentCampaign() && session.isCurrent())) return null;
             if (!request) {
                 this.deferVideoRequests();
@@ -723,11 +791,11 @@ class CompanionMediaService {
             const { response, result } = request;
             if (!response.ok) return null;
             if (result.status === 'succeeded' && result.videoUrl) {
-                this.saveVideoRecord(momentId, portraitRecord, result);
+                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
                 return session.isCurrent() ? { ...result, portraitRecord } : null;
             }
             if (['failed', 'canceled'].includes(result.status)) {
-                this.saveVideoRecord(momentId, portraitRecord, result);
+                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
                 return null;
             }
         }
