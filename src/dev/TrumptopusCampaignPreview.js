@@ -5,10 +5,12 @@ import { TrumptopusCompletion } from '../systems/TrumptopusCompletion.js';
 // The production shell adds normal pause, loadout and lifecycle behaviour.
 export default class TrumptopusCampaignPreview extends TrumptopusFinalePreview {
     createEncounter(data) {
-        this.completion = new TrumptopusCompletion(this, {
+        const completion = new TrumptopusCompletion(this, {
             gameState:window.GameState, inventoryManager:window.InventoryManager,
             newExpedition:data.newExpedition === true, ...(data.films ? {films:data.films} : {})
         });
+        if (completion.closed) return null;
+        this.completion = completion;
         return super.createEncounter({...data,checkpoint:this.completion.checkpoint(),completed:this.completion.run.status === 'won'});
     }
 
@@ -26,6 +28,7 @@ export default class TrumptopusCampaignPreview extends TrumptopusFinalePreview {
     }
 
     update(time, delta) {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         if (!this.encounter.paused && !this.encounter.disposed) this.completion.advance(delta);
         super.update(time,delta);
         if (this.encounter.paused || this.encounter.disposed) return;

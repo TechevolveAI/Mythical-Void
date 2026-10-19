@@ -1,4 +1,6 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import { createCrystalCompletionHandler } from '../controllers/CrystalCompletionTransaction.js';
+import CrystalVictorySequence from '../controllers/CrystalVictorySequence.js';
 import {
     buildCreaturePowerProfile,
     recordCreaturePowerEvent
@@ -257,6 +259,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Override init to reset level-specific state on restart
      */
     init(data) {
+        this.completionSaveAttempt?.retire();
+        this.crystalVictory?.retire();
+        this.completionSaveLifetime = {};
+        this.completionSaveAttempt = null;
+        this.crystalVictory = null;
+        this.completionGuardianAt = null;
+        this.crystalVictoryShown = false;
+        this.crystalResultShown = false;
         // Call parent init first (resets base game state)
         super.init(data);
         this.testMode = data?.testMode || false;
@@ -1043,10 +1053,62 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         pillar.pillarHealth = 2; // Takes 2 hits from boss to destroy
         pillar.isDestroyed = false;
 
-        // Add to physics collision (blocks projectiles)
-        this.crystalPillars.push(pillar);
+        // Regeneration replaces its original slot; appending also visits it twice.
+        this.crystalPillars[index]?.crystalPillarWork?.retire();
+        this.crystalPillars[index] = pillar;
 
         return pillar;
+    }
+
+    getCrystalPillarWork(pillar) {
+        if (pillar?.crystalPillarWork?.requireCurrent()) return pillar.crystalPillarWork;
+        const boss = this.boss;
+        const pillars = this.crystalPillars;
+        const index = pillar?.pillarIndex;
+        if (!pillar?.active || !pillar.body?.enable || pillars[index] !== pillar ||
+            !boss?.active || !boss.body?.enable || !this.bossFightActive || this.bossDefeated || !this.sys.isActive()) return null;
+
+        const work = { boss, pillar, pillars, index, retired: false, faded: false, regenerated: false,
+            flashTimer: null, flashActive: false, fade: null, regeneration: null };
+        this.crystalPillarWork ??= new Set();
+        this.crystalPillarWork.add(work);
+        pillar.crystalPillarWork = work;
+        const isCurrent = () => !work.retired && pillar.crystalPillarWork === work &&
+            this.crystalPillars === pillars && pillars[index] === pillar && this.boss === boss &&
+            boss.active && boss.body?.enable && this.bossFightActive && !this.bossDefeated && this.sys.isActive() &&
+            (work.faded || (pillar.active && pillar.body?.enable));
+        work.retire = () => {
+            if (work.retired) return;
+            work.retired = true;
+            this.crystalPillarWork.delete(work);
+            work.flashTimer?.remove(false);
+            work.regeneration?.remove(false);
+            work.fade?.stop();
+            this.events.off('shutdown', work.retire);
+            boss.off('destroy', work.retire);
+            pillar.off('destroy', work.onDestroy);
+            if (pillar.crystalPillarWork === work) pillar.crystalPillarWork = null;
+            if (work.flashActive && pillar.active && pillar.tintTopLeft === 0xFFFFFF) pillar.clearTint();
+            if (pillar.isDestroyed && pillar.active && !work.destroying) pillar.destroy();
+        };
+        work.requireCurrent = () => {
+            if (isCurrent()) return true;
+            work.retire();
+            return false;
+        };
+        work.onDestroy = () => {
+            if (work.faded) return;
+            work.destroying = true;
+            work.retire();
+        };
+        this.events.once('shutdown', work.retire);
+        boss.once('destroy', work.retire);
+        pillar.once('destroy', work.onDestroy);
+        return work;
+    }
+
+    clearCrystalPillarWork() {
+        [...(this.crystalPillarWork || [])].forEach(work => work.retire());
     }
 
     /**
@@ -1054,26 +1116,30 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     damageCrystalPillar(pillar) {
         if (!pillar || pillar.isDestroyed) return;
+        const work = this.getCrystalPillarWork(pillar);
+        if (!work) return;
 
-        pillar.pillarHealth--;
-
-        // Flash effect
-        pillar.setTint(0xFFFFFF);
-        this.time.delayedCall(100, () => {
-            if (pillar.active) pillar.clearTint();
-        });
-
-        // Crack particles
-        if (window.FXLibrary) {
-            window.FXLibrary.stardustBurst(this, pillar.x, pillar.y, {
-                count: 8,
-                color: [0x7B68EE, 0x4B0082],
-                duration: 500
+        try {
+            pillar.pillarHealth--;
+            work.flashTimer?.remove(false);
+            pillar.setTint(0xFFFFFF);
+            work.flashActive = true;
+            const timer = this.time.delayedCall(100, () => {
+                if (!work.requireCurrent() || work.flashTimer !== timer) return;
+                work.flashTimer = null;
+                work.flashActive = false;
+                pillar.clearTint();
+                if (!pillar.isDestroyed) work.retire();
             });
-        }
-
-        if (pillar.pillarHealth <= 0) {
-            this.destroyCrystalPillar(pillar);
+            work.flashTimer = timer;
+            window.FXLibrary?.stardustBurst(this, pillar.x, pillar.y, {
+                count: 8, color: [0x7B68EE, 0x4B0082], duration: 500
+            });
+            if (!work.requireCurrent()) return;
+            if (pillar.pillarHealth <= 0) this.destroyCrystalPillar(pillar);
+        } catch (error) {
+            work.retire();
+            throw error;
         }
     }
 
@@ -1082,45 +1148,38 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     destroyCrystalPillar(pillar) {
         if (!pillar || pillar.isDestroyed) return;
-
+        const work = this.getCrystalPillarWork(pillar);
+        if (!work) return;
         pillar.isDestroyed = true;
+        const { x, y, pillarIndex } = pillar;
 
-        // Destruction particles
-        if (window.FXLibrary) {
-            window.FXLibrary.stardustBurst(this, pillar.x, pillar.y, {
-                count: 20,
-                color: [0x7B68EE, 0x4B0082, 0x00FFFF],
-                duration: 1000
+        try {
+            window.FXLibrary?.stardustBurst(this, x, y, {
+                count: 20, color: [0x7B68EE, 0x4B0082, 0x00FFFF], duration: 1000
             });
+            if (!work.requireCurrent()) return;
+            window.AudioManager?.playEnemyHit();
+            if (!work.requireCurrent()) return;
+            work.fade = this.tweens.add({
+                targets: pillar, alpha: 0, scaleX: 1.2, scaleY: 0.3, duration: 300,
+                onUpdate: () => { if (!work.faded) work.requireCurrent(); },
+                onComplete: () => {
+                    if (!work.requireCurrent() || work.faded) return;
+                    // The intentional fade must keep its regeneration reservation.
+                    work.faded = true;
+                    pillar.destroy();
+                }
+            });
+            work.regeneration = this.time.delayedCall(30000, () => {
+                if (!work.requireCurrent() || work.regenerated) return;
+                work.regenerated = true;
+                try { this.createCrystalPillar(x, y, pillarIndex); }
+                finally { work.retire(); }
+            });
+        } catch (error) {
+            work.retire();
+            throw error;
         }
-
-        // Sound
-        if (window.AudioManager) {
-            window.AudioManager.playEnemyHit();
-        }
-
-        // Fade and destroy
-        this.tweens.add({
-            targets: pillar,
-            alpha: 0,
-            scaleX: 1.2,
-            scaleY: 0.3,
-            duration: 300,
-            onComplete: () => {
-                pillar.destroy();
-            }
-        });
-
-        // Regenerate after 30 seconds
-        const pillarX = pillar.x;
-        const pillarY = pillar.y;
-        const pillarIndex = pillar.pillarIndex;
-
-        this.time.delayedCall(30000, () => {
-            if (this.bossFightActive && !this.bossDefeated) {
-                this.crystalPillars[pillarIndex] = this.createCrystalPillar(pillarX, pillarY, pillarIndex);
-            }
-        });
     }
 
     /**
@@ -1168,7 +1227,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Trigger stalactites to fall (called by boss ground slam in Phase 2)
      */
     triggerStalactiteFall() {
-        if (this.bossPhase < 2) return;
+        if (this.bossPhase < 2 || !this.bossFightActive || this.bossDefeated || this.bossPhaseTransitioning) return;
 
         // Random 2-3 stalactites fall
         const availableStalactites = this.stalactites.filter(s => s.active && !s.falling);
@@ -1177,104 +1236,140 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const toFall = Phaser.Utils.Array.Shuffle(availableStalactites).slice(0, fallCount);
 
         toFall.forEach((stalactite, index) => {
-            this.time.delayedCall(index * 200, () => {
-                this.dropStalactite(stalactite);
-            });
+            this.dropStalactite(stalactite, index * 200);
         });
     }
 
     /**
      * Drop a single stalactite
      */
-    dropStalactite(stalactite) {
-        if (!stalactite || stalactite.falling || !stalactite.active) return;
+    dropStalactite(stalactite, delay = 0) {
+        if (!stalactite || stalactite.falling || !stalactite.active || !stalactite.sprite?.active) return;
 
+        const boss = this.boss;
+        const player = this.player;
+        const sprite = stalactite.sprite;
+        const fall = { boss, player, sprite, phase: this.bossPhase, shadow: null, timer: null,
+            homeX: sprite.x, homeY: sprite.y, tweens: new Set(), retired: false, started: false, impacted: false };
+        this.crystalStalactiteFalls ??= new Set();
+        this.crystalStalactiteFalls.add(fall);
+        stalactite.fall = fall;
         stalactite.falling = true;
-
-        // Warning shadow on ground
-        stalactite.shadow = this.add.graphics();
-        stalactite.shadow.fillStyle(0xFF0000, 0.3);
-        stalactite.shadow.fillEllipse(stalactite.x, this.levelHeight - 60, 50, 15);
-        stalactite.shadow.setDepth(49);
-
-        // Pulse warning
-        this.tweens.add({
-            targets: stalactite.shadow,
-            alpha: { from: 0.3, to: 0.7 },
-            scaleX: { from: 1, to: 1.3 },
-            scaleY: { from: 1, to: 1.3 },
-            duration: 300,
-            yoyo: true,
-            repeat: 1
-        });
-
-        // Shake before falling
-        this.tweens.add({
-            targets: stalactite.sprite,
-            x: { from: stalactite.x - 3, to: stalactite.x + 3 },
-            duration: 50,
-            yoyo: true,
-            repeat: 8,
-            onComplete: () => {
-                // Actually fall
-                this.tweens.add({
-                    targets: stalactite.sprite,
-                    y: this.levelHeight - 80,
-                    duration: 400,
-                    ease: 'Quad.easeIn',
-                    onComplete: () => {
-                        this.onStalactiteImpact(stalactite);
-                    }
-                });
+        fall.isCurrent = () => !fall.retired && stalactite.fall === fall && stalactite.active &&
+            stalactite.sprite === sprite && this.stalactites.includes(stalactite) && sprite.active &&
+            this.boss === boss && this.player === player && this.bossPhase === fall.phase && fall.phase >= 2 &&
+            this.bossFightActive && !this.bossDefeated && !this.bossPhaseTransitioning && this.sys.isActive() &&
+            boss?.active && boss.body?.enable && player?.active && player.body?.enable;
+        fall.retire = () => {
+            if (fall.retired) return;
+            fall.retired = true;
+            this.crystalStalactiteFalls.delete(fall);
+            fall.timer?.remove(false);
+            fall.tweens.forEach(tween => tween.stop());
+            fall.tweens.clear();
+            this.events.off('shutdown', fall.retire);
+            boss?.off('destroy', fall.retire);
+            player?.off('destroy', fall.retire);
+            sprite.off('destroy', fall.onSpriteDestroy);
+            fall.shadow?.off('destroy', fall.onShadowDestroy);
+            if (!fall.shadowDestroying) fall.shadow?.destroy();
+            if (stalactite.fall !== fall) return;
+            stalactite.fall = null;
+            stalactite.falling = false;
+            stalactite.shadow = null;
+            if (fall.impacted || fall.spriteDestroying || !sprite.active) {
+                stalactite.active = false;
+                if (!fall.spriteDestroying) sprite.destroy();
+            } else if (stalactite.sprite === sprite) {
+                sprite.setPosition(fall.homeX, fall.homeY);
             }
-        });
+        };
+        fall.onSpriteDestroy = () => { fall.spriteDestroying = true; fall.retire(); };
+        fall.onShadowDestroy = () => { fall.shadowDestroying = true; fall.retire(); };
+        const requireCurrent = () => {
+            if (fall.isCurrent()) return true;
+            fall.retire();
+            return false;
+        };
+        if (!requireCurrent()) return;
+        this.events.once('shutdown', fall.retire);
+        boss.once('destroy', fall.retire);
+        player.once('destroy', fall.retire);
+        sprite.once('destroy', fall.onSpriteDestroy);
+
+        // Capture ownership before the stagger timer, not when it finally fires.
+        const animate = config => {
+            let completed = false;
+            const tween = this.tweens.add({ ...config, onUpdate: requireCurrent,
+                onComplete: () => {
+                    if (completed || !requireCurrent()) return;
+                    completed = true;
+                    try { config.onComplete?.(); }
+                    catch (error) { fall.retire(); throw error; }
+                } });
+            fall.tweens.add(tween);
+        };
+        try {
+            fall.timer = this.time.delayedCall(delay, () => {
+                if (!requireCurrent() || fall.started) return;
+                fall.started = true;
+                try {
+                    stalactite.shadow = fall.shadow = this.add.graphics();
+                    fall.shadow.once('destroy', fall.onShadowDestroy);
+                    fall.shadow.fillStyle(0xFF0000, 0.3);
+                    fall.shadow.fillEllipse(stalactite.x, this.levelHeight - 60, 50, 15);
+                    fall.shadow.setDepth(49);
+                    animate({ targets: fall.shadow, alpha: { from: 0.3, to: 0.7 },
+                        scaleX: { from: 1, to: 1.3 }, scaleY: { from: 1, to: 1.3 },
+                        duration: 300, yoyo: true, repeat: 1 });
+                    animate({ targets: sprite, x: { from: stalactite.x - 3, to: stalactite.x + 3 },
+                        duration: 50, yoyo: true, repeat: 8,
+                        onComplete: () => animate({ targets: sprite, y: this.levelHeight - 80,
+                            duration: 400, ease: 'Quad.easeIn',
+                            onComplete: () => this.onStalactiteImpact(stalactite) }) });
+                } catch (error) { fall.retire(); throw error; }
+            });
+        } catch (error) { fall.retire(); throw error; }
+    }
+
+    clearCrystalStalactiteFalls() {
+        [...(this.crystalStalactiteFalls || [])].forEach(fall => fall.retire());
     }
 
     /**
      * Handle stalactite impact
      */
     onStalactiteImpact(stalactite) {
-        if (!stalactite) return;
+        const fall = stalactite?.fall;
+        if (!fall) return;
+        if (!fall.isCurrent()) { fall.retire(); return; }
+        if (fall.impacted) return;
+        fall.impacted = true;
 
         const impactX = stalactite.x;
         const impactY = this.levelHeight - 80;
 
-        // Impact particles
-        if (window.FXLibrary) {
-            window.FXLibrary.stardustBurst(this, impactX, impactY, {
-                count: 15,
-                color: [0x2D1B4E, 0x7B68EE],
-                duration: 800
+        try {
+            window.FXLibrary?.stardustBurst(this, impactX, impactY, {
+                count: 15, color: [0x2D1B4E, 0x7B68EE], duration: 800
             });
-        }
-
-        // Screen shake
-        window.FeedbackManager?.cameraShake?.(this, 200, 0.01);
-
-        // Sound
-        if (window.AudioManager) {
-            window.AudioManager.playAttack();
-        }
-
-        // Check if hit player
-        const playerDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, impactX, impactY);
-        if (playerDist < 40) {
-            this.takeDamage(1);
-        }
-
-        // Check if hit boss
-        if (this.boss && this.boss.active) {
-            const bossDist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, impactX, impactY);
+            if (!fall.isCurrent()) return;
+            window.FeedbackManager?.cameraShake?.(this, 200, 0.01);
+            if (!fall.isCurrent()) return;
+            window.AudioManager?.playAttack();
+            if (!fall.isCurrent()) return;
+            const { player, boss } = fall;
+            const playerDist = Phaser.Math.Distance.Between(player.x, player.y, impactX, impactY);
+            if (playerDist < 40) this.takeDamage(1);
+            if (!fall.isCurrent()) return;
+            const bossDist = Phaser.Math.Distance.Between(boss.x, boss.y, impactX, impactY);
             if (bossDist < 60) {
                 this.resolveBossHit(1, { source: 'stalactite' });
                 console.log('[CrystalCavesLevel] Boss hit by stalactite!');
             }
+        } finally {
+            fall.retire();
         }
-
-        // Clean up
-        stalactite.shadow?.destroy();
-        stalactite.sprite?.destroy();
-        stalactite.active = false;
     }
 
     /**
@@ -5384,6 +5479,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     clearCrystalBossPacing({ includePhase = false } = {}) {
+        this.clearCrystalStalactiteFalls();
+        this.clearCrystalBossCharge();
+        this.clearCrystalBossSlam();
+        this.crystalBossHitFlashTimer?.remove(false);
+        this.crystalBossHitFlashTimer = null;
         this.bossAttackWindupTimer?.remove?.();
         this.bossAttackWindupTimer = null;
         this.bossRecoveryTimer?.remove?.();
@@ -5438,60 +5538,115 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     bossGroundSlam() {
         console.log('[CrystalCavesLevel] Boss: Ground Slam!');
 
-        // Wind-up animation
-        this.tweens.add({
-            targets: this.boss,
-            y: this.boss.y - 40,
-            duration: 400,
-            yoyo: true,
-            onYoyo: () => {
-                // Slam down
-                window.FeedbackManager?.cameraShake?.(this, 300, 0.03);
+        this.clearCrystalBossSlam();
+        const boss = this.boss;
+        const player = this.player;
+        const slam = { boss, player, homeY: boss?.y, lastY: boss?.y,
+            moving: true, impacted: false, retired: false, tween: null, wave: null };
+        const isCurrent = () => !slam.retired && this.crystalBossSlam === slam &&
+            this.boss === boss && this.player === player && !this.bossDefeated && !this.bossPhaseTransitioning &&
+            boss?.active && boss.body?.enable && player?.active && player.body?.enable && this.sys.isActive();
+        slam.retire = () => this.clearCrystalBossSlam(slam);
+        this.crystalBossSlam = slam;
+        if (!isCurrent()) { slam.retire(); return; }
+        this.events.once('shutdown', slam.retire);
+        boss.once('destroy', slam.retire);
+        player.once('destroy', slam.retire);
+        const requireCurrent = () => {
+            if (isCurrent()) return true;
+            slam.retire();
+            return false;
+        };
 
-                // Create shockwave
-                const shockwave = this.add.graphics();
-                shockwave.fillStyle(0x7B68EE, 0.6);
-                shockwave.fillRect(-200, -10, 400, 20);
-                shockwave.setPosition(this.boss.x, this.boss.y + 50);
-                shockwave.setDepth(850);
+        try {
+            slam.tween = this.tweens.add({
+                targets: boss,
+                y: boss.y - 40,
+                duration: 400,
+                yoyo: true,
+                onUpdate: () => {
+                    if (slam.retired) return;
+                    slam.lastY = boss.y;
+                    requireCurrent();
+                },
+                onComplete: () => {
+                    if (!requireCurrent()) return;
+                    slam.moving = false;
+                    slam.tween = null;
+                    if (!slam.wave) slam.retire();
+                },
+                onYoyo: () => {
+                    if (!requireCurrent() || slam.impacted) return;
+                    slam.impacted = true;
+                    try {
+                        window.FeedbackManager?.cameraShake?.(this, 300, 0.03);
+                        if (!requireCurrent()) return;
 
-                this.tweens.add({
-                    targets: shockwave,
-                    scaleX: 2,
-                    alpha: 0,
-                    duration: 500,
-                    onComplete: () => shockwave.destroy()
-                });
+                        const shockwave = this.add.graphics();
+                        const wave = { tween: null, release: null, onDestroy: null };
+                        wave.release = (destroying = false) => {
+                            if (slam.wave !== wave) return;
+                            slam.wave = null;
+                            shockwave.off('destroy', wave.onDestroy);
+                            wave.tween?.stop();
+                            if (!destroying) shockwave.destroy();
+                            if (!slam.moving) slam.retire();
+                        };
+                        wave.onDestroy = () => wave.release(true);
+                        slam.wave = wave;
+                        shockwave.once('destroy', wave.onDestroy);
+                        shockwave.fillStyle(0x7B68EE, 0.6);
+                        shockwave.fillRect(-200, -10, 400, 20);
+                        shockwave.setPosition(boss.x, boss.y + 50);
+                        shockwave.setDepth(850);
+                        wave.tween = this.tweens.add({
+                            targets: shockwave,
+                            scaleX: 2,
+                            alpha: 0,
+                            duration: 500,
+                            onUpdate: requireCurrent,
+                            onComplete: () => wave.release()
+                        });
 
-                // Damage player if in range and on ground
-                if (this.player && this.isGrounded) {
-                    const dist = Math.abs(this.player.x - this.boss.x);
-                    if (dist < 250) {
-                        this.takeDamage(1);
+                        if (!requireCurrent()) return;
+                        if (this.isGrounded && Math.abs(player.x - boss.x) < 250) this.takeDamage(1);
+                        if (!requireCurrent()) return;
+                        if (this.bossPhase >= 2) this.triggerStalactiteFall();
+                        if (!requireCurrent()) return;
+                        this.crystalPillars.forEach(pillar => {
+                            if (!requireCurrent()) return;
+                            if (pillar && !pillar.isDestroyed && Math.abs(pillar.x - boss.x) < 150) {
+                                this.damageCrystalPillar(pillar);
+                            }
+                        });
+                        if (!requireCurrent()) return;
+                        window.AudioManager?.playAttack();
+                    } catch (error) {
+                        slam.retire();
+                        throw error;
                     }
                 }
+            });
+        } catch (error) {
+            slam.retire();
+            throw error;
+        }
+    }
 
-                // Trigger stalactites in Phase 2
-                if (this.bossPhase >= 2) {
-                    this.triggerStalactiteFall();
-                }
-
-                // Damage nearby pillars
-                this.crystalPillars.forEach(pillar => {
-                    if (pillar && !pillar.isDestroyed) {
-                        const pillarDist = Math.abs(pillar.x - this.boss.x);
-                        if (pillarDist < 150) {
-                            this.damageCrystalPillar(pillar);
-                        }
-                    }
-                });
-
-                // Sound
-                if (window.AudioManager) {
-                    window.AudioManager.playAttack();
-                }
-            }
-        });
+    clearCrystalBossSlam(slam = this.crystalBossSlam) {
+        if (!slam || slam.retired) return;
+        slam.retired = true;
+        if (this.crystalBossSlam === slam) this.crystalBossSlam = null;
+        slam.tween?.stop();
+        slam.tween = null;
+        if (slam.moving && this.boss === slam.boss && slam.boss?.active &&
+            slam.boss.y === slam.lastY) {
+            slam.boss.y = slam.homeY;
+        }
+        this.events.off('shutdown', slam.retire);
+        slam.boss?.off('destroy', slam.retire);
+        slam.player?.off('destroy', slam.retire);
+        slam.wave?.release();
     }
 
     /**
@@ -5500,50 +5655,120 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     bossCrystalBarrage() {
         console.log('[CrystalCavesLevel] Boss: Crystal Barrage!');
 
+        const boss = this.boss;
+        const player = this.player;
+        const pillars = this.crystalPillars;
+        const launches = new Set();
+        const shots = new Set();
+        let retired = false;
+        const isCurrent = () => !retired && this.boss === boss && this.player === player &&
+            this.crystalPillars === pillars && !this.bossDefeated &&
+            boss?.active && boss.body?.enable && player?.active && player.body?.enable &&
+            this.sys?.isActive?.() !== false;
+        const retire = () => {
+            if (retired) return;
+            retired = true;
+            launches.forEach(timer => timer.remove(false));
+            launches.clear();
+            [...shots].forEach(retireShot => retireShot());
+            this.events.off('shutdown', retire);
+            boss.off('destroy', retire);
+        };
+        const finishIfEmpty = () => {
+            if (!launches.size && !shots.size) retire();
+        };
+        if (!isCurrent()) return;
+        this.events.once('shutdown', retire);
+        boss.once('destroy', retire);
         const crystalCount = this.bossPhase >= 2 ? 5 : 3;
 
-        for (let i = 0; i < crystalCount; i++) {
-            this.time.delayedCall(i * 200, () => {
-                if (!this.boss || !this.boss.active) return;
+        try {
+            for (let i = 0; i < crystalCount; i++) {
+                const launch = this.time.delayedCall(i * 200, () => {
+                    launches.delete(launch);
+                    if (!isCurrent()) { retire(); return; }
 
-                // Create crystal projectile
-                const crystal = this.add.graphics();
-                crystal.fillStyle(0xE040FB, 0.9);
-                crystal.fillTriangle(-10, 15, 10, 15, 0, -15);
-                crystal.setPosition(this.boss.x, this.boss.y - 20);
-                crystal.setDepth(860);
-
-                // Add to physics for collision
-                const crystalBody = this.physics.add.existing(crystal);
-                crystal.body.setAllowGravity(false);
-                crystal.body.setSize(20, 30);
-
-                // Aim at player with some spread
-                const angle = Phaser.Math.Angle.Between(
-                    this.boss.x, this.boss.y,
-                    this.player.x, this.player.y
-                ) + Phaser.Math.FloatBetween(-0.3, 0.3);
-
-                const speed = 300;
-                crystal.body.setVelocity(
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                );
-
-                // Rotate crystal to face direction
-                crystal.setRotation(angle + Math.PI / 2);
-
-                // Player collision
-                this.physics.add.overlap(this.player, crystal, () => {
-                    this.takeDamage(1);
-                    crystal.destroy();
+                    let crystal;
+                    try {
+                        crystal = this.add.graphics();
+                    } catch (error) {
+                        retire();
+                        throw error;
+                    }
+                    let overlap = null;
+                    let coverOverlap = null;
+                    let expiry = null;
+                    let shotRetired = false;
+                    const onDestroyed = () => retireShot(false);
+                    const retireShot = (destroy = true, finish = true) => {
+                        if (shotRetired) return;
+                        shotRetired = true;
+                        shots.delete(retireShot);
+                        overlap?.destroy();
+                        coverOverlap?.destroy();
+                        expiry?.remove(false);
+                        crystal.off('destroy', onDestroyed);
+                        if (destroy && crystal.active) crystal.destroy();
+                        if (finish) finishIfEmpty();
+                    };
+                    const spendHit = effect => {
+                        if (shotRetired) return;
+                        if (!isCurrent()) { retire(); return; }
+                        // Retire the body first, but retain the encounter guard through destroy listeners.
+                        retireShot(true, false);
+                        try {
+                            if (isCurrent()) effect();
+                            else retire();
+                        } catch (error) {
+                            retire();
+                            throw error;
+                        } finally {
+                            finishIfEmpty();
+                        }
+                    };
+                    shots.add(retireShot);
+                    crystal.once('destroy', onDestroyed);
+                    try {
+                        crystal.fillStyle(0xE040FB, 0.9);
+                        crystal.fillTriangle(-10, 15, 10, 15, 0, -15);
+                        crystal.setPosition(boss.x, boss.y - 20);
+                        crystal.setDepth(860);
+                        this.physics.add.existing(crystal);
+                        crystal.body.setAllowGravity(false);
+                        crystal.body.setSize(20, 30);
+                        const angle = Phaser.Math.Angle.Between(
+                            boss.x, boss.y, player.x, player.y
+                        ) + Phaser.Math.FloatBetween(-0.3, 0.3);
+                        const speed = 300;
+                        crystal.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+                        crystal.setRotation(angle + Math.PI / 2);
+                        if (Array.isArray(pillars)) {
+                            const canBlock = (shot, pillar) => {
+                                if (shotRetired) return false;
+                                if (!isCurrent()) { retire(); return false; }
+                                return shot === crystal && pillar?.active && pillar.body?.enable &&
+                                    !pillar.isDestroyed && pillars[pillar.pillarIndex] === pillar;
+                            };
+                            // Cover wins a shared contact frame; spend the shot before its hit effects.
+                            coverOverlap = this.physics.add.overlap(crystal, pillars, (shot, pillar) => {
+                                if (!canBlock(shot, pillar)) return;
+                                spendHit(() => this.damageCrystalPillar(pillar));
+                            }, canBlock);
+                        }
+                        overlap = this.physics.add.overlap(player, crystal, () => {
+                            spendHit(() => this.takeDamage(1));
+                        });
+                        expiry = this.time.delayedCall(2000, () => retireShot());
+                    } catch (error) {
+                        retire();
+                        throw error;
+                    }
                 });
-
-                // Destroy after time
-                this.time.delayedCall(2000, () => {
-                    if (crystal.active) crystal.destroy();
-                });
-            });
+                launches.add(launch);
+            }
+        } catch (error) {
+            retire();
+            throw error;
         }
 
         // Sound
@@ -5558,45 +5783,110 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     bossChargeAttack() {
         console.log('[CrystalCavesLevel] Boss: Charge Attack!');
 
-        const direction = this.player.x < this.boss.x ? -1 : 1;
-        this.boss.setVelocityX(400 * direction);
+        this.clearCrystalBossCharge();
+        const boss = this.boss;
+        const player = this.player;
+        if (!boss?.active || !boss.body?.enable || !player?.active || !player.body?.enable || this.bossDefeated) return;
 
-        this.time.addEvent({
-            delay: 50,
-            callback: () => {
-                if (!this.boss || !this.boss.active) return;
-                const afterImage = this.add.graphics();
-                afterImage.fillStyle(0x7B68EE, 0.4);
-                afterImage.fillCircle(0, 0, 40);
-                afterImage.setPosition(this.boss.x, this.boss.y);
-                afterImage.setDepth(870);
+        const direction = player.x < boss.x ? -1 : 1;
+        const charge = {
+            boss, player, velocityX: 400 * direction, moving: true, retired: false,
+            trailTimer: null, stopTimer: null, images: new Set()
+        };
+        this.crystalBossCharge = charge;
+        const isCurrent = () => !charge.retired && this.crystalBossCharge === charge &&
+            this.boss === boss && this.player === player && !this.bossDefeated &&
+            boss.active && boss.body?.enable && player.active && player.body?.enable &&
+            this.sys?.isActive?.() !== false;
+        const finishIfEmpty = () => {
+            if (!charge.moving && !charge.images.size) this.clearCrystalBossCharge(charge);
+        };
+        charge.retire = () => this.clearCrystalBossCharge(charge);
+        this.events.once('shutdown', charge.retire);
+        boss.once('destroy', charge.retire);
 
-                this.tweens.add({
-                    targets: afterImage,
-                    alpha: 0,
-                    scaleX: 0.5,
-                    scaleY: 0.5,
-                    duration: 300,
-                    onComplete: () => afterImage.destroy()
-                });
-            },
-            repeat: 8
-        });
-
-        this.time.delayedCall(600, () => {
-            if (this.boss) {
-                this.boss.setVelocityX(0);
-                this.boss.clearTint();
-                if (this.bossPhase >= 2) {
-                    this.boss.setTint(0xFF6B6B);
+        try {
+            boss.setVelocityX(charge.velocityX);
+            charge.trailTimer = this.time.addEvent({
+                delay: 50,
+                callback: () => {
+                    if (!charge.moving) return;
+                    if (!isCurrent()) { this.clearCrystalBossCharge(charge); return; }
+                    try {
+                        const afterImage = this.add.graphics();
+                        charge.images.add(afterImage);
+                        afterImage.fillStyle(0x7B68EE, 0.4);
+                        afterImage.fillCircle(0, 0, 40);
+                        afterImage.setPosition(boss.x, boss.y);
+                        afterImage.setDepth(870);
+                        this.tweens.add({
+                            targets: afterImage,
+                            alpha: 0,
+                            scaleX: 0.5,
+                            scaleY: 0.5,
+                            duration: 300,
+                            onComplete: () => {
+                                if (charge.retired || !charge.images.delete(afterImage)) return;
+                                afterImage.destroy();
+                                finishIfEmpty();
+                            }
+                        });
+                    } catch (error) {
+                        this.clearCrystalBossCharge(charge);
+                        throw error;
+                    }
+                },
+                repeat: 8
+            });
+            charge.stopTimer = this.time.delayedCall(600, () => {
+                if (!charge.moving) return;
+                if (!isCurrent()) { this.clearCrystalBossCharge(charge); return; }
+                charge.stopTimer = null;
+                charge.trailTimer?.remove(false);
+                charge.trailTimer = null;
+                charge.moving = false;
+                boss.setVelocityX(0);
+                if (!this.crystalBossHitFlashTimer) {
+                    boss.clearTint();
+                    if (this.bossPhase >= 2) {
+                        boss.setTint(0xFF6B6B);
+                    }
                 }
-            }
-        });
+                finishIfEmpty();
+            });
+        } catch (error) {
+            this.clearCrystalBossCharge(charge);
+            throw error;
+        }
 
         // Sound
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+    }
+
+    clearCrystalBossCharge(charge = this.crystalBossCharge) {
+        if (!charge || charge.retired) return;
+        charge.retired = true;
+        if (this.crystalBossCharge === charge) {
+            this.crystalBossCharge = null;
+            if (charge.moving && charge.boss.active &&
+                charge.boss.body?.enable && charge.boss.body.velocity.x === charge.velocityX) {
+                charge.boss.setVelocityX(0);
+            }
+        }
+        charge.trailTimer?.remove(false);
+        charge.stopTimer?.remove(false);
+        charge.trailTimer = null;
+        charge.stopTimer = null;
+        this.events.off('shutdown', charge.retire);
+        charge.boss.off('destroy', charge.retire);
+        const images = [...charge.images];
+        charge.images.clear();
+        images.forEach(image => {
+            this.tweens.killTweensOf(image);
+            image.destroy();
+        });
     }
 
     /**
@@ -5633,16 +5923,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         );
 
         // Flash effect
-        this.boss.setTint(0xFFFFFF);
-        this.time.delayedCall(100, () => {
-            if (this.boss && this.boss.active) {
+        const boss = this.boss;
+        this.crystalBossHitFlashTimer?.remove(false);
+        boss.setTint(0xFFFFFF);
+        const flashTimer = this.time.delayedCall(100, () => {
+            if (this.crystalBossHitFlashTimer !== flashTimer) return;
+            this.crystalBossHitFlashTimer = null;
+            if (this.boss === boss && boss.active && !this.bossDefeated) {
                 if (this.bossPhase >= 2) {
-                    this.boss.setTint(0xFF6B6B);
+                    boss.setTint(0xFF6B6B);
                 } else {
-                    this.boss.clearTint();
+                    boss.clearTint();
                 }
             }
         });
+        this.crystalBossHitFlashTimer = flashTimer;
 
         // Knockback boss slightly
         const knockDir = this.player.x < this.boss.x ? 1 : -1;
@@ -5677,336 +5972,53 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Handle guardian restoration.
      */
     onBossDefeated() {
+        if (this.bossDefeated || this.levelCompletionActive) return false;
+        const reader = window.GameState?.captureSaveAdmissionOwner?.();
+        const victory = new CrystalVictorySequence(this);
         console.log('[CrystalCavesLevel] Guardian corruption defeated');
         this.bossDefeated = true;
         this.bossFightActive = false;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
         this.crystalOpeningCameraFraming = false;
-
-        // Record guardian restoration for achievements.
-        if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'crystal_golem' });
-        }
-
-        // Stop boss AI
-        if (this.bossAITimer) {
-            this.bossAITimer.remove();
-        }
-        if (this.bossAttackTimer) {
-            this.bossAttackTimer.remove();
-        }
-        this.bossAttackPreviewTimer?.remove?.();
+        this.enterLevelCompletionState();
+        if (!reader?.isCurrent() || !victory.requireCurrent()) { victory.retire(); return false; }
+        victory.present(() => this.clearCrystalPillarWork());
+        victory.present(() => this.bossAITimer?.remove());
+        victory.present(() => this.bossAttackTimer?.remove());
+        victory.present(() => this.bossAttackPreviewTimer?.remove?.());
+        victory.present(() => this.clearCrystalBossPacing({ includePhase: true }));
+        victory.present(() => this.bossInstructionTimer?.remove?.());
+        if (!victory.requireCurrent()) return false;
         this.bossAttackPreviewTimer = null;
-        this.clearCrystalBossPacing({ includePhase: true });
-        this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
-        this.bossPulseText?.setText('CORRUPTION // BROKEN');
-
-        // The combat shell breaks while the living Guardian remains.
-        this.boss.setVelocity(0, 0);
-        this.boss.body.setAllowGravity(false);
-        this.boss.setTint(0x8FE3CF);
-        if (this.boss.body) this.boss.body.enable = false;
-
-        window.FeedbackManager?.cameraShake?.(this, 350, 0.01);
-        window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
-        this.showFloatingText(
-            'CORRUPTION DEFEATED',
-            this.boss.x,
-            this.boss.y - 95,
-            '#8FE3CF'
-        );
-
-        // Resonance particles replace the previous destruction effect.
-        for (let i = 0; i < 6; i++) {
-            this.time.delayedCall(i * 130, () => {
-                if (window.FXLibrary && this.boss) {
-                    const offsetX = Phaser.Math.Between(-40, 40);
-                    const offsetY = Phaser.Math.Between(-50, 30);
-                    window.FXLibrary.stardustBurst(this, this.boss.x + offsetX, this.boss.y + offsetY, {
-                        count: 12,
-                        color: [0x8FE3CF, 0x00FFFF, 0xBFA6FF, 0xFFD700],
-                        duration: 1200
-                    });
-                }
-            });
-        }
-
-        this.bossCorruptionShell?.destroy?.();
-        this.bossCorruptionShell = null;
-
-        // Keep the freed Guardian visible as the reward source instead of
-        // destroying it after the combat meter reaches zero.
-        this.tweens.add({
-            targets: this.boss,
-            alpha: 1,
-            scaleX: this.bossTargetScale,
-            scaleY: this.bossTargetScale,
-            duration: 900,
-            onComplete: () => {
-                this.boss?.clearTint?.();
-            }
-        });
-
-        // Victory sound
-        if (window.AudioManager) {
-            window.AudioManager.playLevelUp();
-        }
-
-        // Hide boss UI
-        if (this.bossUI) {
-            this.tweens.add({
-                targets: this.bossUI,
-                alpha: 0,
-                duration: 500,
-                onComplete: () => {
-                    this.bossUI.destroy();
-                }
-            });
-        }
-
-        // Remove darkness overlay
-        if (this.bossOverlay) {
-            this.tweens.add({
-                targets: this.bossOverlay,
-                alpha: 0,
-                duration: 1000,
-                onComplete: () => {
-                    this.bossOverlay.destroy();
-                }
-            });
-        }
-
-        // Reset camera zoom
-        this.cameras.main.zoomTo(1.0, 1000);
-
-        // Victory message and level complete
-        this.time.delayedCall(2000, () => {
-            this.showBossVictory();
-        });
+        return victory.start();
     }
 
     /**
      * Show boss victory screen before level complete
      */
     showBossVictory() {
-        const { width, height } = this.cameras.main;
-
-        // Victory text
-        const victoryText = this.add.text(width / 2, height / 2, 'CORRUPTION DEFEATED\nGUARDIAN FREED', {
-            fontSize: width <= 480 ? '24px' : '32px',
-            color: '#8FE3CF',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4,
-            align: 'center',
-            wordWrap: { width: width - 50 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
-
-        this.tweens.add({
-            targets: victoryText,
-            alpha: 1,
-            scaleX: { from: 0.5, to: 1 },
-            scaleY: { from: 0.5, to: 1 },
-            duration: 500,
-            yoyo: true,
-            hold: 2000,
-            onComplete: () => {
-                victoryText.destroy();
-                this.onLevelComplete();
-            }
-        });
-
-        // Celebration particles
-        for (let i = 0; i < 5; i++) {
-            this.time.delayedCall(i * 300, () => {
-                if (window.FXLibrary) {
-                    const x = Phaser.Math.Between(100, width - 100);
-                    window.FXLibrary.stardustBurst(this, x + this.cameras.main.scrollX, height / 2, {
-                        count: 20,
-                        color: [0xFFD700, 0x7B68EE, 0x00FFFF],
-                        duration: 2000
-                    });
-                }
-            });
-        }
+        return this.crystalVictory?.message() === true;
     }
 
     /**
      * Handle level completion
      */
     onLevelComplete() {
-        console.log('[CrystalCavesLevel] Level complete!');
+        if (this.crystalVictory?.phase !== 'completing' || !this.crystalVictory.requireCurrent()) return false;
+        return finishCrystalCompletion(this);
+    }
 
-        this.completeLevelProgression({
-            achievementLevelId: 'crystalCaves',
-            shipPartId: 'crystal_core',
-            katanaUpgradeId: 'crystal_edge',
-            speedrunThreshold: 180000,
-            rewardBonusCount: this.starFragmentsCollected
-        });
-
-        // Pause gameplay
-        this.physics.pause();
-
-        // Celebration effects
-        window.FeedbackManager?.cameraFlash?.(this, 500, 0, 255, 255);
-
-        if (window.FXLibrary && this.crystalCore) {
-            for (let i = 0; i < 5; i++) {
-                this.time.delayedCall(i * 200, () => {
-                    window.FXLibrary.stardustBurst(this, this.crystalCore.x, this.crystalCore.y, {
-                        count: 30,
-                        color: [0x00FFFF, 0x7B68EE, 0xE040FB, 0xFFD700],
-                        duration: 2000
-                    });
-                });
-            }
-        }
-
-        if (window.AudioManager) {
-            window.AudioManager.playLevelUp();
-        }
-
-        // Show completion screen after celebration
-        this.time.delayedCall(1500, () => {
-            this.showKatanaUpgradeReveal({
-                onClose: () => this.showCompletionScreen()
-            });
-        });
+    startSavedCrystalCompletion(source) {
+        return this.crystalVictory?.saved(source) === true;
     }
 
     /**
      * Show level completion screen
      */
     showCompletionScreen() {
-        this.bindLevelCompletionReturn();
-
-        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 490 });
-        const {
-            width, height, panelWidth, panelHeight, panelX, panelY,
-            contentWidth, contentLeft, contentRight, y, font, buttonPadding
-        } = layout;
-
-        // Dark overlay
-        const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.9);
-        overlay.fillRect(0, 0, width, height);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(3000);
-
-        // Panel
-        const panel = this.add.graphics();
-        panel.fillStyle(0x1A1025, 1);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        panel.lineStyle(3, 0x00FFFF, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        panel.setScrollFactor(0);
-        panel.setDepth(3001);
-
-        // Title
-        const title = this.add.text(width / 2, y(50), 'LEVEL COMPLETE', {
-            fontSize: font(36, 28),
-            color: '#00FFFF',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        // Divider
-        const divider = this.add.graphics();
-        divider.lineStyle(2, 0x7B68EE, 0.5);
-        divider.lineBetween(contentLeft, y(90), contentRight, y(90));
-        divider.setScrollFactor(0);
-        divider.setDepth(3002);
-
-        // Results
-        const resultY = y(120);
-        const results = [
-            { text: 'Beacon Route Aligned', done: this.caveRouteAligned },
-            { text: 'Fractured Grove Tended', done: this.crystalWoundTended },
-            { text: `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`, done: this.starFragmentsCollected >= this.totalStarFragments },
-            { text: 'Guardian Freed from Corruption', done: this.bossDefeated }
-        ];
-
-        // Ship part already awarded via InventoryManager in onLevelComplete()
-
-        results.forEach((result, i) => {
-            const icon = result.done ? '[x]' : '[ ]';
-            const color = result.done ? '#00FF00' : '#888888';
-            this.add.text(contentLeft, resultY + i * (y(35) - panelY), `${icon} ${result.text}`, {
-                fontSize: font(18, 15),
-                color: color,
-                wordWrap: { width: contentWidth }
-            }).setScrollFactor(0).setDepth(3002);
-        });
-
-        // Rewards
-        const rewardY = y(250);
-        this.add.text(width / 2, rewardY, 'REWARDS', {
-            fontSize: font(14, 12),
-            color: '#888888'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        const coins = this.levelCompletionResult?.coinsAwarded || 0;
-        this.add.text(width / 2, rewardY + 30, `+ ${coins} Cosmic Coins`, {
-            fontSize: font(22, 18),
-            color: '#FFD700',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        // Ship part notification
-        const currentShipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
-        const katanaUpgrade = this.levelCompletionResult?.katanaUpgrade;
-        const upgradeStatus = this.levelCompletionResult?.katanaUpgradeAwarded
-            ? 'installed'
-            : 'online';
-        const guardianGifts = katanaUpgrade
-            ? `Guardian Gifts: Crystal Core + ${katanaUpgrade.name} ${upgradeStatus}`
-            : 'Guardian Gift: Crystal Core';
-        this.add.text(
-            width / 2,
-            y(330),
-            `${guardianGifts}\n${this.getBossPowerupRewardCopy({ compact: true })}\n${this.getVillageCompletionCopy({ compact: true })}\n${this.getGuardianSanctuaryArrivalCopy({ compact: true })}`,
-            {
-            fontSize: font(14, 12),
-            color: '#00FFFF',
-            fontStyle: 'bold',
-            align: 'center',
-            lineSpacing: 3,
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        this.add.text(width / 2, y(405), `Ship Repair Progress: ${currentShipParts.length}/${totalRequired} parts`, {
-            fontSize: font(14, 12),
-            color: '#9370DB',
-            align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        // Return button
-        const returnBtn = this.add.text(width / 2, y(455), '[ RETURN TO HUB ]', {
-            fontSize: font(20, 16),
-            color: '#7B68EE',
-            backgroundColor: '#2D1B3D',
-            padding: buttonPadding
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
-
-        returnBtn.on('pointerover', () => {
-            returnBtn.setColor('#E040FB');
-            returnBtn.setScale(1.05);
-        });
-        returnBtn.on('pointerout', () => {
-            returnBtn.setColor('#7B68EE');
-            returnBtn.setScale(1.0);
-        });
-        returnBtn.on('pointerdown', () => {
-            this.returnToHub();
-        });
+        return finishCrystalCompletion.present(this);
     }
 
     /**
@@ -6207,6 +6219,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Clean up boss resources on shutdown
      */
     shutdown() {
+        this.completionSaveAttempt?.retire();
+        this.crystalVictory?.retire();
         console.log('[CrystalCavesLevel] Shutting down - cleaning up boss resources');
         this.clearLevelEntryKeyHandler();
 
@@ -6282,6 +6296,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }
 
         // Clean up boss arena elements
+        this.clearCrystalPillarWork();
         if (this.powerWellTimer) {
             this.powerWellTimer.remove();
             this.powerWellTimer = null;
@@ -6381,6 +6396,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         console.log('[CrystalCavesLevel] Boss cleanup complete');
     }
 }
+
+const finishCrystalCompletion = createCrystalCompletionHandler(Object.freeze({
+    prototype: CrystalCavesLevel.prototype,
+    methods: Object.freeze(Object.fromEntries(['onBossDefeated', 'showBossVictory', 'onLevelComplete', 'startSavedCrystalCompletion',
+        'showCompletionScreen', 'showRegionalVictorySummary', 'syncCampaignObjectiveDisplay', 'refreshCurrentEcologyNode',
+        'scheduleGuardianTransition', 'returnToHub'].map(name => [name, CrystalCavesLevel.prototype[name]])))
+}));
 
 // Export
 export default CrystalCavesLevel;

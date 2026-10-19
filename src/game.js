@@ -16,6 +16,7 @@ import AbilitySelectionScene from './scenes/AbilitySelectionScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import VictoryScene from './scenes/VictoryScene.js';
 import CloudSaveSettingsModal from './ui/CloudSaveSettingsModal.js';
+import SaveRecoveryGate from './ui/SaveRecoveryGate.js';
 import SharedFusionModal from './ui/SharedFusionModal.js';
 import PageVisibilityController from './utils/PageVisibilityController.js';
 // Individual levels are lazy loaded via SceneLoader when player enters them
@@ -584,11 +585,15 @@ async function initializeGame() {
         }
 
         // Initialize game state system with error handling
+        const saveRecoveryGate = new SaveRecoveryGate(GameState);
         try {
             GameState.init();
+            await saveRecoveryGate.waitUntilReady();
+            if (!GameState.initialized) GameState.init();
             console.log('✅ GameState initialized successfully');
 
             await initializeCloudSaves();
+            await saveRecoveryGate.waitUntilReady();
 
             // DEV MODE: Auto-reset creature collection to prevent stale cache issues
             // This ensures fresh starts during development testing
@@ -743,7 +748,6 @@ async function initializeGame() {
 
             GameState.on('loadError', (error) => {
                 console.error('📂❌ Load failed:', error);
-                console.log('🔄 Starting with default game state');
                 if (window.errorHandler) {
                     window.errorHandler.handleError({
                         type: 'load',

@@ -28,9 +28,11 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
     createFinaleFilms() { return new FinaleFilms(this, {encounterId:'trumptopus'}); }
 
     createEncounter(data) {
-        this.completion = new TrumptopusCompletion(this,{gameState:window.GameState,
+        const completion = new TrumptopusCompletion(this,{gameState:window.GameState,
             films:this.createFinaleFilms(),
             inventoryManager:window.InventoryManager,withApproach:true,newExpedition:data.newExpedition === true});
+        if (completion.closed) return null;
+        this.completion = completion;
         this.encounter = new FinalVoidApproach(this.completion.run.approach || {schemaVersion:1,clearedGrips:2,arrived:true});
         this.spawnX = this.encounter.spawnX;
         this.lastSavedGrip = this.encounter.clearedGrips;
@@ -47,6 +49,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
     }
 
     create() {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         super.create();
         this.approachStage=new TrumptopusApproachStage(this,
             this.textures.get('trumptopus-approach-landscape-source').getSourceImage(),
@@ -117,6 +120,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
     }
 
     update(time,delta) {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         if (!this.encounter.paused && !this.encounter.disposed) this.completion.advance(delta);
         super.update(time,delta);
         if (this.encounter.paused || this.encounter.disposed || this.transitioning) return;

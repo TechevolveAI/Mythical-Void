@@ -40,7 +40,7 @@ describe('Fusion Pod physical landmark gameplay contract', () => {
         expect(bootstrap).toContain('isLocalPreview &&');
         expect(scene).toContain('createFusionLandmarkPreview()');
         expect(scene).toContain('TWO CREATURES REQUIRED');
-        expect(scene).toContain('FIELD CALIBRATION 3/5');
+        expect(scene).toContain('LEVEL 3/5');
         expect(scene).toContain('TWO ADULT CREATURES READY');
     });
 });

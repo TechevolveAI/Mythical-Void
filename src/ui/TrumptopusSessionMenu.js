@@ -2,6 +2,8 @@ import './trumptopus-result.css';
 
 export class TrumptopusSessionMenu {
     constructor({ defeated, onResume, onRetry, onPowerups, onExit }) {
+        this.closed = false;
+        this.acting = false;
         this.previousFocus = document.activeElement;
         this.root = document.createElement('section');
         this.root.className = 'trumptopus-result';
@@ -14,7 +16,10 @@ export class TrumptopusSessionMenu {
         title.textContent = defeated ? 'Try again' : 'Paused';
         const message = document.createElement('p');
         message.textContent = 'Retry from your last checkpoint.';
-        body.append(title, message);
+        this.notice = document.createElement('p');
+        this.notice.className = 'trumptopus-result__notice';
+        this.notice.setAttribute('role', 'status');
+        body.append(title, message, this.notice);
         const footer = document.createElement('footer');
         const choices = defeated
             ? [['Try again', onRetry], ['Return to the gates', onExit]]
@@ -23,13 +28,14 @@ export class TrumptopusSessionMenu {
             const button = document.createElement('button');
             button.type = 'button'; button.textContent = label;
             if (index === 0) button.className = 'trumptopus-result__primary';
-            button.onclick = action;
+            button.onclick = () => this.runAction(action, button);
             footer.append(button);
             return button;
         });
         this.onKey = event => {
+            if (this.closed || this.acting) return;
             if (event.key === 'Escape' && !defeated) {
-                event.preventDefault(); event.stopPropagation(); onResume();
+                event.preventDefault(); event.stopPropagation(); this.runAction(onResume, this.buttons[0]);
             }
             if (event.key === 'Tab') {
                 event.preventDefault();
@@ -43,8 +49,29 @@ export class TrumptopusSessionMenu {
         this.buttons[0].focus();
     }
 
+    runAction(action, button) {
+        if (this.closed || this.acting || typeof action !== 'function') return false;
+        this.acting = true;
+        const disabled = this.buttons.map(button => button.disabled);
+        this.buttons.forEach(button => { button.disabled = true; });
+        this.notice.textContent = '';
+        let accepted = false;
+        try { accepted = action() !== false; } catch { /* Keep the existing retry/exit controls. */ }
+        this.acting = false;
+        if (!this.closed) {
+            this.buttons.forEach((button, index) => { button.disabled = disabled[index]; });
+            if (!accepted) {
+                this.notice.textContent = 'That did not open. Try again.';
+                button?.focus();
+            }
+        }
+        return accepted;
+    }
+
     close() {
-        if (!this.root) return;
+        if (this.closed) return;
+        this.closed = true;
+        this.buttons.forEach(button => { button.onclick = null; });
         this.root.removeEventListener('keydown', this.onKey);
         this.root.remove(); this.root = null;
         if (this.previousFocus?.isConnected) this.previousFocus.focus();

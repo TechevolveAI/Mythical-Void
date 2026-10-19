@@ -47,6 +47,9 @@ class SpaceWeatherSystem {
     }
 
     async fetchWithTimeout(url, options = {}) {
+        if (typeof __MYTHICAL_PRIVATE_REVIEW__ !== 'undefined' && __MYTHICAL_PRIVATE_REVIEW__) {
+            throw new Error('Private review uses offline space weather');
+        }
         const controller = typeof AbortController !== 'undefined'
             ? new AbortController()
             : null;

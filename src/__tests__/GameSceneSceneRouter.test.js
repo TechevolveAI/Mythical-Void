@@ -296,7 +296,7 @@ describe('GameScene scene router', () => {
     test('blocks Fusion Pod until the shrine is unlocked', () => {
         const { scene, sceneRouter } = createSceneInstance(GameScene, sceneWindow);
         scene.getFusionPodWorldSnapshot = jest.fn(() => ({
-            statusLabel: 'FIELD CALIBRATION 4/5'
+            statusLabel: 'LEVEL 4/5'
         }));
         sceneWindow.GameState.getBreedingShrineStatus
             .mockReturnValueOnce({ unlocked: false })
@@ -305,7 +305,7 @@ describe('GameScene scene router', () => {
         scene.openFusionPod();
 
         expect(scene.showInteractionHint).toHaveBeenCalledWith(
-            'FIELD CALIBRATION 4/5'
+            'LEVEL 4/5'
         );
         expect(sceneRouter.pauseAndLaunchScene).not.toHaveBeenCalled();
 

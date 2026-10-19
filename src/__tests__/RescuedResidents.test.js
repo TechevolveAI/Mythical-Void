@@ -62,6 +62,18 @@ function createGameState(rescuedResidents = {}, levels = {}) {
 describe('RescuedResidents', () => {
     const residents = loadRescuedResidents();
 
+    test('rescue grants a resident without adding an owned Fusion parent', () => {
+        const gameState = createGameState();
+        gameState.state.creatures = [{ id: 'owned_alpha', lifecycle: { stage: 'adult' } }];
+        const before = JSON.stringify(gameState.state.creatures);
+        const rescue = residents.recordRescuedResident(gameState, 'mythicalForest', { save: false });
+        expect(rescue.changed).toBe(true);
+        expect(gameState.get('world.rescuedResidents.rescuedIds')).toContain('bloom');
+        expect(JSON.stringify(gameState.state.creatures)).toBe(before);
+        expect(gameState.set.mock.calls.map(([key]) => key)).toEqual(['world.rescuedResidents']);
+        expect(gameState.save).not.toHaveBeenCalled();
+    });
+
     test('defines a distinct non-boss resident for every campaign level', () => {
         expect(residents.RESCUED_RESIDENT_DEFINITIONS).toHaveLength(6);
         expect(

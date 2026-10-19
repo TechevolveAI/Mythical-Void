@@ -1,0 +1,877 @@
+{
+  "version": "1.1.0",
+  "savedAt": 1699999999889,
+  "player": {
+    "name": "",
+    "playTime": 7200000,
+    "gamesPlayed": 0,
+    "lastPlayed": null,
+    "cosmicCoins": 730
+  },
+  "stats": {
+    "levelsCompleted": 1,
+    "totalPlayTime": 0,
+    "coinsCollected": 0
+  },
+  "combat": {
+    "enemiesDefeated": 0,
+    "bossesDefeated": 1
+  },
+  "story": {
+    "projectBeacon": {
+      "missionLogSeen": false,
+      "currentMission": null,
+      "fieldKit": {
+        "id": "wanderer_7_field_kit",
+        "name": "Wanderer-77 Field Kit",
+        "recovered": false,
+        "recoveredAt": null,
+        "katana": {
+          "id": "earth_field_katana",
+          "name": "Earth-forged Field Katana",
+          "material": "Titanium-ceramic laminate",
+          "configuration": "secured_in_case",
+          "upgradeSlots": 2,
+          "installedUpgrades": []
+        }
+      },
+      "pendingDebriefs": [],
+      "debriefsSeen": [],
+      "highPowerReveals": [],
+      "firstExpeditionPromptSeen": false,
+      "firstExpeditionDrill": {
+        "completed": false,
+        "completedAt": null
+      },
+      "expeditionCheckpoint": null,
+      "uplinkRestored": false,
+      "uplinkRestoredAt": null,
+      "endingChoice": null,
+      "endingChoiceDate": null,
+      "endingEpilogueSeen": false,
+      "endingEpilogueCompletedAt": null,
+      "finale": {
+        "schemaVersion": 1,
+        "sharedOutcome": null,
+        "priority": null,
+        "prioritySelectedAt": null,
+        "epilogueSeen": false,
+        "epilogueCompletedAt": null
+      },
+      "remainAndDefend": {
+        "schemaVersion": 1,
+        "status": "not_started",
+        "completedAt": null,
+        "completionOperationId": null,
+        "priorityAtCompletion": null,
+        "history": []
+      },
+      "sensei": {
+        "schemaVersion": 2,
+        "relationship": "pre_mission_friend_and_training_partner",
+        "memories": [
+          "begin_with_your_footing",
+          "trust_begins_with_how_you_enter",
+          "power_is_knowing_what_not_to_take"
+        ],
+        "memoryLedger": {
+          "schemaVersion": 1,
+          "recalledMemoryIds": [],
+          "lesson": {
+            "id": "centering_stance",
+            "status": "locked",
+            "practiceCount": 0,
+            "firstPracticedAt": null,
+            "lastPracticedAt": null
+          },
+          "history": []
+        },
+        "encryptedContact": {
+          "channelId": "DOJO-23-77",
+          "status": "fragmented",
+          "contactAttempted": false,
+          "contactEstablished": false,
+          "recoveredAt": null
+        }
+      },
+      "shipCapabilities": {
+        "schemaVersion": 1,
+        "stealthDescent": "damaged",
+        "secureReturnVector": "unavailable",
+        "manualLanding": "unavailable",
+        "blackBoxProof": "missing",
+        "passengerCapacity": 0,
+        "creatureLifeSupport": "not_assessed",
+        "longRangeUplink": "offline"
+      },
+      "shipReconstruction": {
+        "schemaVersion": 1,
+        "completedStepIds": [],
+        "firstInstalledAt": null,
+        "completedAt": null,
+        "history": []
+      },
+      "shipFieldSupport": {
+        "schemaVersion": 1,
+        "lastServicedLevel": 0,
+        "serviceCount": 0,
+        "lastServicedAt": null,
+        "history": []
+      },
+      "shipArchive": {
+        "schemaVersion": 1,
+        "reviewedSectionIds": [],
+        "firstReviewedAt": null,
+        "completedAt": false,
+        "history": []
+      },
+      "protectedReturnProtocol": {
+        "schemaVersion": 1,
+        "completedStepIds": [],
+        "packetStatus": "not_prepared",
+        "transmissionStatus": "not_sent",
+        "firstAppliedAt": null,
+        "completedAt": null,
+        "history": []
+      },
+      "companionConsent": {
+        "schemaVersion": 2,
+        "activeCompanionId": "genes_lab_adult",
+        "records": []
+      },
+      "companionEarthMemory": {
+        "schemaVersion": 1,
+        "activeCompanionId": "genes_lab_adult",
+        "records": []
+      },
+      "legacyCapsule": null
+    },
+    "companionMedia": {
+      "schemaVersion": 2,
+      "activeIdentityKey": null,
+      "appearances": {},
+      "videos": {},
+      "lastMomentId": null,
+      "lastViewedAt": null
+    }
+  },
+  "quests": {
+    "active": [],
+    "completed": [
+      "beacon_first_contact"
+    ],
+    "lastDailyReset": null
+  },
+  "levels": {
+    "crystalCaves": {
+      "entered": false,
+      "completed": false,
+      "noDamageRun": false,
+      "speedrun": false,
+      "bestTime": null
+    },
+    "cosmicReef": {
+      "entered": false,
+      "completed": false,
+      "noDamageRun": false,
+      "speedrun": false,
+      "bestTime": null
+    },
+    "mythicalForest": {
+      "entered": true,
+      "completed": true,
+      "noDamageRun": false,
+      "speedrun": false,
+      "bestTime": 412000
+    },
+    "voidPeaks": {
+      "entered": false,
+      "completed": false,
+      "noDamageRun": false,
+      "speedrun": false,
+      "bestTime": null
+    },
+    "auroraDepths": {
+      "entered": false,
+      "completed": false,
+      "noDamageRun": false,
+      "speedrun": false,
+      "bestTime": null
+    },
+    "finalVoid": {
+      "entered": false,
+      "completed": false,
+      "noDamageRun": false,
+      "speedrun": false,
+      "bestTime": null
+    }
+  },
+  "creature": {
+    "hatched": true,
+    "hatchTransaction": null,
+    "hatchTime": 1699999990000,
+    "name": "Lab adult",
+    "level": 8,
+    "experience": 640,
+    "stats": {
+      "happiness": 100,
+      "energy": 100,
+      "health": 100
+    },
+    "traits": [],
+    "genes": {
+      "id": "genes_lab_adult",
+      "rarity": "rare",
+      "species": "hybrid",
+      "bodyType": "round",
+      "pattern": "spotted",
+      "markers": [
+        7,
+        11
+      ]
+    },
+    "genetics": null,
+    "colors": {
+      "body": 9662683,
+      "head": 14524637,
+      "wings": 9662683
+    },
+    "powerHistory": [],
+    "agencyHistory": [],
+    "portraits": {
+      "schemaVersion": 2,
+      "activeStage": null,
+      "byStage": {}
+    },
+    "identityArchive": {
+      "schemaVersion": 1,
+      "creatureId": "lab_adult",
+      "reviewedChapterIds": [],
+      "firstReviewedAt": null,
+      "completedAt": null,
+      "history": []
+    },
+    "care": {
+      "lastCareTime": null,
+      "lastOfflineRecoveryTime": null,
+      "careStreak": 0,
+      "careHistory": [
+        {
+          "action": "feed",
+          "timestamp": 1699999995777
+        }
+      ],
+      "dailyCare": {
+        "feedCount": 0,
+        "playCount": 0,
+        "petCount": 0,
+        "restCount": 0,
+        "lastReset": null
+      }
+    },
+    "lifecycle": {
+      "birthDate": 1699999990000,
+      "stage": "adult",
+      "lastStageChange": null,
+      "evolutionHistory": [
+        {
+          "from": "baby",
+          "to": "adult",
+          "timestamp": 1699999990777
+        }
+      ],
+      "departureDate": null,
+      "isStuck": false,
+      "stuckReason": null,
+      "warnings": {
+        "day85Shown": false,
+        "day88Shown": false,
+        "day89Shown": false
+      },
+      "hasDeparted": false,
+      "departureTimestamp": null
+    },
+    "mood": {
+      "current": "happy",
+      "lastMoodChange": null,
+      "moodHistory": []
+    },
+    "bond": {
+      "level": 5,
+      "experience": 0,
+      "totalInteractions": 72,
+      "careActions": 0,
+      "conversations": 0,
+      "levelsCompleted": 0,
+      "firstInteraction": null,
+      "lastInteraction": null,
+      "abilitySlots": {
+        "slot1": true,
+        "slot2": false,
+        "slot3": false
+      },
+      "equippedAbilities": {
+        "slot1": null,
+        "slot2": null,
+        "slot3": null
+      }
+    },
+    "id": "lab_adult",
+    "named": true,
+    "generation": 2,
+    "lineage": {
+      "schemaVersion": 1,
+      "creatureId": "lab_adult",
+      "origin": "hatch",
+      "generation": 2,
+      "parentIds": [],
+      "fusionOperationId": null,
+      "createdAt": 1699999990000
+    }
+  },
+  "world": {
+    "currentPosition": {
+      "x": 800,
+      "y": 600
+    },
+    "visitedAreas": [],
+    "discoveredObjects": {
+      "flowers": 0,
+      "trees": 0,
+      "rocks": 0
+    },
+    "interactionCount": 0,
+    "signalGarden": {
+      "stage": "seed",
+      "tendCount": 0,
+      "lastTendedDay": null,
+      "lastTendedAt": null,
+      "plantedAt": null,
+      "bloomedAt": null
+    },
+    "livingSignals": {
+      "observedIds": [],
+      "lastObservedId": null,
+      "lastObservedAt": null
+    },
+    "currentEcology": {
+      "schemaVersion": 3,
+      "observedSignalIds": [],
+      "restoredRegionIds": [],
+      "arrivalConsequences": {},
+      "regions": {},
+      "history": []
+    },
+    "fendCommunity": {
+      "schemaVersion": 1,
+      "builtProjectIds": [],
+      "contributionHistory": [],
+      "foundedAt": null,
+      "lastContributionAt": null
+    },
+    "village": {
+      "schemaVersion": 3,
+      "foundedAt": null,
+      "starterSuppliesClaimed": false,
+      "guidanceSeen": false,
+      "resources": {
+        "wood": 40,
+        "stone": 17,
+        "food": 9
+      },
+      "lifetimeProduced": {
+        "wood": 0,
+        "stone": 0,
+        "food": 0
+      },
+      "heartDecisions": [],
+      "buildings": [],
+      "history": [],
+      "lastReconciledAt": null
+    },
+    "fendResidents": {
+      "schemaVersion": 1,
+      "metResidentIds": [],
+      "activeRequestId": null,
+      "activeRequestBaseline": null,
+      "completedRequestIds": [],
+      "history": [],
+      "firstMetAt": null,
+      "lastInteractionAt": null,
+      "activeResidentId": null
+    },
+    "guardianResidents": {
+      "schemaVersion": 4,
+      "rescuedIds": [],
+      "metIds": [],
+      "interactions": {},
+      "rescueHistory": [],
+      "acceptedTaskIds": [],
+      "completedTaskIds": [],
+      "taskBaselines": {},
+      "activityEvidence": {
+        "gardenVisits": 0,
+        "campfireRests": 0,
+        "targetHits": 0
+      },
+      "routineAssists": {},
+      "routineHistory": [],
+      "expeditionHistory": [],
+      "pendingExpeditionDebrief": null,
+      "activeTeamGuardianId": null,
+      "lastInteractionId": null,
+      "lastInteractionAt": null
+    },
+    "guardianOutcomes": {
+      "schemaVersion": 1,
+      "records": {},
+      "history": []
+    },
+    "rescuedResidents": {
+      "schemaVersion": 3,
+      "rescuedIds": [],
+      "interactions": {},
+      "residency": {},
+      "rescueHistory": [],
+      "sanctuaryArrivalSeenIds": [],
+      "lastSanctuaryArrivalId": null,
+      "lastSanctuaryArrivalAt": null,
+      "lastInteractionId": null,
+      "lastInteractionAt": null
+    },
+    "fendCulture": {
+      "schemaVersion": 1,
+      "firstListening": {
+        "status": "locked",
+        "heldAt": null,
+        "operationId": null,
+        "selectedPriority": null
+      },
+      "history": []
+    },
+    "currentVeilMission": {
+      "schemaVersion": 1,
+      "status": "not_started",
+      "stabilizedAnchorIds": [],
+      "maskStatus": "inactive",
+      "transmissionStatus": "not_sent",
+      "startedAt": null,
+      "completedAt": null,
+      "history": []
+    },
+    "sanctuaryDecorations": {
+      "voidCrystals": 0,
+      "kinshipBeacon": {
+        "schemaVersion": 2,
+        "unlocked": false,
+        "firstOperationId": null,
+        "firstLitAt": null,
+        "lineageCount": 0,
+        "lastOperationId": null,
+        "lastLitAt": null,
+        "sharedLineageCount": 0,
+        "firstSharedOperationId": null,
+        "firstSharedAt": null,
+        "lastSharedOperationId": null,
+        "lastSharedAt": null
+      }
+    }
+  },
+  "settings": {
+    "audioMuted": false,
+    "hapticEnabled": true,
+    "screenShakeEnabled": true,
+    "volume": {
+      "master": 1,
+      "music": 0.7,
+      "sfx": 0.8
+    },
+    "graphics": {
+      "effects": true,
+      "particles": true,
+      "smoothMovement": true
+    },
+    "controls": {
+      "moveSpeed": 200
+    }
+  },
+  "unlocks": {
+    "scenes": [
+      "HatchingScene"
+    ],
+    "features": [],
+    "achievements": []
+  },
+  "breedingShrine": {
+    "schemaVersion": 2,
+    "unlocked": false,
+    "discovery": {
+      "schemaVersion": 1,
+      "state": "dormant",
+      "source": "fend_current_archive",
+      "discoveredAt": null,
+      "stabilizedAt": null,
+      "firstLineageAt": null,
+      "firstLineageOperationId": null,
+      "introductionAcknowledged": false
+    },
+    "lastBreedingTime": null,
+    "breedingCooldown": 86400000,
+    "breedingHistory": [],
+    "pendingFusion": null,
+    "completedOperationIds": [],
+    "reconciliationQueue": [],
+    "sharedFusion": {
+      "schemaVersion": 1,
+      "activeInvitation": null,
+      "completedOperationIds": [],
+      "pendingReveal": null
+    },
+    "consent": {
+      "schemaVersion": 1,
+      "records": [],
+      "sharedBoundary": {
+        "status": "sealed",
+        "reason": "protected_invitation_required",
+        "requires": [
+          "keeper_a_grant",
+          "keeper_b_grant",
+          "companion_a_grant",
+          "companion_b_grant",
+          "server_invitation"
+        ],
+        "excludes": [
+          "public_matchmaking",
+          "open_trading",
+          "player_search",
+          "location_sharing"
+        ]
+      }
+    }
+  },
+  "dailyBonus": {
+    "lastLoginDate": null,
+    "currentStreak": 0,
+    "longestStreak": 0,
+    "totalLogins": 0,
+    "claimedToday": false
+  },
+  "pitySystem": {
+    "hatchesSinceEpic": 0,
+    "guaranteedEpicNext": false,
+    "totalHatches": 0,
+    "pitiesTriggered": 0,
+    "lastHatchTime": null,
+    "history": []
+  },
+  "rerollSystem": {
+    "freeRerollsAvailable": 1,
+    "totalRerolls": 0,
+    "successfulRerolls": 0,
+    "rerollHistory": [],
+    "lastRerollTime": null
+  },
+  "creatures": [
+    {
+      "hatched": true,
+      "hatchTransaction": null,
+      "hatchTime": 1699999990000,
+      "name": "Lab adult",
+      "level": 8,
+      "experience": 640,
+      "stats": {
+        "happiness": 100,
+        "energy": 100,
+        "health": 100
+      },
+      "traits": [],
+      "genes": {
+        "id": "genes_lab_adult",
+        "rarity": "rare",
+        "species": "hybrid",
+        "bodyType": "round",
+        "pattern": "spotted",
+        "markers": [
+          7,
+          11
+        ]
+      },
+      "genetics": null,
+      "colors": {
+        "body": 9662683,
+        "head": 14524637,
+        "wings": 9662683
+      },
+      "powerHistory": [],
+      "agencyHistory": [],
+      "portraits": {
+        "schemaVersion": 2,
+        "activeStage": null,
+        "byStage": {}
+      },
+      "identityArchive": {
+        "schemaVersion": 1,
+        "creatureId": "lab_adult",
+        "reviewedChapterIds": [],
+        "firstReviewedAt": null,
+        "completedAt": null,
+        "history": []
+      },
+      "care": {
+        "lastCareTime": null,
+        "lastOfflineRecoveryTime": null,
+        "careStreak": 0,
+        "careHistory": [
+          {
+            "action": "feed",
+            "timestamp": 1699999995777
+          }
+        ],
+        "dailyCare": {
+          "feedCount": 0,
+          "playCount": 0,
+          "petCount": 0,
+          "restCount": 0,
+          "lastReset": null
+        }
+      },
+      "lifecycle": {
+        "birthDate": 1699999990000,
+        "stage": "adult",
+        "lastStageChange": null,
+        "evolutionHistory": [
+          {
+            "from": "baby",
+            "to": "adult",
+            "timestamp": 1699999990777
+          }
+        ],
+        "departureDate": null,
+        "isStuck": false,
+        "stuckReason": null,
+        "warnings": {
+          "day85Shown": false,
+          "day88Shown": false,
+          "day89Shown": false
+        },
+        "hasDeparted": false,
+        "departureTimestamp": null
+      },
+      "mood": {
+        "current": "happy",
+        "lastMoodChange": null,
+        "moodHistory": []
+      },
+      "bond": {
+        "level": 5,
+        "experience": 0,
+        "totalInteractions": 72,
+        "careActions": 0,
+        "conversations": 0,
+        "levelsCompleted": 0,
+        "firstInteraction": null,
+        "lastInteraction": null,
+        "abilitySlots": {
+          "slot1": true,
+          "slot2": false,
+          "slot3": false
+        },
+        "equippedAbilities": {
+          "slot1": null,
+          "slot2": null,
+          "slot3": null
+        }
+      },
+      "id": "lab_adult",
+      "named": true,
+      "generation": 2,
+      "lineage": {
+        "schemaVersion": 1,
+        "creatureId": "lab_adult",
+        "origin": "hatch",
+        "generation": 2,
+        "parentIds": [],
+        "fusionOperationId": null,
+        "createdAt": 1699999990000
+      }
+    }
+  ],
+  "activeCreatureIndex": 0,
+  "maxCreatures": 8,
+  "codex": {
+    "discovered": 0,
+    "total": 50,
+    "byRarity": {
+      "common": 0,
+      "uncommon": 0,
+      "rare": 0,
+      "epic": 0,
+      "legendary": 0
+    }
+  },
+  "memory": {
+    "optIn": false,
+    "lastOptInChange": null,
+    "lastPurge": null,
+    "deletionLog": [],
+    "creatures": {}
+  },
+  "longTermMemory": {
+    "creatures": {},
+    "global": {
+      "keyValue": {},
+      "lastUpdated": null
+    }
+  },
+  "agent": {
+    "enabled": true,
+    "tasks": {
+      "active": [],
+      "pending": [],
+      "history": []
+    },
+    "reminders": [],
+    "toolUsage": {},
+    "pendingExploration": null,
+    "settings": {
+      "allowExternalAPIs": false,
+      "backgroundTasksEnabled": true,
+      "maxActiveTools": 3,
+      "toolCooldownMultiplier": 1
+    },
+    "lastActivity": null
+  },
+  "hubWorld": {
+    "currentGate": "main",
+    "gates": {
+      "main": {
+        "unlocked": true,
+        "name": "Sanctuary",
+        "biome": "nebula",
+        "visits": 0
+      },
+      "stellar_reef": {
+        "unlocked": false,
+        "name": "Stellar Reef",
+        "biome": "stellar_reef",
+        "visits": 0,
+        "unlockCost": 500,
+        "shipPart": "Dimensional Drive"
+      },
+      "crystal_caves": {
+        "unlocked": false,
+        "name": "Crystal Caves",
+        "biome": "crystal_caves",
+        "visits": 0,
+        "unlockCost": 500,
+        "shipPart": "Crystal Core Engine"
+      },
+      "mythical_forest": {
+        "unlocked": true,
+        "name": "Mythical Forest",
+        "biome": "mythical_forest",
+        "visits": 0,
+        "inDevelopment": false,
+        "unlockCost": 0,
+        "shipPart": "Forest Core"
+      },
+      "void_peaks": {
+        "unlocked": false,
+        "name": "Void Peaks",
+        "biome": "void_peaks",
+        "visits": 0,
+        "inDevelopment": false,
+        "unlockCost": 1000,
+        "shipPart": "Hull Plating"
+      },
+      "aurora_depths": {
+        "unlocked": false,
+        "name": "Aurora Depths",
+        "biome": "aurora_depths",
+        "visits": 0,
+        "inDevelopment": false,
+        "unlockCost": 750,
+        "shipPart": "Aurora Reactor"
+      },
+      "final_void": {
+        "unlocked": false,
+        "name": "The Final Void",
+        "biome": "final_void",
+        "visits": 0,
+        "inDevelopment": false,
+        "unlockCost": 0,
+        "shipPart": "Command Module",
+        "requiresAllParts": true
+      }
+    },
+    "mapsOwned": [],
+    "lastVisitedGate": "main",
+    "shipParts": {
+      "collected": [
+        "forest_core"
+      ],
+      "totalRequired": 5,
+      "finalBossUnlocked": false
+    }
+  },
+  "safety": {
+    "kidProfile": {
+      "enabled": false,
+      "nickname": "",
+      "emojiAvatar": "🛸",
+      "ageBracket": "7-9",
+      "createdAt": null
+    },
+    "parentalControls": {
+      "enabled": false,
+      "requireChatApproval": true,
+      "allowMemoryTracking": false,
+      "allowExplorationWithoutGuardian": true,
+      "screenTimeLimitMinutes": 0,
+      "lastUpdated": null
+    },
+    "guardian": {
+      "pinHash": null,
+      "lastVerified": null
+    },
+    "auditLog": []
+  },
+  "tutorial": {
+    "profileSeen": false,
+    "evolutionSeen": false,
+    "departureSeen": false,
+    "abandonmentSeen": false,
+    "breedingUnlockSeen": false,
+    "openingJourney": {
+      "schemaVersion": 1,
+      "milestone": "creature_named",
+      "completedMilestones": [
+        "hatch_started",
+        "creature_hatched",
+        "creature_named"
+      ],
+      "startedAt": 1699999999889,
+      "updatedAt": 1699999999889,
+      "recoveryCount": 0,
+      "portrait": {
+        "status": "not_requested",
+        "updatedAt": null
+      }
+    }
+  },
+  "inventory": {
+    "items": [
+      {
+        "id": "egg_rare",
+        "type": "egg",
+        "quantity": 1
+      },
+      {
+        "id": "void_crystal",
+        "type": "material",
+        "quantity": 2
+      }
+    ],
+    "pendingBossRewards": []
+  }
+}

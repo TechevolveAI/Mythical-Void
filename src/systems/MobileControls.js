@@ -718,7 +718,7 @@ class MobileControls {
             if (!this.isJoystickHit(point)) return;
 
             event._mvfPointerId = getPointerId(event.pointerId);
-            event.preventDefault();
+            if (event.cancelable !== false) event.preventDefault();
             event.stopImmediatePropagation();
             activateJoystick({
                 pointerId: event._mvfPointerId ?? event.pointerId
@@ -736,7 +736,7 @@ class MobileControls {
 
             if (!this.joystickActive || !isJoystickPointer(eventPointerId)) return;
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
-            event.preventDefault();
+            if (event.cancelable !== false) event.preventDefault();
             event.stopImmediatePropagation();
             this.updateJoystickFromPointer(point, { relativeToTouchStart: true });
         };
@@ -744,7 +744,7 @@ class MobileControls {
         this.canvasPointerUpHandler = event => {
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             if (!isJoystickPointer(getPointerId(event.pointerId))) return;
-            event.preventDefault();
+            if (event.cancelable !== false) event.preventDefault();
             event.stopImmediatePropagation();
             this.finishJoystickInput(this.activePointerId);
         };
@@ -756,7 +756,7 @@ class MobileControls {
                 const identifier = getPointerId(touch?.identifier);
                 const point = this.getCanvasGamePoint(touch);
                 if (identifier === null || !this.isJoystickHit(point)) continue;
-                event.preventDefault();
+                if (event.cancelable !== false) event.preventDefault();
                 event.stopImmediatePropagation?.();
                 activateJoystick({ pointerId: identifier }, point, 'touch');
                 return;
@@ -773,7 +773,7 @@ class MobileControls {
                 }
                 const point = this.getCanvasGamePoint(touch);
                 if (!point) return;
-                event.preventDefault();
+                if (event.cancelable !== false) event.preventDefault();
                 event.stopImmediatePropagation?.();
                 this.updateJoystickFromPointer(point, { relativeToTouchStart: true });
                 return;
@@ -787,7 +787,7 @@ class MobileControls {
             for (let i = 0; i < changed.length; i += 1) {
                 const identifier = getPointerId(changed[i].identifier);
                 if (identifier === this.activePointerId) {
-                    event.preventDefault();
+                    if (event.cancelable !== false) event.preventDefault();
                     event.stopImmediatePropagation?.();
                     this.finishJoystickInput(identifier);
                     return;
@@ -802,7 +802,7 @@ class MobileControls {
                 if (getPointerId(changed[index]?.identifier) !== this.activePointerId) {
                     continue;
                 }
-                event.preventDefault();
+                if (event.cancelable !== false) event.preventDefault();
                 event.stopImmediatePropagation?.();
                 this.resetJoystick(true);
                 return;

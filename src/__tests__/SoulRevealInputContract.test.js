@@ -45,12 +45,12 @@ describe('Soul Reveal naming input', () => {
         expect(source).toContain("this.nameInput = '';");
         expect(source).toContain('this.portraitPromise = null;');
         expect(source).toContain('this.resumeLivingFormHandoff(width, height);');
-        expect(source).toContain(
-            "window.GameState?.set('tutorial.livingFormPending', true);"
-        );
-        expect(source).toContain(
-            "window.GameState?.set('tutorial.livingFormPending', false);"
-        );
+        expect(source).toContain('state.prepareCreatureNamingDraft(name, soulData, achievements, quests)');
+        expect(fs.readFileSync(path.join(__dirname, '../systems/GameState.js'), 'utf8'))
+            .toContain("draft.set('tutorial.livingFormPending', true);");
+        expect(source).toContain("this.saveLivingFormProgress(owner, 'continue')");
+        expect(fs.readFileSync(path.join(__dirname, '../systems/GameState.js'), 'utf8'))
+            .toContain("draft.set('tutorial.livingFormPending', false);");
         expect(hatching).toContain('this.portraitPromise = null;');
         expect(hatching).toContain(
             "this.scene.start('SoulRevealScene', { resumeLivingForm: true });"

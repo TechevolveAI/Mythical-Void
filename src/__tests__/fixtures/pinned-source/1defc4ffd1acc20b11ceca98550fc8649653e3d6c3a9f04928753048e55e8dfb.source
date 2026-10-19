@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "syntheticOnly": true,
+  "authoredAgainst": "cef5191317f26f45d70af698dc0c79127fbee7a1",
+  "gameVersion": "1.1.0",
+  "fixedTime": 1700000000777,
+  "seedPath": "docs/planning/evidence/shared-profile-cpu-diagnostic-2026-09-28/array-01.seed.json.gz",
+  "fixtures": [
+    {
+      "id": "new-player",
+      "note": "Unhatched egg, no collection or progression.",
+      "sha256": "da9249c7594e2af04b1c960c4e83ab3ddc00d9f069edf8d83aec3475f9dcc2d1"
+    },
+    {
+      "id": "restricted-baseline",
+      "note": "Unpadded synthetic f5 adult baseline; admission control, not a whole-game specification.",
+      "sha256": "e426ee9470bd818588bd0cf747e7d27154701318ead634fa6dfb9c663ce2ba00"
+    },
+    {
+      "id": "returning-player",
+      "note": "Forest completion, currency, village resources, quest and adult care progress.",
+      "sha256": "9a0a7471796424cb26a7bb1b2147af67aaf0904326b4e08e93e7f651fbbaa501"
+    },
+    {
+      "id": "progressed-roster",
+      "note": "Four lifecycle stages with immutable creature and gene IDs, lineage, evolution and bond history.",
+      "sha256": "f78a4e852ee8ad412ff05b77e8d60dc8605a2e7c5fe37c6e4963932e8a17b93b"
+    },
+    {
+      "id": "legacy-single-creature",
+      "note": "Pre-roster save; existing gene identity and completed route must survive.",
+      "sha256": "ca391ceb4f114a90a23bf03d9f8256c62d95c58039f597cb9dd65c97b2d3bdb3"
+    },
+    {
+      "id": "legacy-count-only",
+      "note": "Older count-only progress, requiring explicit route backfill, not loss of two completed levels.",
+      "sha256": "93f63c1e0df64b63ce880a117d026afffd59c91e6d77963d2520c2392aff0d1c"
+    },
+    {
+      "id": "completed-local-fusion",
+      "note": "Two retained parents and selected offspring; lineage, operation receipt and cooldown.",
+      "sha256": "902e1953eaa9f1703f2d87806d89d4f92b6788126e892bd5abdab03eff691720"
+    },
+    {
+      "id": "completed-shared-fusion",
+      "note": "Exact existing synthetic materialized shared offspring and durable receipts.",
+      "sha256": "7f694d66abf05642fc729e978ed9abe511435691507c88f1c4cf2d46085a4f1e"
+    },
+    {
+      "id": "existing-media",
+      "note": "Durable synthetic portrait/video references and already-viewed/pending records; no URL is fetched.",
+      "sha256": "77fec0af016f9ef35263014e156e15a7fbf836711ac32b85886da954910f1717"
+    },
+    {
+      "id": "legacy-media-reference",
+      "note": "Legacy private-storage job references gain the existing durable assetRef without replacing identity.",
+      "sha256": "0b1dd4aee22d6a19760cf4b330b3651a846bbb56155f899d1e2d83032f947ec1"
+    },
+    {
+      "id": "pending-fusion",
+      "note": "Reserved local offspring must not be silently dropped to satisfy restricted migration admission.",
+      "sha256": "78cd898e2da900716a46af8de163082c7bcb36f231eacd0548dbfd4590d93c3a"
+    },
+    {
+      "id": "pending-reconciliation",
+      "note": "Retained committed offspring and queued receipt reconciliation; no provider invoked.",
+      "sha256": "dea178d97d0cb3fd65627b717a1753ba466a578415b56d86399a3ac9ab06c108"
+    },
+    {
+      "id": "pending-shared-reveal",
+      "note": "Completed shared offspring with unseen reveal remains intact.",
+      "sha256": "f2f138a5a0287870ca8bd6503a062315544406288a6742e0a8b2ad4ba5ebc20b"
+    },
+    {
+      "id": "pending-hatch",
+      "note": "Existing hatch reveal state is retained, not cleared by the test adapter.",
+      "sha256": "e5695ffad148a4456999f3a505be8b2c25fb47d7a76199af590901f425f7a602"
+    },
+    {
+      "id": "protected-return-active",
+      "note": "Protected Return activity is outside the f5 restricted profile.",
+      "sha256": "55c5848dd404cc480d15d28a9bd937eebc021e76c3409df39a94189d467b3fbf"
+    },
+    {
+      "id": "current-veil-active",
+      "note": "Current Veil activity is outside the f5 restricted profile.",
+      "sha256": "50d21d5f736df7d6e712bd749444338b77bc62aa5956f4bf9f65e13d0d00bb39"
+    },
+    {
+      "id": "shared-history-at-limit",
+      "note": "Twenty-five durable shared operations: admission is distinct from permission to append another operation.",
+      "sha256": "4154b1c0abc05c59de1af321cda1c0da6bc2449fb4a4f77c031211ddbb97e48b"
+    },
+    {
+      "id": "shared-history-over-limit",
+      "note": "Valid JSON with 26 durable operation IDs exposes the current 25-entry trimming limit; explicit hold, never accepted as lossless.",
+      "sha256": "d6dc88ec2faba729705cbb1516f51b2d3fd58a733e440c6f390c883e069a4535"
+    },
+    {
+      "id": "future-major-version",
+      "note": "Unsupported future version must be held without adopting a default state.",
+      "sha256": "3e6cbb85f9c1a26e592a8f89020a63f093a270c03e6cd1d4820a58173cbcfcb0"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 function read(relativePath) {
     return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
@@ -71,11 +72,11 @@ describe('rescued resident gameplay contract', () => {
     });
 
     test('makes the Aurora-to-Final-Void handoff explicit', () => {
-        expect(aurora).toContain('FINAL ROUTE IDENTIFIED');
-        expect(aurora).toContain(
-            'Install the Aurora Reactor at Wanderer-77. The Final Void opens next.'
-        );
-        expect(aurora).toContain('[ INSTALL AURORA REACTOR ]');
+        expectAuroraCompletionConnection();
+        expect(aurora).toContain('return finishAuroraCompletion.present(this);');
+        const summary = fs.readFileSync(path.join(__dirname, '../systems/RegionalVictorySummary.js'), 'utf8');
+        expect(summary).toContain('Next: fit the reactor to open the Final Void');
+        expect(summary).toContain('Ready to install at Wanderer-77.');
         expect(gameScene).toContain(
             "this.shipReconstructionNextGateLabel === 'The Final Void'"
         );

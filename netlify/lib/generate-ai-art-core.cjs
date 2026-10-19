@@ -13,6 +13,8 @@ const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
 const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
 const SUPABASE_PROJECT_URL = 'https://mkcmdbzcihjgidjuypqe.supabase.co';
 const PORTRAIT_BUCKET = 'creature-portraits';
+// Art wording is versioned separately from the saved identity/cache contract.
+const CREATURE_ART_DIRECTION = 'living-interpretation-v1';
 const MAX_BODY_BYTES = 400000;
 const MAX_OUTPUT_BYTES = 12 * 1024 * 1024;
 const OUTPUT_TTL_SECONDS = 55 * 60;
@@ -123,15 +125,15 @@ const BODY_MECHANICS = Object.freeze({
     winged: 'Its body is balanced around the visible wings, with believable chest structure and folded membrane or feather weight.'
 });
 const HEAD_BIOLOGY = Object.freeze({
-    feline: 'Keep the rounded cranial vault, paired triangular sensory pinnae, short muzzle, and whisker filaments visible in the reference; realize them as convergent alien biology, not an Earth cat.',
-    canine: 'Keep the rounded cranial mass, paired long drooping sensory pinnae, compact projecting snout, and small dark nose visible in the reference; realize them as alien sensory anatomy, not an Earth dog.',
-    avian: 'Keep the compact round cranium, side-pointing keratin beak, paired eyes, and three-part crown crest visible in the reference; use plausible alien feather or filament structures without turning it into an Earth bird.',
-    reptile: 'Keep the angular tapered cranium, paired upper cranial spikes, and two narrow vertical-pupil eyes visible in the reference; support them with plausible scale, horn, and jaw anatomy.',
-    aquatic: 'Keep the broad streamlined oval cranium, paired lateral sensory fins, and two large lateral eyes visible in the reference; realize them as amphibious alien anatomy adapted to the damp Sanctuary.',
-    simian: 'Keep the rounded cranial vault, paired circular lateral pinnae, lighter oval facial plane, short nose, and two forward eyes visible in the reference; avoid recognizable human or Earth-primate features.',
-    insectoid: 'Keep the compact oval cranial carapace, paired faceted compound eyes, and exactly two long tipped antennae visible in the reference; resolve them into intricate living sensory organs.',
-    rodent: 'Keep the rounded cranium, paired tall membrane-lined ears, small nose, paired eyes, and whisker filaments visible in the reference; realize them as alien adaptations, not an Earth rabbit or mouse.',
-    cervine: 'Keep the narrow vertical cranium, tapered snout, paired pointed ears, and paired branched crown growths visible in the reference; make the crown growths biological and preserve their exact count.'
+    feline: 'Interpret the compact attention region, paired lateral points and fine sensory filaments visible in the reference as integrated alien sensory tissue. Let the points become curved listening membranes and the central facial mark become a subtle sensing organ, not mandatory triangular ears or a cat muzzle.',
+    canine: 'Interpret the rounded attention region, longer lateral features and central contrasting facial mark visible in the reference as connected living folds and scent-sensitive tissue. Preserve their recognisable arrangement without requiring a projecting snout, dark nose or Earth-dog anatomy.',
+    avian: 'Interpret the directional facial feature, paired eyes and layered crown visible in the reference as a coherent alien attention system. Develop flexible sensory ridges and fine filament structures; a pointed graphic is not an instruction to attach a rigid triangular beak or reproduce an Earth bird.',
+    reptile: 'Interpret the tapered attention region, paired crown accents and narrow eyes visible in the reference through flexible dermal ridges and living protective tissue. Keep the directional character while allowing curved transitions instead of a geometrically angular skull or decorative spikes.',
+    aquatic: 'Interpret the broad attention region, lateral fins and paired eyes visible in the reference through thin pleated sensory membranes and fluid-supported tissue. Preserve the broad silhouette while replacing flat oval masses with supple, continuously connected anatomy.',
+    simian: 'Interpret the forward attention, lighter central facial region and paired lateral accents visible in the reference as alien sensing surfaces integrated into the body. The lighter patch may be translucent tissue rather than an oval mask; do not require a human-like nose, circular ears or an Earth-primate face.',
+    insectoid: 'Interpret the compact attention region, compound-eye cues and paired tipped antennae visible in the reference as living sensory organs. Realise the antennae with flexible tissue and the eyes with coherent optical microstructure, not an oval helmet with attached toy parts.',
+    rodent: 'Interpret the tall paired sensory structures, fine filaments and compact attention region visible in the reference as delicate membrane-and-tissue adaptations. Keep their long-range sensing character without imposing a small dark nose, rabbit ears or familiar Earth-animal anatomy.',
+    cervine: 'Interpret the narrow attention region and paired branching crown structures visible in the reference as connected living sensory growths. Preserve the main branching arrangement while developing organic junctions and flexible tissue, not a deer muzzle or geometric antlers.'
 });
 const COMPLEMENTARY_HEAD_TYPES = Object.freeze({
     feline: 'avian',
@@ -457,7 +459,7 @@ function buildHybridMechanics(primaryHead, hybridType) {
             : 'subtle composite';
         return {
             secondaryHeadArchetype: secondary,
-            description: `Preserve the sprite renderer's ${complexity} head: one coherent ${primaryLabel} cranial plan visibly fused with smaller, slightly offset ${secondaryLabel} traits. Match the authoritative identity reference; do not create a second head, a second face, a collage, or extra eyes and appendages.`
+            description: `Interpret the ${complexity} identity as one coherent ${primaryLabel} cranial plan visibly fused with smaller, slightly offset ${secondaryLabel} traits. Blend their sensory functions through organically connected tissue rather than assembling literal sprite shapes. Preserve the reference's defining arrangement; do not create a second head, a second face, a collage, or extra eyes and appendages.`
         };
     }
 
@@ -470,7 +472,7 @@ function buildHybridMechanics(primaryHead, hybridType) {
 
     return {
         secondaryHeadArchetype: null,
-        description: `Use one coherent ${primaryLabel} cranial plan with exactly the eyes, ears, antennae, crown growths, and facial structures visible in the authoritative identity reference; do not blend in another head archetype.`
+        description: `Interpret one coherent ${primaryLabel} cranial plan, retaining the count and defining arrangement of its visible sensory structures while creatively resolving their contours and tissue. Do not treat the internal archetype label as an instruction to copy an Earth species, add new appendages or blend in another head archetype.`
     };
 }
 
@@ -538,6 +540,8 @@ function buildCreaturePrompt(spec, style, {
     const affinity = spec.affinity || {};
     const variants = spec.variants || {};
     const morphology = spec.morphology || {};
+    const paintedStyle = style === 'storybook' || style === 'watercolor';
+    const isHatchling = spec.stage === 'baby';
     const abilities = Array.isArray(affinity.abilities)
         ? affinity.abilities.filter(value => safeIdentifier(value, '')).slice(0, 5)
         : [];
@@ -545,29 +549,32 @@ function buildCreaturePrompt(spec, style, {
 
     const referenceContract = hasReferenceImage
         ? [
-            'IMAGE 1 IS THE AUTHORITATIVE IDENTITY REFERENCE, NOT A LOOSE STYLE REFERENCE.',
-            'Depict the same individual. Lock its high-signal silhouette, body-to-head ratio, face and eye arrangement, limb and wing count, antennae, crown shapes, tail, signature markings, mutations, and color blocking.',
+            'IMAGE 1 IS THE AUTHORITATIVE IDENTITY REFERENCE, NOT A LITERAL ANATOMICAL BLUEPRINT.',
+            'Depict the same individual through recognisable identity anchors: overall body mass and proportions, life stage, relative scale, palette, main sensory-feature arrangement, actual limb and wing count, signature markings and recorded mutations.',
             'The pixels are an identity map, not the requested visual style. Creatively resolve low-resolution ambiguity into plausible alien anatomy, musculature, skin, scales, feathers, crystal, translucency, or bioluminescence.',
-            'Invent fine biological detail and environmental adaptation where the pixels cannot specify it, while keeping the creature immediately recognizable as this individual.',
-            'Identity fidelity means anatomy, silhouette, color blocking, mutations, and expression. It does not mean preserving pixel edges, block geometry, flat icon shapes, or the sprite rendering technique.',
-            'Translate every simple pixel mass into coherent living anatomy. Break decisively from the low-resolution surface treatment while preserving the individual underneath it.',
-            'Treat any visible head ring, visor-like shell, antenna, crown, ear, tail, wing, or unusual appendage as part of the creature biology. Do not turn it into human clothing or a spacesuit.',
+            'Creatively reinterpret contours, facial forms, tissue connections and environmental adaptations, not just surface texture, while keeping the creature recognisable as this individual.',
+            'Identity fidelity does not require exact polygon outlines, a literal triangular nose, circular head or oval torso. A simple sprite is visual shorthand for a living being, not a model to extrude.',
+            'Translate simple masses into coherent living anatomy: a triangular accent may suggest folded sensory tissue, side points may become attached membranes, and oval markings may suggest structures beneath the skin. Use these as examples only when the actual traits support them; do not give every creature those features.',
+            'Distinguish anatomy from effects. Ignore freestanding aura discs, selection rings, floating particles, labels and interface decoration; do not turn them into body parts. Interpret only attached biological features supported by the reference and bounded traits, never human clothing or a spacesuit.',
             'Ignore transparent pixels and any plain reference-sheet background.'
         ].join(' ')
-        : 'Follow the genetics below as a fixed character model sheet. Do not invent a different species.';
+        : 'Use the bounded genetics below as a fixed character model sheet for identity, not literal geometric construction. Creatively interpret those traits as coherent living alien biology without inventing a different species or unsupported appendages.';
     const identityReference = hasReferenceImage
         ? 'IMAGE 1'
         : 'the fixed character model sheet';
 
     return [
         'TASK // LIVING FORM REVEAL',
-        'Create one emotionally appealing, non-human mythical creature in a full-body cinematic field portrait.',
+        `ART DIRECTION // ${CREATURE_ART_DIRECTION}`,
+        paintedStyle
+            ? 'Create one emotionally appealing, non-human mythical creature in a full-body painted field portrait.'
+            : 'Create one emotionally appealing, non-human mythical creature in a full-body cinematic field portrait.',
         referenceContract,
         '',
         'IDENTITY LOCK',
         `A ${formatPromptIdentifier(spec.stage, 'baby')} ${formatPromptIdentifier(spec.species, 'cosmic creature')}.`,
-        `Visible pixel anatomy: ${formatPromptIdentifier(morphology.bodyArchetype, silhouette.bodyType || 'balanced')} body, ${formatPromptIdentifier(morphology.headArchetype, 'unknown')} head, ${formatPromptIdentifier(morphology.hybridType, 'single species')} hybrid structure, and ${formatPromptIdentifier(morphology.elementalAura, 'cosmic')} aura. These four traits describe the sprite that hatched and must not be substituted.`,
-        `Latent genetic body: ${formatPromptIdentifier(silhouette.geneticBodyType, silhouette.bodyType || 'balanced')}. Only imply latent traits that are already visible in ${identityReference}; never override its anatomy.`,
+        `Visible identity cues: ${formatPromptIdentifier(morphology.bodyArchetype, silhouette.bodyType || 'balanced')} body, ${formatPromptIdentifier(morphology.headArchetype, 'unknown')} head, ${formatPromptIdentifier(morphology.hybridType, 'single species')} hybrid structure, and ${formatPromptIdentifier(morphology.elementalAura, 'cosmic')} aura. Preserve this individual's overall plan and affinity; these internal labels are not literal geometric instructions or permission to copy Earth-animal anatomy. Express affinity through living material and restrained light, not an enclosing ring.`,
+        `Latent genetic body: ${formatPromptIdentifier(silhouette.geneticBodyType, silhouette.bodyType || 'balanced')}. Only imply latent traits already visible in ${identityReference}; do not invent future-stage structures or abilities.`,
         `Wing gene: ${formatPromptIdentifier(silhouette.wingType, 'none')}; relative span ${Number(silhouette.wingSpan || 1).toFixed(2)}. Preserve only the wing structures visibly present in ${identityReference} at this life stage.`,
         `Palette anchors with minimal hue drift: body ${palette.body}; head ${palette.head}; wings ${palette.wings}; eyes ${palette.eyes}; feet ${palette.feet}; markings ${palette.markings}.`,
         `Eyes: ${formatPromptIdentifier(eyes.size, 'medium')}, softly glowing; unusual placement ${formatPromptIdentifier(eyes.unusualPlacement, 'none')}.`,
@@ -589,37 +596,57 @@ function buildCreaturePrompt(spec, style, {
         `Physical scale: ${realization.physicalScale}; make terrain, plants, depth, and lens perspective prove that scale.`,
         `Ecological response: ${realization.ecologyResponse}`,
         realization.imperfection,
-        'These are biological interpretation instructions, not permission to change the recorded silhouette, appendage count, mutations, color blocking, or expression.',
+        'RECOGNISABLE, NOT LITERAL // Preserve identity anchors while allowing organic anatomical interpretation. Do not copy primitive geometry, replace the individual, add unsupported functional appendages or erase its distinctive mutations and colour pattern.',
+        'Life-stage continuity: preserve the recorded stage and recognisable lineage. A baby must not become an adult, and fused traits must resolve into one coherent individual rather than unrelated pieces.',
         'Push the realization beyond a polished sprite: invent credible micro-anatomy, material transitions, weight, breathing, and ecosystem contact that could only belong to this individual.',
         '',
         'STYLE SEPARATION // MANDATORY',
-        'The output must look captured by a physical camera in a real alien ecosystem, not rendered from a game asset.',
-        'Show continuous high-frequency biological texture: pores, fine scales, translucent membranes, feather filaments, mineral growth, moisture, subsurface scattering, and natural imperfections as appropriate to this individual.',
+        paintedStyle
+            ? 'Interpret living tissue through the selected painting medium, with expressive contours, dimensional form and tactile materials. Do not simply paint over or trace the game sprite.'
+            : 'The output must look captured by a physical camera in a real alien ecosystem, not rendered from a game asset.',
+        paintedStyle
+            ? 'Suggest fine scales, translucent membranes, feather filaments, mineral growth, moisture and natural imperfections through purposeful brushwork appropriate to this individual.'
+            : 'Show continuous high-frequency biological texture: pores, fine scales, translucent membranes, feather filaments, mineral growth, moisture, subsurface scattering, and natural imperfections as appropriate to this individual.',
         'Use complex curved anatomy and realistic depth. Never trace the sprite outline, preserve square pixels, reproduce flat circles or rectangles, or retain low-resolution stair-stepping.',
         'At normal viewing size there must be no visible pixel grid, block edge, sprite softness, artificial upscaling, or game-render appearance anywhere in the creature or terrain.',
         '',
-        'OPTICAL REALISM GATE // MANDATORY',
-        'The frame must plausibly look photographed on location with a living organism, not presented as character design, concept art, or a polished animation render.',
-        'Preserve the recorded eye size and placement, but construct real corneal depth, wet tear lines, eyelid margins or nictitating membranes, naturally imperfect pupils, and scene-derived catchlights. Never use glossy toy or animation-character eyes.',
-        'Use physically coherent light sources, contact occlusion, subtle lens aberration, restrained sensor grain, imperfect focus falloff, and atmospheric scattering consistent with one real camera exposure.',
-        'Every surface needs irregular pore-scale microgeometry, uneven moisture, fine debris, and organic transitions between skin, scale, feather, membrane, crystal, or filament. Avoid smooth digital surfaces, airbrushing, and pristine bilateral symmetry.',
-        'Keep the creature warm and emotionally legible through posture, gaze, breathing, and proximity to the Sanctuary, not by making it chibi, infantile, or generically cute.',
+        ...(paintedStyle ? [
+            'PAINTED MATERIAL AND DEPTH // MANDATORY',
+            'Use the requested illustration medium consistently for both creature and habitat. Build depth through overlapping forms, coherent lighting, contact shadows and atmospheric perspective, not camera artifacts or photographic surface noise.',
+            'Keep the recorded eye size and recognisable arrangement, expressing living attention through painted depth and scene-derived highlights rather than glossy toy eyes.',
+            'Let brushwork describe organic transitions and irregular growth. Retain weight, compression and contact with the world without turning the subject into a flat icon, a toy or disconnected geometric pieces.'
+        ] : [
+            'OPTICAL REALISM GATE // MANDATORY',
+            'The frame must plausibly look photographed on location with a living organism, not presented as character design, concept art, or a polished animation render.',
+            'Preserve the recorded eye size and placement, but construct real corneal depth, wet tear lines, eyelid margins or nictitating membranes, naturally imperfect pupils, and scene-derived catchlights. Never use glossy toy or animation-character eyes.',
+            'Use physically coherent light sources, contact occlusion, subtle lens aberration, restrained sensor grain, imperfect focus falloff, and atmospheric scattering consistent with one real camera exposure.',
+            'Every surface needs irregular pore-scale microgeometry, uneven moisture, fine debris, and organic transitions between skin, scale, feather, membrane, crystal, or filament. Avoid smooth digital surfaces, airbrushing, and pristine bilateral symmetry.'
+        ]),
+        'APPEAL AND PERSONALITY // ALIVE, ALIEN AND APPROACHABLE',
+        'Make this an individual the viewer wants to meet: do not sacrifice warmth or readable expression to make it stranger. Show a clear emotional presence through posture, attentive sensory tissue and a small, believable response to its surroundings.',
+        'Preserve the recorded eye size and placement, body plan and palette. Approachability comes from this individual\'s expression and living behaviour, not a shared mascot body or colour scheme.',
+        isHatchling
+            ? 'Let a hatchling look young and endearing, with softness and tentative curiosity where its anatomy supports them. Do not age it up to avoid cuteness or exaggerate its head and eyes into unrelated proportions.'
+            : 'Retain approachable personality at the recorded life stage, without making an older creature look newly hatched. Let maturity show through its existing proportions, stance and materials.',
+        'Use the selected medium for believable depth, tissue and ground contact, not a plastic collectible finish. Distinctive alien biology and immediate emotional appeal should reinforce one another.',
         '',
-        'SETTING // THE FEND, FIRST CONTACT',
-        'Place the creature on real terrain in the alien Sanctuary clearing shortly after hatching: damp dark ground, cyan and green bioluminescent plants, drifting Current motes interacting with the air, distant crystal formations, an indigo-violet nebula sky, and the crashed Wanderer-77 far behind it.',
+        isHatchling ? 'SETTING // THE FEND, FIRST CONTACT' : 'SETTING // THE FEND, SANCTUARY ENCOUNTER',
+        `Place the creature on real terrain in the alien Sanctuary clearing ${isHatchling ? 'shortly after hatching' : 'at its recorded life stage'}: damp dark ground, cyan and green bioluminescent plants, drifting Current motes interacting with the air, distant crystal formations, an indigo-violet nebula sky, and the crashed Wanderer-77 far behind it.`,
         `Deep-sky field atlas: ${realization.astronomicalBackdrop}`,
         `Quiet discovery detail: ${realization.discoveryEasterEgg}`,
         'The astronomy must be scientifically grounded but original: do not reproduce a specific observatory photograph and do not include NASA names, insignia, mission marks, spacecraft, interface graphics, or implied endorsement.',
         'Render the ecosystem with convincing scale, weathering, moisture, airborne particles, depth, and contact shadows. It is warm, wondrous, habitable, and mysterious rather than empty outer space.',
         '',
         'COMPOSITION',
-        'Eye-level three-quarter wildlife encounter, full body and contact with the terrain visible, creature occupying about two thirds of the frame, eyes in critical focus, environmental context readable, restrained cinematic depth of field.',
+        `Eye-level three-quarter wildlife encounter, full body and contact with the terrain visible, creature occupying about two thirds of the frame, ${paintedStyle ? 'eyes clearly readable, environmental context subordinate, carefully layered foreground and distance' : 'eyes in critical focus, environmental context readable, restrained cinematic depth of field'}.`,
         STYLE_MODIFIERS[style],
-        'Aim for a startling first-contact photograph from a premium live-action science-fantasy film. Preserve the emotional charm of the pixel identity without turning it into a generic Earth animal.',
+        paintedStyle
+            ? 'Aim for a richly imagined encounter with a living alien in the selected painting medium. Preserve the emotional charm of the pixel identity without turning it into a generic Earth animal.'
+            : 'Aim for a startling first-contact photograph from a premium live-action science-fantasy film. Preserve the emotional charm of the pixel identity without turning it into a generic Earth animal.',
         'Do not merely upscale, smooth, repaint, or extrude the pixel sprite. This is a creative biological realization of that exact individual.',
         '',
         'EXCLUSIONS',
-        'No pixel art, no game sprite, no voxel art, no mascot render, no stylized animation character, no obvious CGI character render, no concept-art beauty render, no chibi or kawaii proportions, no plush toy, no plastic figurine, no flat illustration, no generic Earth pet or familiar animal, no humans, no astronaut, no human clothing, no spacesuit, no text, no logo, no watermark, no frame, no UI, no extra creatures, no duplicate body parts, no unrecorded eyes, wings, horns, or limbs, no horror, no weapons.'
+        `No pixel art, no game sprite, no voxel art, no mascot render, no stylized animation character, no obvious CGI character render, no concept-art beauty render, no chibi or kawaii proportions, no plush toy, no plastic figurine, ${paintedStyle ? '' : 'no flat illustration, '}no generic Earth pet or familiar animal, no humans, no astronaut, no human clothing, no spacesuit, no text, no logo, no watermark, no frame, no UI, no extra creatures, no duplicate body parts, no unrecorded eyes, wings, horns, or limbs, no horror, no weapons.`
     ].join('\n');
 }
 
@@ -1258,6 +1285,7 @@ exports.handler = async event => {
 
 exports._internal = {
     ALLOWED_STYLES,
+    CREATURE_ART_DIRECTION,
     buildCreatureRealization,
     buildCreaturePrompt,
     createPortraitAssetRef,

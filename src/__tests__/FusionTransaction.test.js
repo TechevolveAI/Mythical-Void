@@ -1,5 +1,7 @@
 const GameStateManager = require('../systems/GameState.js');
 const { FusionAuthority } = require('../systems/FusionAuthority.js');
+const { loadModule } = require('../test-support/endingRigFixture.cjs');
+const { createFusionOffspringDraft } = loadModule('../systems/FusionOffspringDraft.js', 'createFusionOffspringDraft');
 
 function adultCreature(id, name = id) {
     return {
@@ -120,6 +122,41 @@ describe('Fusion transaction persistence', () => {
                 firstLineageOperationId: started.transaction.operationId
             })
         );
+    });
+
+    test.each([1, 2])('shared hatch drafts preserve %i offspring through the existing local save/load path', count => {
+        const started = manager.beginFusionTransaction(['parent_alpha', 'parent_beta'], count);
+        expect(started.success).toBe(true);
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(1000000);
+        let restored;
+        try {
+            const children = started.transaction.offspringIds.map((id, index, ids) => createFusionOffspringDraft({
+                genes: { id: `synthetic-genes-${index}`, species: 'stellarWyrm', rarity: 'rare',
+                    cosmicAffinity: { element: 'moon' }, mendelianGenes: { horns: ['H', 'h'] },
+                    traits: { colour: 0x123456 } },
+                offspringData: { creatureId: id, generation: 2, rarity: 'rare',
+                    parentIds: started.transaction.parentIds, offspringBonus: { cosmicPower: 1.1 },
+                    birthEvents: [{ id: 'synthetic-event' }], secretAbilities: ['synthetic-ability'] },
+                name: `Fiction ${index + 1}`, now: 1000000, textureName: `synthetic-texture-${index}`,
+                twin: count === 2 ? { index: index + 1, siblingId: ids[1 - index], siblingName: `Fiction ${2 - index}` } : null
+            }));
+            expect(manager.commitFusionTransaction(started.transaction.operationId, children).success).toBe(true);
+            restored = new GameStateManager();
+            expect(restored.load()).toBe(true);
+            const retained = restored.getCreatureCollection().slice(-count);
+            retained.forEach((child, index) => {
+                for (const field of ['id', 'name', 'genes', 'dna', 'stats', 'level', 'experience', 'hatchTime',
+                    'lifecycle', 'generation', 'parentIds', 'offspringBonus', 'birthEvents', 'secretAbilities']) {
+                    expect(child[field]).toEqual(children[index][field]);
+                }
+                expect(child.lineage).toMatchObject({ creatureId: child.id, origin: 'fusion',
+                    parentIds: started.transaction.parentIds, fusionOperationId: started.transaction.operationId });
+                if (count === 2) expect(child.twinSiblingId).toBe(children[1 - index].id);
+            });
+            expect(restored.get('breedingShrine.pendingFusion')).toBeNull();
+            expect(restored.get('breedingShrine.breedingHistory')).toHaveLength(1);
+            expect(restored.get('activeCreatureIndex')).toBe(2);
+        } finally { restored?.stopAutoSave(); clock.mockRestore(); }
     });
 
     test('rejects a twin reservation unless both collection spaces exist', () => {
@@ -455,11 +492,37 @@ describe('Fusion transaction persistence', () => {
             pending.authorityReservation,
             pending.authorityExecution.receipt,
             ['Nova'],
-            { cloudSave: globalThis.CloudSave }
+            { cloudSave: globalThis.CloudSave, isCurrentCampaign: expect.any(Function) }
         );
 
         globalThis.FusionAuthority = originalAuthority;
         globalThis.CloudSave = originalCloudSave;
+    });
+
+    test.each(['success', 'failure'])('stale finalization %s is cancelled without normal Fusion recovery', async outcome => {
+        const priorAuthority = globalThis.FusionAuthority;
+        const priorCloud = globalThis.CloudSave;
+        const transaction = {
+            authorityRequest: {}, authorityReservation: { reservationMode: 'server_reserved' },
+            authorityExecution: { receipt: {} }, offspringIds: ['synthetic-old-child']
+        };
+        jest.spyOn(manager, 'stageFusionNames').mockReturnValue({ success: true, transaction, names: ['Synthetic child'] });
+        let current = true, reply, reject;
+        globalThis.CloudSave = { captureCampaignGuard: () => () => current };
+        globalThis.FusionAuthority = { finalizeReservedOperation: () => new Promise((resolve, fail) => { reply = resolve; reject = fail; }) };
+        const emit = jest.spyOn(manager, 'emit');
+        try {
+            const result = manager.finalizeFusionTransaction('synthetic-old-operation', [{ name: 'Synthetic child' }]);
+            current = false;
+            const newPending = { operationId: 'synthetic-new-operation' };
+            manager.set('breedingShrine.pendingFusion', newPending);
+            emit.mockClear();
+            if (outcome === 'success') reply({});
+            else reject(new Error('old-operation-failed'));
+            expect(await result).toEqual({ success: false, cancelled: true, reason: 'campaign_changed' });
+            expect(manager.get('breedingShrine.pendingFusion')).toBe(newPending);
+            expect(emit).not.toHaveBeenCalled();
+        } finally { globalThis.FusionAuthority = priorAuthority; globalThis.CloudSave = priorCloud; }
     });
 
     test('persists an authority request and result receipt into completed history', () => {

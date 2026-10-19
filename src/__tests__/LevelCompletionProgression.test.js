@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection, expectPeaksCompletionConnection, expectCrystalCompletionConnection, expectReefCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 const vm = require('vm');
 
 function loadPlatformerLevelScene(sceneWindow) {
@@ -716,7 +717,13 @@ describe('local level-entry preview route', () => {
 
         levelFiles.forEach((fileName) => {
             const source = fs.readFileSync(path.join(__dirname, '../scenes/levels', fileName), 'utf8');
-            expect(source).toContain('this.bindLevelCompletionReturn(');
+            if (fileName === 'MythicalForestLevel.js') expectForestCompletionConnection();
+            else if (fileName === 'VoidPeaksLevel.js') expectPeaksCompletionConnection();
+            else if (fileName === 'CrystalCavesLevel.js') expectCrystalCompletionConnection();
+            else if (fileName === 'ReefLevel.js') expectReefCompletionConnection();
+            else if (fileName === 'AuroraDepthsLevel.js') expectAuroraCompletionConnection();
+            else expect(source).toContain(fileName === 'FinalVoidLevel.js'
+                ? 'this.bindLevelCompletionReturn(' : 'this.showRegionalVictorySummary(');
             expect(source).toContain('this.levelCompletionActive');
             if (fileName === 'FinalVoidLevel.js') {
                 expect(source).toMatch(

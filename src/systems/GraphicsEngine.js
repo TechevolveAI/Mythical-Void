@@ -1,3 +1,6 @@
+import { resolveBreedingAppearance, drawBreedingAppendages } from './BreedingAppearance.js';
+import { measureDrawnBodyContact } from './CreatureContactGeometry.js';
+
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
 /**
@@ -3238,7 +3241,7 @@ class GraphicsEngine {
     /**
      * Finalize texture creation and cleanup with error handling
      */
-    finalizeTexture(graphics, name, width, height) {
+    finalizeTexture(graphics, name, width, height, bodyContact = undefined) {
         try {
             if (!graphics || typeof graphics.generateTexture !== 'function') {
                 throw new Error('Invalid graphics object');
@@ -3258,6 +3261,14 @@ class GraphicsEngine {
                 existing.clear();
             }
             graphics.generateTexture(name, width, height);
+            if (bodyContact !== undefined) {
+                const texture = this.scene?.textures?.get(name);
+                if (texture) {
+                    texture.customData = texture.customData || {};
+                    if (bodyContact) texture.customData.creatureBodyContact = bodyContact;
+                    else delete texture.customData.creatureBodyContact;
+                }
+            }
             graphics.destroy();
             return name;
         } catch (error) {
@@ -3438,6 +3449,7 @@ class GraphicsEngine {
 
             // Get stage visual configuration
             const stageConfig = this.getStageVisualConfig(stage);
+            const breedingAppearance = resolveBreedingAppearance(genetics.traits.breedingVisuals, stage);
             console.log(`graphics:debug [GraphicsEngine] Stage config for "${stage}":`, stageConfig);
 
             // USE STAGE VISUAL RESOLVER for dramatic stage-based transformations
@@ -3478,6 +3490,12 @@ class GraphicsEngine {
                 destinyBodyType: destinyBodyType,    // What they'll become as adult
                 resolvedFeatures: resolvedTraits?.features // Stage-appropriate features
             };
+            if (breedingAppearance) {
+                enhancedTraits.breedingAppearance = breedingAppearance;
+                if (breedingAppearance.eyeColor !== null) {
+                    enhancedTraits.eyes = { ...enhancedTraits.eyes, color: breedingAppearance.eyeColor };
+                }
+            }
 
             // Create base creature with stage-based size
             const baseSize = {
@@ -3500,12 +3518,19 @@ class GraphicsEngine {
             };
 
             const glowIntensity = stageConfig.glowIntensity ?? 1.0;
+            const contactPrefix = graphics.commandBuffer?.slice?.();
             this.addRarityAura(graphics, genetics, center, glowIntensity);
             this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center, glowIntensity);
             this.addStageAura(graphics, stageConfig, center, baseSize, genetics);
 
+            if (breedingAppearance) drawBreedingAppendages(graphics, center, {
+                headShadow: this.darkenColor(stageModifiedColors.head, 0.2),
+                tailShadow: this.darkenColor(stageModifiedColors.feet, 0.2),
+                tail: stageModifiedColors.feet, accent: stageModifiedColors.accent
+            }, stageConfig, breedingAppearance, effectiveBodyType);
+
             // Render using stage-aware body type for dramatic transformation
-            this.renderStageAwareCreatureBody(
+            const contactBody = this.renderStageAwareCreatureBody(
                 graphics,
                 center,
                 baseSize,
@@ -3519,7 +3544,9 @@ class GraphicsEngine {
             // Add enhanced markings based on resolved complexity or genetics
             const markingOpacity = resolvedTraits?.markings?.opacity ?? stageConfig.markingOpacity ?? 1.0;
             if (markingOpacity > 0.1) {
-                const markingsToUse = resolvedTraits?.markings || genetics.traits.features.markings;
+                const markingsToUse = breedingAppearance?.markings
+                    ? { ...(resolvedTraits?.markings || genetics.traits.features.markings), ...breedingAppearance.markings }
+                    : resolvedTraits?.markings || genetics.traits.features.markings;
                 this.addEnhancedMarkings(
                     graphics, center, baseSize,
                     markingsToUse,
@@ -3562,10 +3589,11 @@ class GraphicsEngine {
             }
 
             // Apply breeding-based horn type if available
-            if (breedingVisuals?.headMods?.horns?.type && breedingVisuals.headMods.horns.type !== 'none') {
-                const hornConfig = breedingVisuals.headMods.horns;
+            if (breedingAppearance?.horns && breedingAppearance.horns.type !== 'none' && breedingAppearance.growth > 0) {
+                const hornConfig = breedingAppearance.horns;
                 const hornColor = stageModifiedColors.accent || stageModifiedColors.primary || 0x9370DB;
-                this.renderHorns(graphics, center, hornColor, hornConfig.type, hornConfig.size || 1.0);
+                if (breedingAppearance.growth < 1) this.renderHornNubs(graphics, center, hornColor);
+                else this.renderHorns(graphics, center, hornColor, hornConfig.type, hornConfig.size);
                 console.log(`graphics:debug [GraphicsEngine] Rendered breeding-inherited horns: ${hornConfig.type}`);
             }
 
@@ -3574,10 +3602,15 @@ class GraphicsEngine {
                 this.applyShinyEffects(graphics, center, baseSize, genetics.shinyType, genetics.traits.colorGenome);
             }
 
+            const restoreStart = graphics.commandBuffer?.length;
             translation.restore();
+            const bodyContact = measureDrawnBodyContact(graphics, {
+                prefix: contactPrefix, body: contactBody,
+                suffix: graphics.commandBuffer?.slice?.(restoreStart), width: metrics.width, height: metrics.height
+            });
 
             const textureName = `creature_${genetics.id}_${stage}_${frame}`;
-            const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
+            const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height, bodyContact);
 
             const generationTime = Date.now() - startTime;
 
@@ -4368,6 +4401,7 @@ class GraphicsEngine {
      */
     renderFishBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+        const tailScale = bodyScale?.inheritedTailScale ?? 1;
 
         // Handle both old and new format
         const colors = typeof colorsOrBodyColor === 'number'
@@ -4408,16 +4442,16 @@ class GraphicsEngine {
         graphics.fillStyle(this.darkenColor(tailColor, 0.2));
         graphics.beginPath();
         graphics.moveTo(center.x + bodyOffset.x, center.y + 35 + bodyOffset.y);
-        graphics.lineTo(center.x - 12 + bodyOffset.x, center.y + 50 + bodyOffset.y);
-        graphics.lineTo(center.x + 12 + bodyOffset.x, center.y + 50 + bodyOffset.y);
+        graphics.lineTo(center.x - 12 + bodyOffset.x, center.y + 35 + 15 * tailScale + bodyOffset.y);
+        graphics.lineTo(center.x + 12 + bodyOffset.x, center.y + 35 + 15 * tailScale + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
         // Tail highlight
         graphics.fillStyle(tailColor, 0.9);
         graphics.beginPath();
         graphics.moveTo(center.x + bodyOffset.x, center.y + 35 + bodyOffset.y);
-        graphics.lineTo(center.x - 8 + bodyOffset.x, center.y + 45 + bodyOffset.y);
-        graphics.lineTo(center.x + 8 + bodyOffset.x, center.y + 45 + bodyOffset.y);
+        graphics.lineTo(center.x - 8 + bodyOffset.x, center.y + 35 + 10 * tailScale + bodyOffset.y);
+        graphics.lineTo(center.x + 8 + bodyOffset.x, center.y + 35 + 10 * tailScale + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
 
@@ -4485,6 +4519,7 @@ class GraphicsEngine {
      */
     renderSerpentineBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+        const tailScale = bodyScale?.inheritedTailScale ?? 1;
 
         // Handle both old and new format
         const colors = typeof colorsOrBodyColor === 'number'
@@ -4529,16 +4564,16 @@ class GraphicsEngine {
         graphics.fillStyle(this.darkenColor(tailColor, 0.2));
         graphics.beginPath();
         graphics.moveTo(center.x + bodyOffset.x, center.y + 55 + bodyOffset.y);
-        graphics.lineTo(center.x - 6 + bodyOffset.x, center.y + 70 + bodyOffset.y);
-        graphics.lineTo(center.x + 6 + bodyOffset.x, center.y + 70 + bodyOffset.y);
+        graphics.lineTo(center.x - 6 + bodyOffset.x, center.y + 55 + 15 * tailScale + bodyOffset.y);
+        graphics.lineTo(center.x + 6 + bodyOffset.x, center.y + 55 + 15 * tailScale + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
         // Tail tip
         graphics.fillStyle(tailColor);
         graphics.beginPath();
         graphics.moveTo(center.x + bodyOffset.x, center.y + 55 + bodyOffset.y);
-        graphics.lineTo(center.x - 4 + bodyOffset.x, center.y + 65 + bodyOffset.y);
-        graphics.lineTo(center.x + 4 + bodyOffset.x, center.y + 65 + bodyOffset.y);
+        graphics.lineTo(center.x - 4 + bodyOffset.x, center.y + 55 + 10 * tailScale + bodyOffset.y);
+        graphics.lineTo(center.x + 4 + bodyOffset.x, center.y + 55 + 10 * tailScale + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
     }
@@ -4549,6 +4584,7 @@ class GraphicsEngine {
      */
     renderAvianBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+        const tailScale = bodyScale?.inheritedTailScale ?? 1;
 
         // Handle both old and new format
         const colors = typeof colorsOrBodyColor === 'number'
@@ -4617,8 +4653,8 @@ class GraphicsEngine {
             graphics.fillStyle(this.darkenColor(bodyColor, 0.2 + Math.abs(i) * 0.1), 0.8);
             graphics.beginPath();
             graphics.moveTo(tailBaseX, tailBaseY);
-            graphics.lineTo(tailBaseX + (i * 6) - 4, tailBaseY + 12);
-            graphics.lineTo(tailBaseX + (i * 6) + 4, tailBaseY + 12);
+            graphics.lineTo(tailBaseX + (i * 6) - 4, tailBaseY + 12 * tailScale);
+            graphics.lineTo(tailBaseX + (i * 6) + 4, tailBaseY + 12 * tailScale);
             graphics.closePath();
             graphics.fillPath();
         }
@@ -4654,6 +4690,7 @@ class GraphicsEngine {
      */
     renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+        const tailScale = bodyScale?.inheritedTailScale ?? 1;
 
         // Handle both old and new format
         const colors = typeof colorsOrBodyColor === 'number'
@@ -4725,16 +4762,16 @@ class GraphicsEngine {
         graphics.fillStyle(this.darkenColor(tailColor, 0.2));
         graphics.beginPath();
         graphics.moveTo(center.x + 16 + bodyOffset.x, center.y + 10 + bodyOffset.y);
-        graphics.lineTo(center.x + 28 + bodyOffset.x, center.y + 2 + bodyOffset.y);
-        graphics.lineTo(center.x + 30 + bodyOffset.x, center.y + 12 + bodyOffset.y);
+        graphics.lineTo(center.x + 16 + 12 * tailScale + bodyOffset.x, center.y + 2 + bodyOffset.y);
+        graphics.lineTo(center.x + 16 + 14 * tailScale + bodyOffset.x, center.y + 12 + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
         // Tail highlight
         graphics.fillStyle(tailColor);
         graphics.beginPath();
         graphics.moveTo(center.x + 18 + bodyOffset.x, center.y + 10 + bodyOffset.y);
-        graphics.lineTo(center.x + 26 + bodyOffset.x, center.y + 5 + bodyOffset.y);
-        graphics.lineTo(center.x + 27 + bodyOffset.x, center.y + 11 + bodyOffset.y);
+        graphics.lineTo(center.x + 18 + 8 * tailScale + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.lineTo(center.x + 18 + 9 * tailScale + bodyOffset.x, center.y + 11 + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
     }
@@ -5243,12 +5280,16 @@ class GraphicsEngine {
         };
 
         const bodyScale = {
-            x: stageConfig.scale || 1.0,
-            y: stageConfig.scale || 1.0
+            x: (stageConfig.scale || 1.0) * (traits.breedingAppearance?.scaleX ?? 1),
+            y: (stageConfig.scale || 1.0) * (traits.breedingAppearance?.scaleY ?? 1),
+            inheritedTailScale: traits.breedingAppearance?.tailLength === null || traits.breedingAppearance?.tailLength === undefined
+                ? 1 : traits.breedingAppearance.tailLength / 0.7
         };
 
         // Render the body using the stage-aware body type with ALL colors
+        const bodyStart = graphics.commandBuffer?.length;
         this.renderBodyByType(graphics, center, bodyOffset, bodyScale, creatureColors, bodyType, destinyType);
+        const contactBody = graphics.commandBuffer?.slice?.(bodyStart);
 
         // Add stage-specific features
         const resolvedFeatures = resolvedTraits?.features || {};
@@ -5266,10 +5307,10 @@ class GraphicsEngine {
             if (resolvedFeatures.wings) {
                 this.renderWingBuds(graphics, center, colors.wings || bodyColor, resolvedFeatures.wings.destinyType);
             }
-            if (resolvedFeatures.horns) {
+            if (resolvedFeatures.horns && !traits.breedingAppearance?.horns) {
                 this.renderHornNubs(graphics, center, colors.accent || bodyColor);
             }
-            if (resolvedFeatures.tail) {
+            if (resolvedFeatures.tail && traits.breedingAppearance?.tailLength == null) {
                 this.renderTailBud(graphics, center, bodyColor);
             }
         }
@@ -5279,7 +5320,7 @@ class GraphicsEngine {
             const wingType = traits.resolvedFeatures?.wings?.type || 'feathered';
             this.renderWings(graphics, center, colors.wings || bodyColor, wingType, resolvedFeatures.wings?.enhanced);
         }
-        if (resolvedFeatures.horns?.type === 'full' || resolvedFeatures.horns?.type === 'crystalline') {
+        if (!traits.breedingAppearance?.horns && (resolvedFeatures.horns?.type === 'full' || resolvedFeatures.horns?.type === 'crystalline')) {
             this.renderHorns(graphics, center, colors.accent || bodyColor, resolvedFeatures.horns.type);
         }
 
@@ -5300,6 +5341,7 @@ class GraphicsEngine {
         const mood = traits.mood || stageConfig.mood || 'content';
 
         this.renderHead(graphics, center, headScale, headColor, traits.eyes || {}, eyeScale, mood);
+        return contactBody;
     }
 
     /**
@@ -5712,7 +5754,7 @@ class GraphicsEngine {
         const eyeSize = baseEyeSize * eyeSizeMultiplier;
         const eyeSpacing = 10 * (eyeSizeMultiplier > 1.5 ? 0.8 : 1.0);
         const eyeY = center.y - 22;
-        const eyeColor = eyeConfig.color || 0x4A148C;
+        const eyeColor = eyeConfig.color ?? 0x4A148C;
 
         // Render mood-specific eyes
         this.renderMoodEyes(graphics, center, eyeSpacing, eyeY, eyeSize, eyeColor, mood, eyeSizeMultiplier);
@@ -9024,6 +9066,13 @@ class GraphicsEngine {
             return this.createSpaceMythicCreature({ frame });
         }
 
+        // Legacy Fusion stores its full genetic profile in both genes and dna.
+        // It is not a CreatureDNA archetype and must keep the hatch renderer.
+        if (!dna.bodyArchetype && !dna.headArchetype && dna.traits?.breedingVisuals &&
+            dna.traits.colorGenome && dna.traits.bodyShape && dna.traits.features) {
+            return this.createRandomizedSpaceMythicCreature(dna, frame, stage);
+        }
+
         try {
             const startTime = Date.now();
 
@@ -9102,6 +9151,7 @@ class GraphicsEngine {
             const fullStageConfig = this.getStageVisualConfig(stage);
             const glowIntensity = fullStageConfig.glowIntensity ?? 1;
             const minimalGenetics = { cosmicAffinity: { color: colors.accent } };
+            const contactPrefix = graphics.commandBuffer?.slice?.();
 
             // Bake atmosphere first, never over the identifying body and face.
             this.addElementalAuraToGraphics(graphics, center, sizeObj, dna.elementalAura);
@@ -9115,7 +9165,9 @@ class GraphicsEngine {
             }
 
             // Render body based on DNA bodyArchetype with stage scaling
+            const bodyStart = graphics.commandBuffer?.length;
             this.renderBodyArchetype(graphics, center, sizeObj, dna.bodyArchetype, stageColors);
+            const contactBody = graphics.commandBuffer?.slice?.(bodyStart);
 
             // Render head based on DNA headArchetype (with hybrid support) with stage scaling
             // Pass fullStageConfig for proper eye/head scaling at different lifecycle stages
@@ -9200,10 +9252,15 @@ class GraphicsEngine {
                 }
             }
 
+            const restoreStart = graphics.commandBuffer?.length;
             translation.restore();
+            const bodyContact = measureDrawnBodyContact(graphics, {
+                prefix: contactPrefix, body: contactBody,
+                suffix: graphics.commandBuffer?.slice?.(restoreStart), width: metrics.width, height: metrics.height
+            });
 
             // Generate texture
-            this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
+            this.finalizeTexture(graphics, textureName, metrics.width, metrics.height, bodyContact);
             const texture = this.scene?.textures?.get(textureName);
             if (texture?.customData) texture.customData.creatureRenderIdentity = renderIdentity;
 

@@ -12,6 +12,8 @@ class QuestManager {
         this.completedQuests = [];
         this.questProgress = {};
         this.eventListeners = new Map();
+        this.loadedGameState = null;
+        this.loadedAdmissionEpoch = null;
 
         // Quest templates
         this.questTemplates = this.defineQuestTemplates();
@@ -290,11 +292,23 @@ class QuestManager {
                 this.trackProgress('breed_creature', { count: 1 });
             });
 
-            window.GameState.on('creatureAddedToCollection', (data) => {
-                const creatures = window.GameState.getCreatureCollection() || [];
-                this.trackProgress('collection_size', { size: creatures.length });
+            const collectionState = window.GameState;
+            collectionState.on('creatureAddedToCollection', (data) => {
+                const state = collectionState.state, admission = collectionState.saveAdmission, lease = collectionState.cloudWriteLease;
+                const active = this.activeQuests, completed = this.completedQuests;
+                const identity = collectionState.getHatchActiveIdentity();
+                const isCurrent = () => window.GameState === collectionState && window.QuestManager === this &&
+                    collectionState.state === state && collectionState.saveAdmission === admission &&
+                    this.loadedGameState === collectionState && this.loadedAdmissionEpoch === collectionState.getSaveAdmission().epoch &&
+                    collectionState.cloudWriteLease === lease && collectionState.getHatchActiveIdentity() === identity &&
+                    this.activeQuests === active && this.completedQuests === completed &&
+                    active === collectionState.get('quests.active') && completed === collectionState.get('quests.completed');
+                if (!isCurrent()) return;
+                const creatures = collectionState.getCreatureCollection() || [];
+                this.trackProgress('collection_size', { size: creatures.length }, { isCurrent, gameState: collectionState });
+                if (!isCurrent()) return;
                 if (data.creature?.rarity) {
-                    this.trackProgress('obtain_rarity', { rarity: data.creature.rarity });
+                    this.trackProgress('obtain_rarity', { rarity: data.creature.rarity }, { isCurrent, gameState: collectionState });
                 }
             });
 
@@ -516,12 +530,16 @@ class QuestManager {
     /**
      * Track progress for a specific objective type
      */
-    trackProgress(objectiveType, data = {}) {
+    trackProgress(objectiveType, data = {}, options = {}) {
+        const isCurrent = options.isCurrent || (() => true);
+        if (!isCurrent()) return;
         let questsUpdated = false;
         let milestoneReached = false;
         let storyProgressUpdated = false;
+        let unchangedCollection = false;
 
         this.activeQuests.forEach(quest => {
+            if (!isCurrent()) return;
             if (quest.completed || quest.claimed) return;
 
             const obj = quest.objective;
@@ -592,8 +610,11 @@ class QuestManager {
 
                 case 'collection_size':
                     if (obj.type === 'collection_size') {
-                        quest.progress = data.size || 0;
-                        questsUpdated = true;
+                        const next = data.size || 0;
+                        if (quest.progress !== next || next >= obj.target) {
+                            quest.progress = next;
+                            questsUpdated = true;
+                        } else unchangedCollection = true;
                     }
                     break;
 
@@ -633,14 +654,19 @@ class QuestManager {
                 quest.completed = true;
                 milestoneReached = true;
                 this.emit('questCompleted', { quest });
+                if (!isCurrent()) return;
                 console.log(`[QuestManager] Quest completed: ${quest.name}`);
             }
         });
 
+        if (!isCurrent()) return;
+        if (unchangedCollection && milestoneReached) questsUpdated = true;
         if (questsUpdated) {
             this.saveQuestState({
-                persist: storyProgressUpdated || milestoneReached
+                persist: storyProgressUpdated || milestoneReached,
+                ...options
             });
+            if (!isCurrent()) return;
             this.emit('questProgressUpdated', { quests: this.activeQuests });
         }
     }
@@ -742,15 +768,79 @@ class QuestManager {
         }
     }
 
+    /** Apply only existing collection progress to an already detached naming target. */
+    prepareNamingCollectionDraft(target, { size, rarity }, notify) {
+        const staged = { activeQuests: target.get('quests.active'), completedQuests: target.get('quests.completed'),
+            emit: (event, data) => notify({ kind: 'quest', event, data: JSON.parse(JSON.stringify(data)) }),
+            saveQuestState: ({ persist = false } = {}) => {
+                target.set('quests.active', staged.activeQuests);
+                target.set('quests.completed', staged.completedQuests);
+                if (persist) notify({ kind: 'save-request', source: 'quest' });
+            } };
+        this.trackProgress.call(staged, 'collection_size', { size });
+        if (rarity) this.trackProgress.call(staged, 'obtain_rarity', { rarity });
+    }
+
+    /** Pin the loaded original quest arrays and publish only their known detached replacement. */
+    captureNamingProgressPublication(gameState) {
+        if (!this.initialized || this.loadedGameState !== gameState ||
+            this.loadedAdmissionEpoch !== gameState.getSaveAdmission().epoch || this.activeQuests !== gameState.get('quests.active') ||
+            this.completedQuests !== gameState.get('quests.completed')) throw new Error('Quest progress has not been loaded');
+        const events = this.eventListeners, emit = this.emit, track = this.trackProgress;
+        const loadedEpoch = this.loadedAdmissionEpoch;
+        const progress = this.questProgress, progressBytes = JSON.stringify(progress);
+        const slots = ['activeQuests', 'completedQuests'].map(key => ({ key, before: this[key], beforeBytes: JSON.stringify(this[key]) }));
+        let cursor = 0, assigning = false, phase = 'captured';
+        const matches = (slot, after) => this[slot.key] === (after ? slot.after : slot.before) &&
+            JSON.stringify(this[slot.key]) === (after ? slot.afterBytes : slot.beforeBytes);
+        const isCurrent = () => {
+            try {
+                return this.initialized && this.eventListeners === events && this.emit === emit && this.trackProgress === track &&
+                    this.loadedGameState === gameState && this.loadedAdmissionEpoch === loadedEpoch &&
+                    this.questProgress === progress && JSON.stringify(progress) === progressBytes &&
+                    slots.every((slot, index) => matches(slot, index < cursor) ||
+                        (assigning && index === cursor && matches(slot, true)));
+            } catch (error) { return false; }
+        };
+        return { isCurrent, isPublished: () => phase === 'published' && isCurrent(),
+            prepare: state => {
+                if (phase !== 'captured' || !isCurrent() || !Array.isArray(state.quests?.active) ||
+                    !Array.isArray(state.quests?.completed)) throw new Error('Prepared quest publication is unavailable');
+                for (const [index, key] of ['active', 'completed'].entries()) {
+                    // The final staged arrays are detached already; retain their ordinary GameState alias.
+                    slots[index].after = state.quests[key]; slots[index].afterBytes = JSON.stringify(slots[index].after);
+                }
+                phase = 'prepared';
+            },
+            publish: () => {
+                if (phase !== 'prepared' || !isCurrent()) throw new Error('Quest publication was retired');
+                phase = 'publishing';
+                while (cursor < slots.length) {
+                    if (!isCurrent()) throw new Error('Quest publication was retired');
+                    const slot = slots[cursor], previous = cursor; assigning = true;
+                    try { this[slot.key] = slot.after; }
+                    finally {
+                        try { if (matches(slot, true)) cursor += 1; }
+                        finally { assigning = false; }
+                    }
+                    if (cursor === previous) throw new Error('Quest publication did not complete');
+                }
+                phase = 'published';
+            }
+        };
+    }
+
     /**
      * Save quest state to GameState
      */
-    saveQuestState({ persist = false } = {}) {
-        if (window.GameState) {
-            window.GameState.set('quests.active', this.activeQuests);
-            window.GameState.set('quests.completed', this.completedQuests);
+    saveQuestState({ persist = false, gameState = window.GameState, isCurrent = () => true } = {}) {
+        if (gameState && isCurrent()) {
+            gameState.set('quests.active', this.activeQuests);
+            if (!isCurrent()) return;
+            gameState.set('quests.completed', this.completedQuests);
+            if (!isCurrent()) return;
             if (persist) {
-                window.GameState.save?.();
+                gameState.save?.();
             }
         }
     }
@@ -759,10 +849,18 @@ class QuestManager {
      * Load quest state from GameState
      */
     loadQuestState() {
-        if (window.GameState) {
-            this.activeQuests = window.GameState.get('quests.active') || [];
-            this.completedQuests = window.GameState.get('quests.completed') || [];
+        const gameState = window.GameState;
+        if (gameState) {
+            const reader = gameState.captureSaveAdmissionOwner?.();
+            const active = gameState.get('quests.active') || [], completed = gameState.get('quests.completed') || [];
+            if (window.GameState !== gameState || (reader && !reader.isCurrent())) return false;
+            this.activeQuests = active;
+            this.completedQuests = completed;
+            this.loadedGameState = gameState;
+            this.loadedAdmissionEpoch = gameState.getSaveAdmission?.().epoch;
+            return true;
         }
+        return false;
     }
 
     /**

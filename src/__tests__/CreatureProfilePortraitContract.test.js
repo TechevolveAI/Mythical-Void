@@ -32,16 +32,17 @@ describe('Creature Profile living portrait continuity contract', () => {
             'const activeJob = portraitService?.getActiveJob?.(stage);'
         );
         const generationIndex = profile.indexOf(
-            'return portraitService.generate({'
+            'return acceptResult(portraitService.generate({'
         );
 
         expect(activeJobIndex).toBeGreaterThan(-1);
         expect(generationIndex).toBeGreaterThan(activeJobIndex);
         expect(profile.indexOf('if (initialRecord) {', activeJobIndex))
             .toBeGreaterThan(activeJobIndex);
-        expect(profile).toContain(
-            'activeJob.identityKey === activeIdentityKey'
-        );
+        expect(profile).toContain('matchesPortrait(activeJob)');
+        expect(profile).toContain('return acceptResult(activeJob.promise);');
+        expect(profile).toContain('pendingJob?.promise && matchesPortrait(pendingJob)');
+        expect(profile).toContain('canDisplay(nextRecord)');
         expect(profile).toContain(
             'portraitService?.getEligibility?.().eligible'
         );

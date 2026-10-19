@@ -13,6 +13,7 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
             : { forceMobileControls: this.scale.width < 600, katanaPreview: 'crystal' });
         this.configurePrototypeWorld(data);
         this.encounter = this.createEncounter(data);
+        this.finaleEntryRetired = !this.encounter;
         this.hitEvidence = [];
         this.damageEvidence = [];
         this.damageTaken = 0;
@@ -39,6 +40,7 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
     }
 
     create() {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         this.setupPlatformerPhysics();
         this.physics.world.resume();
         this.physics.world.setBounds(24, 0, this.levelWidth - 48, this.scale.height);
@@ -155,6 +157,7 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         if (!this.player?.body || this.encounter.disposed || this.encounter.paused) return;
         const body = this.player.body;
         this.isGrounded = Boolean(body.blocked.down || body.touching.down) && body.velocity.y >= -1;

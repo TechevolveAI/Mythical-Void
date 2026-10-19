@@ -58,11 +58,93 @@ class CompanionMediaService {
         this.preparedMoments = new Map();
         this.videoJobs = new Map();
         this.videoResolutions = new Map();
+        this.volatileVideos = new Map();
+        this.mediaSession = null;
         this.videoUnavailableUntil = 0;
+        this.campaignOwner = null;
+        this.campaignEpoch = 0;
+        this.unsubscribeCampaignReset = null;
         this.timeouts = {
             ...DEFAULT_MEDIA_TIMEOUTS,
             ...(options.timeouts || {})
         };
+    }
+
+    captureCampaignGuard() {
+        const owner = window.GameState;
+        if (owner !== this.campaignOwner) {
+            this.unsubscribeCampaignReset?.();
+            this.campaignOwner = owner;
+            this.invalidateCampaignWork();
+            this.unsubscribeCampaignReset = owner?.on?.('reset', () => this.invalidateCampaignWork());
+        }
+        const epoch = this.campaignEpoch;
+        const admissionEpoch = owner?.getSaveAdmission?.().epoch;
+        const cloud = window.CloudSave, cloudUser = cloud?.currentUser?.id;
+        const ownsCampaign = () => window.GameState === owner && this.campaignEpoch === epoch &&
+            window.CloudSave === cloud && cloud?.currentUser?.id === cloudUser;
+        const current = () => ownsCampaign() && owner?.getSaveAdmission?.().epoch === admissionEpoch;
+        current.ownsCampaign = ownsCampaign;
+        return current;
+    }
+
+    invalidateCampaignWork() {
+        // In-memory ownership only: ordinary saves/boss checkpoints keep their work.
+        this.campaignEpoch += 1;
+        this.preparedMoments.clear();
+        this.videoJobs.clear();
+        this.videoResolutions.clear();
+        this.volatileVideos.clear();
+    }
+
+    canPublishMedia(isCurrent) {
+        const owner = window.GameState;
+        return Boolean(owner && typeof owner.get === 'function' && typeof owner.set === 'function' &&
+            typeof owner.save === 'function' && isCurrent() && owner?.getSaveAdmission?.().status !== 'held' &&
+            owner?.storageMode !== 'memory' && !owner?.cloudWriteLease &&
+            owner?.canPersistSave?.() !== false && isCurrent());
+    }
+
+    publishMediaState(next, event, packet, isCurrent = this.captureCampaignGuard()) {
+        if (!this.canPublishMedia(isCurrent)) return false;
+        const owner = window.GameState, story = owner.get('story');
+        const previous = owner.get('story.companionMedia');
+        const rollbackOwnedField = () => {
+            if (window.GameState === owner && owner.get('story') === story &&
+                owner.get('story.companionMedia') === next) story.companionMedia = previous;
+        };
+        try {
+            owner.set('story.companionMedia', next);
+            if (!this.canPublishMedia(isCurrent) || owner.get('story.companionMedia') !== next ||
+                owner.save?.() === false || !isCurrent() ||
+                owner.getSaveAdmission?.().status === 'held') {
+                rollbackOwnedField();
+                return false;
+            }
+            owner.emit?.(event, packet);
+            return true;
+        } catch (error) {
+            rollbackOwnedField();
+            return false;
+        }
+    }
+
+    retainVideoResponse(momentId, portraitRecord, result, isCurrent) {
+        if (!(isCurrent.ownsCampaign?.() ?? isCurrent()) ||
+            !MOMENT_ID_PATTERN.test(momentId || '') || !portraitRecord?.identityKey ||
+            !PORTRAIT_ASSET_REF_PATTERN.test(portraitRecord.assetRef || '') ||
+            !VIDEO_ASSET_REF_PATTERN.test(result?.assetRef || '')) return;
+        const key = `${momentId}:${hashText(portraitRecord.identityKey.slice(0, 180))}`;
+        this.volatileVideos.set(key, {
+            owner: window.GameState, isCurrent: isCurrent.ownsCampaign || isCurrent,
+            record: { momentId, identityKey: portraitRecord.identityKey.slice(0, 180),
+                stage: portraitRecord.stage, portraitAssetRef: portraitRecord.assetRef,
+                assetRef: result.assetRef.toLowerCase(), status: normalizeVideoStatus(result.status) },
+            displayUrl: typeof result.videoUrl === 'string' ? result.videoUrl.slice(0, 2048) : null
+        });
+        while (this.volatileVideos.size > MAX_APPEARANCES) {
+            this.volatileVideos.delete(this.volatileVideos.keys().next().value);
+        }
     }
 
     createEmptyState() {
@@ -74,6 +156,22 @@ class CompanionMediaService {
             lastMomentId: null,
             lastViewedAt: null
         };
+    }
+
+    getMediaSession() {
+        if (this.mediaSession?.isCurrent()) return this.mediaSession;
+        const gameState = window.GameState;
+        const story = gameState?.get?.('story');
+        // Reset/restore replaces the story tree; ordinary progress and creature
+        // switches do not. This ownership token is runtime-only, never saved.
+        this.mediaSession = {
+            isCurrent: () => window.GameState === gameState &&
+                gameState?.get?.('story') === story
+        };
+        this.preparedMoments.clear();
+        this.videoJobs.clear();
+        this.videoResolutions.clear();
+        return this.mediaSession;
     }
 
     getState() {
@@ -199,7 +297,12 @@ class CompanionMediaService {
         const portraitRecord = record || window.GameState?.getCreaturePortrait?.();
         if (!portraitRecord?.identityKey) return [];
         const state = this.getState();
-        return Object.values(state.videos)
+        const videos = { ...state.videos };
+        for (const [key, cached] of this.volatileVideos) {
+            if (cached.owner === window.GameState && cached.isCurrent() &&
+                (!videos[key] || videos[key].assetRef === cached.record.assetRef)) videos[key] = cached.record;
+        }
+        return Object.values(videos)
             .filter(video => (
                 video.identityKey === portraitRecord.identityKey &&
                 video.status === 'succeeded' &&
@@ -230,6 +333,20 @@ class CompanionMediaService {
             return null;
         }
         return window.LivingPortraitService.resolve(record);
+    }
+
+    isActivePortrait(record) {
+        // Current-creature UI must recheck after async work. Historical story
+        // moments can still deliberately use their original creature snapshot.
+        const current = window.GameState?.getCreaturePortrait?.();
+        if (
+            !record?.identityKey ||
+            current?.identityKey !== record.identityKey ||
+            current?.stage !== record.stage
+        ) return false;
+        return current.assetRef || record.assetRef
+            ? current.assetRef === record.assetRef
+            : Boolean(record.imageUrl && current.imageUrl === record.imageUrl);
     }
 
     getTextureKey(record) {
@@ -343,6 +460,8 @@ class CompanionMediaService {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !scene?.textures) {
             return Promise.resolve(null);
         }
+        const session = this.getMediaSession();
+        const isCurrentCampaign = this.captureCampaignGuard();
         const preparedKey = this.getPreparedMomentKey(momentId, stage, record);
         const existing = this.preparedMoments.get(preparedKey);
         if (existing) return existing;
@@ -353,9 +472,9 @@ class CompanionMediaService {
 
         const preparation = Promise.resolve(record || this.resolvePortrait(stage))
             .then(async portraitRecord => {
-                if (!portraitRecord?.imageUrl) return null;
+                if (!(isCurrentCampaign() && session.isCurrent()) || !portraitRecord?.imageUrl) return null;
                 const textureKey = await this.ensureTexture(scene, portraitRecord);
-                return textureKey ? { record: portraitRecord, textureKey } : null;
+                return (isCurrentCampaign() && session.isCurrent()) && textureKey ? { record: portraitRecord, textureKey } : null;
             })
             .catch(error => {
                 console.warn(
@@ -366,7 +485,9 @@ class CompanionMediaService {
             })
             .finally(() => {
                 // Textures remain cached; settled preparation must not pin a failure or old record.
-                this.preparedMoments.delete(preparedKey);
+                if (this.preparedMoments.get(preparedKey) === preparation) {
+                    this.preparedMoments.delete(preparedKey);
+                }
             });
         this.preparedMoments.set(preparedKey, preparation);
         return preparation;
@@ -376,6 +497,7 @@ class CompanionMediaService {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !record?.identityKey) {
             return false;
         }
+        const isCurrent = this.captureCampaignGuard();
         const state = this.getState();
         const now = Date.now();
         const identityKey = record.identityKey.slice(0, 180);
@@ -412,25 +534,26 @@ class CompanionMediaService {
                 .forEach(id => delete appearances[id]);
         }
 
-        window.GameState?.set?.('story.companionMedia', {
+        const published = this.publishMediaState({
             schemaVersion: COMPANION_MEDIA_SCHEMA_VERSION,
             activeIdentityKey: appearance.identityKey,
             appearances,
             videos: state.videos,
             lastMomentId: momentId,
             lastViewedAt: now
-        });
-        window.GameState?.save?.();
-        window.GameState?.emit?.('companionMediaAppearance', appearance);
-        return appearance;
+        }, 'companionMediaAppearance', appearance, isCurrent);
+        return published ? appearance : false;
     }
 
     getVideoRecord(momentId, identityKey) {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !identityKey) return null;
-        return this.getState().videos[`${momentId}:${hashText(String(identityKey))}`] || null;
+        const key = `${momentId}:${hashText(String(identityKey))}`;
+        const stored = this.getState().videos[key];
+        const cached = this.volatileVideos.get(key);
+        return stored || (cached?.owner === window.GameState && cached.isCurrent() ? cached.record : null);
     }
 
-    saveVideoRecord(momentId, portraitRecord, result) {
+    saveVideoRecord(momentId, portraitRecord, result, isCurrent = this.captureCampaignGuard()) {
         if (
             !MOMENT_ID_PATTERN.test(momentId || '') ||
             !portraitRecord?.identityKey ||
@@ -439,6 +562,8 @@ class CompanionMediaService {
         ) {
             return null;
         }
+        this.retainVideoResponse(momentId, portraitRecord, result, isCurrent);
+        if (!this.canPublishMedia(isCurrent)) return null;
         const state = this.getState();
         const identityKey = portraitRecord.identityKey.slice(0, 180);
         const key = `${momentId}:${hashText(identityKey)}`;
@@ -460,7 +585,7 @@ class CompanionMediaService {
             shotVersion: Math.max(1, Number(result.shotVersion) || 1),
             generatedAt: result.status === 'succeeded' ? Date.now() : null
         };
-        window.GameState?.set?.('story.companionMedia', {
+        const published = this.publishMediaState({
             schemaVersion: COMPANION_MEDIA_SCHEMA_VERSION,
             activeIdentityKey: identityKey,
             appearances: state.appearances,
@@ -470,10 +595,8 @@ class CompanionMediaService {
             },
             lastMomentId: state.lastMomentId,
             lastViewedAt: state.lastViewedAt
-        });
-        window.GameState?.save?.();
-        window.GameState?.emit?.('companionVideoStatus', record);
-        return record;
+        }, 'companionVideoStatus', record, isCurrent);
+        return published ? record : null;
     }
 
     async prepareGeneratedVideo({
@@ -485,9 +608,11 @@ class CompanionMediaService {
         if (Date.now() < (this.videoUnavailableUntil || 0)) return null;
         if (!MOMENT_ID_PATTERN.test(momentId || '')) return null;
         if (!isSupportedVideoMoment(momentId)) return null;
+        const session = this.getMediaSession();
+        const isCurrentCampaign = this.captureCampaignGuard();
         const portraitRecord = record || await this.resolvePortrait(stage);
         if (
-            !portraitRecord?.identityKey ||
+            !(isCurrentCampaign() && session.isCurrent()) || !portraitRecord?.identityKey ||
             !PORTRAIT_ASSET_REF_PATTERN.test(portraitRecord.assetRef || '')
         ) {
             return null;
@@ -498,8 +623,8 @@ class CompanionMediaService {
 
         const stored = this.getVideoRecord(momentId, portraitRecord.identityKey);
         const task = stored?.assetRef && !['failed', 'canceled'].includes(stored.status)
-            ? this.resolveGeneratedVideo({ momentId, portraitRecord, stored })
-            : this.startGeneratedVideo({ momentId, portraitRecord });
+            ? this.resolveGeneratedVideo({ momentId, portraitRecord, stored, isCurrentCampaign })
+            : this.startGeneratedVideo({ momentId, portraitRecord, isCurrentCampaign });
         const guarded = Promise.resolve(task)
             .catch(error => {
                 console.warn(
@@ -508,14 +633,17 @@ class CompanionMediaService {
                 );
                 return null;
             })
-            .finally(() => this.videoJobs.delete(key));
+            .finally(() => {
+                if (this.videoJobs.get(key) === guarded) this.videoJobs.delete(key);
+            });
         this.videoJobs.set(key, guarded);
         return guarded;
     }
 
-    async startGeneratedVideo({ momentId, portraitRecord }) {
+    async startGeneratedVideo({ momentId, portraitRecord, isCurrentCampaign = this.captureCampaignGuard() }) {
+        const session = this.getMediaSession();
         const accessToken = await window.LivingPortraitService?.getAccessToken?.();
-        if (!accessToken) return null;
+        if (!accessToken || !(isCurrentCampaign() && session.isCurrent())) return null;
         const request = await this.requestVideoJson(
             '/.netlify/functions/generate-companion-video',
             {
@@ -530,6 +658,8 @@ class CompanionMediaService {
                 })
             }
         );
+        this.retainVideoResponse(momentId, portraitRecord, request?.result, isCurrentCampaign);
+        if (!(isCurrentCampaign() && session.isCurrent())) return null;
         if (!request) {
             this.deferVideoRequests();
             return null;
@@ -555,8 +685,9 @@ class CompanionMediaService {
             throw new Error(result.error || `Video service error (${response.status})`);
         }
         if (result.assetRef) {
-            this.saveVideoRecord(momentId, portraitRecord, result);
+            this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
         }
+        if (!session.isCurrent()) return null;
         if (result.status === 'succeeded' && result.videoUrl) {
             return { ...result, portraitRecord };
         }
@@ -565,11 +696,13 @@ class CompanionMediaService {
             momentId,
             portraitRecord,
             assetRef: result.assetRef,
-            accessToken
+            accessToken,
+            isCurrentCampaign
         });
     }
 
-    async resolveGeneratedVideo({ momentId, portraitRecord, stored = null }) {
+    async resolveGeneratedVideo({ momentId, portraitRecord, stored = null, isCurrentCampaign = this.captureCampaignGuard() }) {
+        const session = this.getMediaSession();
         const record = stored || this.getVideoRecord(
             momentId,
             portraitRecord?.identityKey
@@ -579,7 +712,7 @@ class CompanionMediaService {
         if (active) return active;
         const resolution = (async () => {
             const accessToken = await window.LivingPortraitService?.getAccessToken?.();
-            if (!accessToken) return null;
+            if (!accessToken || !(isCurrentCampaign() && session.isCurrent())) return null;
             const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
                     encodeURIComponent(record.assetRef)
@@ -591,6 +724,8 @@ class CompanionMediaService {
                     }
                 }
             );
+            this.retainVideoResponse(momentId, portraitRecord, request?.result, isCurrentCampaign);
+            if (!(isCurrentCampaign() && session.isCurrent())) return null;
             if (!request) {
                 this.deferVideoRequests();
                 return null;
@@ -600,13 +735,23 @@ class CompanionMediaService {
                 return null;
             }
             if (['failed', 'canceled'].includes(result.status)) {
-                this.saveVideoRecord(momentId, portraitRecord, result);
+                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
                 return null;
             }
+            if (['starting', 'processing'].includes(result.status)) {
+                // Re-entry must follow the owned job, not abandon it or submit another generation.
+                return this.waitForGeneratedVideo({
+                    momentId, portraitRecord, assetRef: record.assetRef, accessToken, isCurrentCampaign
+                });
+            }
             if (result.status !== 'succeeded' || !result.videoUrl) return null;
-            this.saveVideoRecord(momentId, portraitRecord, result);
-            return { ...result, portraitRecord };
-        })().finally(() => this.videoResolutions.delete(record.assetRef));
+            this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
+            return isCurrentCampaign() && session.isCurrent() ? { ...result, portraitRecord } : null;
+        })().finally(() => {
+            if (this.videoResolutions.get(record.assetRef) === resolution) {
+                this.videoResolutions.delete(record.assetRef);
+            }
+        });
         this.videoResolutions.set(record.assetRef, resolution);
         return resolution;
     }
@@ -615,13 +760,16 @@ class CompanionMediaService {
         momentId,
         portraitRecord,
         assetRef,
-        accessToken
+        accessToken,
+        isCurrentCampaign = this.captureCampaignGuard()
     }) {
+        const session = this.getMediaSession();
         const startedAt = Date.now();
         let pollCount = 0;
-        while (Date.now() - startedAt < this.timeouts.pollWindowMs) {
+        while (isCurrentCampaign() && Date.now() - startedAt < this.timeouts.pollWindowMs) {
             const delay = Math.min(8000, 2500 + pollCount * 500);
             await new Promise(resolve => setTimeout(resolve, delay));
+            if (!(isCurrentCampaign() && session.isCurrent()) || Date.now() - startedAt >= this.timeouts.pollWindowMs) return null;
             pollCount += 1;
             const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
@@ -634,6 +782,8 @@ class CompanionMediaService {
                     }
                 }
             );
+            this.retainVideoResponse(momentId, portraitRecord, request?.result, isCurrentCampaign);
+            if (!(isCurrentCampaign() && session.isCurrent())) return null;
             if (!request) {
                 this.deferVideoRequests();
                 return null;
@@ -641,11 +791,11 @@ class CompanionMediaService {
             const { response, result } = request;
             if (!response.ok) return null;
             if (result.status === 'succeeded' && result.videoUrl) {
-                this.saveVideoRecord(momentId, portraitRecord, result);
-                return { ...result, portraitRecord };
+                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
+                return session.isCurrent() ? { ...result, portraitRecord } : null;
             }
             if (['failed', 'canceled'].includes(result.status)) {
-                this.saveVideoRecord(momentId, portraitRecord, result);
+                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
                 return null;
             }
         }
@@ -663,13 +813,15 @@ class CompanionMediaService {
         if (!scene?.add?.video || !MOMENT_ID_PATTERN.test(momentId || '')) {
             return null;
         }
+        const session = this.getMediaSession();
+        const isCurrentCampaign = this.captureCampaignGuard();
         const portraitRecord = record || await this.resolvePortrait(stage);
-        if (!portraitRecord) return null;
+        if (!(isCurrentCampaign() && session.isCurrent()) || !portraitRecord) return null;
         const videoRecord = await this.resolveGeneratedVideo({
             momentId,
             portraitRecord
         });
-        if (!videoRecord?.videoUrl || (isCurrent && !isCurrent())) return null;
+        if (!(isCurrentCampaign() && session.isCurrent()) || !videoRecord?.videoUrl || (isCurrent && !isCurrent())) return null;
 
         const camera = scene.cameras?.main;
         const width = camera?.width || scene.scale?.width || 1280;
@@ -723,7 +875,7 @@ class CompanionMediaService {
                 finish(false);
             }
         });
-        if (!started || (isCurrent && !isCurrent())) {
+        if (!(isCurrentCampaign() && session.isCurrent()) || !started || (isCurrent && !isCurrent())) {
             destroyVideo();
             return null;
         }
@@ -743,14 +895,16 @@ class CompanionMediaService {
      * latency budget and remains the fallback for mobile, offline play, or provider failure.
      */
     async createStoryMoment(scene, options = {}) {
+        const isCurrentCampaign = this.captureCampaignGuard();
         const {
             momentId,
             stage = null,
             record = null,
             isCurrent = null
         } = options;
+        const session = this.getMediaSession();
         const portraitRecord = record || await this.resolvePortrait(stage);
-        if (!portraitRecord) return null;
+        if (!(isCurrentCampaign() && session.isCurrent()) || !portraitRecord) return null;
 
         const storedVideo = this.getVideoRecord(
             momentId,
@@ -766,12 +920,17 @@ class CompanionMediaService {
                     record: portraitRecord,
                     isCurrent
                 });
+                if (!session.isCurrent()) {
+                    video?.destroy?.();
+                    return null;
+                }
                 if (video) return video;
             } catch (error) {
                 console.warn(`[CompanionMediaService] Video unavailable for ${momentId}:`, error);
             }
         }
 
+        if (!(isCurrentCampaign() && session.isCurrent())) return null;
         return this.createCinematicStill(scene, {
             ...options,
             record: portraitRecord,
@@ -792,6 +951,8 @@ class CompanionMediaService {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !scene?.add) {
             return null;
         }
+        const session = this.getMediaSession();
+        const isCurrentCampaign = this.captureCampaignGuard();
         // Start optional video work without making the playable story wait for it.
         // The portrait tableau is the immediate, deterministic fallback on mobile,
         // reduced-motion devices, restricted accounts, and provider failure.
@@ -805,12 +966,13 @@ class CompanionMediaService {
         const prepared = record
             ? null
             : await this.preparedMoments.get(preparedKey);
+        if (!session.isCurrent()) return null;
         const portraitRecord = record || prepared?.record ||
             await this.resolvePortrait(stage);
-        if (!portraitRecord?.imageUrl) return null;
+        if (!(isCurrentCampaign() && session.isCurrent()) || !portraitRecord?.imageUrl) return null;
         const textureKey = prepared?.textureKey ||
             await this.ensureTexture(scene, portraitRecord);
-        if (!textureKey || (isCurrent && !isCurrent())) return null;
+        if (!(isCurrentCampaign() && session.isCurrent()) || !textureKey || (isCurrent && !isCurrent())) return null;
 
         const camera = scene.cameras?.main;
         const width = camera?.width || scene.scale?.width || 1280;

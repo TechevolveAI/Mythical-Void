@@ -1,1 +1,4 @@
 *.pdf binary
+
+# Immutable historical inputs are checked byte-for-byte, not reformatted.
+src/__tests__/fixtures/pinned-source/*.source -text -diff

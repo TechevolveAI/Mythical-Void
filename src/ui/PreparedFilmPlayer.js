@@ -7,6 +7,7 @@ export class PreparedFilmPlayer {
         this.scene = scene;
         this.onClose = onClose;
         this.closed = false;
+        this.sceneRetired = false;
         this.previousFocus = document.activeElement;
         this.root = document.createElement('section');
         this.root.className = 'prepared-film-player';
@@ -39,7 +40,10 @@ export class PreparedFilmPlayer {
         this.onHidden = () => {
             if (document.hidden) film.pause();
         };
-        this.onShutdown = () => this.close({ resume: false });
+        this.onShutdown = () => {
+            this.sceneRetired = true;
+            this.close({ resume: false });
+        };
         this.onKey = event => {
             if (event.key === 'Escape') {
                 event.preventDefault();
@@ -101,30 +105,37 @@ export class PreparedFilmPlayer {
     }
 
     act() {
+        if (this.closed) return;
         if (['absent', 'failed'].includes(this.film.state)) void this.film.prepare();
         else if (this.film.state === 'playing') this.film.pause();
         else void this.film.play();
     }
 
     detachVideo() {
-        this.attachedVideo?.removeEventListener('ended', this.onEnded);
-        this.attachedVideo?.removeEventListener('error', this.onMediaError);
+        const video = this.attachedVideo;
         this.attachedVideo = null;
+        try { video?.removeEventListener('ended', this.onEnded); } catch { /* Best-effort native cleanup. */ }
+        try { video?.removeEventListener('error', this.onMediaError); } catch { /* Release the other listener too. */ }
     }
 
     close({ resume = true } = {}) {
         if (this.closed) return;
         this.closed = true;
-        this.unsubscribe();
-        this.detachVideo();
-        this.film.dispose();
-        document.removeEventListener('visibilitychange', this.onHidden);
-        this.scene?.events?.off?.('shutdown', this.onShutdown);
-        this.scene?.events?.off?.('destroy', this.onShutdown);
-        this.root.removeEventListener('keydown', this.onKey);
-        this.root.remove();
-        if (resume && this.ownsPause && this.scene?.sys?.isPaused?.() === true) this.scene.scene.resume();
-        if (this.previousFocus?.isConnected) this.previousFocus.focus();
+        const release = action => {
+            try { action(); } catch { /* One optional cleanup failure cannot block Continue. */ }
+        };
+        release(() => this.unsubscribe());
+        release(() => this.detachVideo());
+        release(() => this.film.dispose());
+        release(() => document.removeEventListener('visibilitychange', this.onHidden));
+        release(() => this.scene?.events?.off?.('shutdown', this.onShutdown));
+        release(() => this.scene?.events?.off?.('destroy', this.onShutdown));
+        release(() => this.root.removeEventListener('keydown', this.onKey));
+        release(() => this.root.remove());
+        release(() => {
+            if (resume && !this.sceneRetired && this.ownsPause && this.scene?.sys?.isPaused?.() === true) this.scene.scene.resume();
+        });
+        release(() => { if (this.previousFocus?.isConnected) this.previousFocus.focus(); });
         this.onClose();
     }
 }

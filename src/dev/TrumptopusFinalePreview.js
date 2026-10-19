@@ -13,6 +13,7 @@ export default class TrumptopusFinalePreview extends TrumptopusPrototypeLevel {
     }
 
     create() {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         super.create();
         this.causeway = this.add.rectangle(32, this.floorY + 40, 56, 20, 0xa6b6b1)
             .setStrokeStyle(2, 0xe8eee6).setDepth(695);
@@ -29,6 +30,7 @@ export default class TrumptopusFinalePreview extends TrumptopusPrototypeLevel {
     }
 
     update(time, delta) {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         super.update(time, delta);
         if (this.encounter.disposed || this.encounter.paused) return;
         const state = this.encounter.snapshot();

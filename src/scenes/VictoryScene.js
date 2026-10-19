@@ -1442,7 +1442,7 @@ export default class VictoryScene extends Phaser.Scene {
             this.createButton(
                 width / 2 + buttonGap,
                 height * 0.87,
-                'NEW GAME+',
+                'NEW GAME',
                 0x6F54A6,
                 () => this.showNewGamePlusConfirmation(choice)
             );
@@ -1570,7 +1570,7 @@ export default class VictoryScene extends Phaser.Scene {
         panel.strokeRoundedRect(width * 0.06, height * 0.09, width * 0.88, height * 0.82, 8);
         panel.setDepth(100);
 
-        const title = this.add.text(width / 2, height * 0.2, 'REPLAY PROJECT BEACON?', {
+        const title = this.add.text(width / 2, height * 0.2, 'START A FRESH GAME?', {
             fontSize: isCompact ? '22px' : '30px',
             color: '#FFFFFF',
             fontStyle: 'bold',
@@ -1580,7 +1580,7 @@ export default class VictoryScene extends Phaser.Scene {
         const body = this.add.text(
             width / 2,
             height * 0.43,
-            `Your expeditions, ship parts, and active priority will reset.\nPurchased route maps stay open.\n\n${this.gameStats.creatureName}, your bond, achievements, field kit, katana upgrades, and prior legacy record will remain.`,
+            'Begin with a new egg. Your creatures, levels, coins, buildings, items and story progress will be replaced.\n\nSound and safety settings stay. Cloud Save pauses so your old game cannot load itself. A local recovery copy is kept.',
             {
                 fontSize: isCompact ? '14px' : '16px',
                 color: '#E8E6F2',
@@ -1594,15 +1594,15 @@ export default class VictoryScene extends Phaser.Scene {
         this.createChoiceButton(
             width / 2,
             height * 0.64,
-            'START NEW GAME+',
+            'START NEW GAME',
             0x6F54A6,
-            () => this.startNewGamePlus(),
+            () => this.startFreshGame(body),
             Math.min(320, width * 0.7)
         );
         this.createButton(
             width / 2,
             height * 0.79,
-            'KEEP PRIORITY',
+            'KEEP MY GAME',
             0x4A4564,
             () => this.showEndingEpilogue(choice, priority.pages.length - 1)
         );
@@ -1808,8 +1808,24 @@ export default class VictoryScene extends Phaser.Scene {
         });
     }
 
+    startFreshGame(message) {
+        if (this.freshGameStarting) return false;
+        this.freshGameStarting = true;
+        try {
+            if (window.GameState?.startFreshGame?.() !== true) throw new Error('reset_unavailable');
+            // Recreate scene-local managers and media requests, not just GameState.
+            // Drop preview/ending query parameters so boot follows the fresh save.
+            window.location.replace(window.location.pathname);
+            return true;
+        } catch (error) {
+            this.freshGameStarting = false;
+            message?.setText('We could not save a fresh game. Your current game is safe. Keep playing, or try again after freeing device storage.');
+            return false;
+        }
+    }
+
     /**
-     * Start New Game+ (keep some progress)
+     * Legacy New Game+ entry point (keep some progress).
      */
     startNewGamePlus() {
         const state = window.GameState;
@@ -1872,6 +1888,7 @@ export default class VictoryScene extends Phaser.Scene {
         const projectBeacon = state?.get('story.projectBeacon') || {};
         state?.set('story.projectBeacon', {
             ...projectBeacon,
+            trumptopus: null,
             firstExpeditionPromptSeen: false,
             expeditionCheckpoint: null,
             pendingDebriefs: [],

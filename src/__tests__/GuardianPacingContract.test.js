@@ -83,18 +83,23 @@ describe('guardian encounter pacing contracts', () => {
             'camera.width * REEF_GUARDIAN_ARENA.mobileCameraLeadRatio'
         );
         expect(source).toContain('this.bossCombatReadyAt = this.time.now;');
-        expect(source).toMatch(
-            /this\.bossAttackPreviewTimer = this\.time\.delayedCall\([\s\S]*REEF_GUARDIAN_ARENA\.openingGraceMs/
-        );
-        expect(source).toContain('this.bossContactDamageConsumed = true;');
+        expect(source).toContain("control.afterReady('preview', REEF_GUARDIAN_ARENA.openingGraceMs");
+        const control = fs.readFileSync(path.join(__dirname, '../scenes/controllers/ReefGuardianControl.js'), 'utf8');
+        expect(control).toContain("preview: 'bossAttackPreviewTimer'");
+        expect(control).toContain('this.scene.time.delayedCall(delay, dispatch)');
+        expect(control).toContain('this.scene.bossContactDamageConsumed = true;');
+        expect(control).toContain('this.scene.bossContactDamageArmed = false;');
         expect(source).toContain(
             'this.takeDamage(REEF_GUARDIAN_ARENA.contactDamage);'
         );
         expect(source).toContain(
-            'const targetX = this.player.body?.center?.x ?? this.player.x;'
+            'const player = this.player;'
         );
         expect(source).toContain(
-            'const targetY = this.player.body?.center?.y ?? this.player.y;'
+            'const targetX = player.body.center?.x ?? player.x;'
+        );
+        expect(source).toContain(
+            'const targetY = player.body.center?.y ?? player.y;'
         );
         expect(source).toContain(
             'this.cameras.main.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);'
@@ -210,7 +215,7 @@ describe('guardian encounter pacing contracts', () => {
     test('Reef echo summons use the shared readable combat contract', () => {
         const source = readLevel('ReefLevel.js');
         const createMinion = source.match(
-            /createVoidMinion\(x, y\) \{([\s\S]*?)\n    \}\n\n    updateBoss/
+            /createVoidMinion\(x, y, wave = null\) \{([\s\S]*?)\n    \}\n\n    updateBoss/
         );
 
         expect(createMinion).not.toBeNull();

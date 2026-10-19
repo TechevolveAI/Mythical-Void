@@ -9,6 +9,7 @@ import {
     getSanctuaryReturnSummary
 } from '../systems/SanctuaryCheckIn.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
+import SanctuaryNoticeQueue from '../systems/ui/SanctuaryNoticeQueue.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
 import SanctuaryInteractionDirector from '../systems/world/SanctuaryInteractionDirector.js';
 import { SANCTUARY_WORLD_ART } from '../systems/world/SanctuaryWorldArt.js';
@@ -852,6 +853,15 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    loadInventoryForEntry() {
+        const state = getGameState(), inventory = window.InventoryManager;
+        if (!inventory?.loadSourceForSceneEntry) return true;
+        const reader = state.captureSaveAdmissionOwner();
+        if (inventory.loadSourceForSceneEntry(state)) return true;
+        reader.hold({ code: 'save_unreadable' }, 'local');
+        return false;
+    }
+
     create() {
         console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
@@ -871,6 +881,7 @@ class GameScene extends Phaser.Scene {
             console.log('[GameScene] Initializing lifecycle tracking...');
             this.initializeLifecycleTracking();
             this.registerSceneLifecycleEvents();
+            if (!this.loadInventoryForEntry()) return;
             this.sceneRouter = new GameSceneSceneRouter(this);
             this.hudController = new GameSceneHudController(this);
 
@@ -1080,6 +1091,11 @@ class GameScene extends Phaser.Scene {
                 this.careSystem = null;
             }
 
+            this.sanctuaryOnboardingPending = true;
+            this.sanctuaryNotices = new SanctuaryNoticeQueue(this, () =>
+                this.sanctuaryOnboardingPending || this.isLivingPortraitNoticeBlocked() ||
+                this.chatOverlay?.getIsVisible?.() || this.villageCommandPanel?.domElement
+            );
             this.carePanelManager = new CarePanelManager(this, {
                 careSystem: this.careSystem,
                 playerProvider: () => this.player,
@@ -1449,6 +1465,7 @@ class GameScene extends Phaser.Scene {
             // Use OnboardingManager to sequence all popups properly
             // This replaces the scattered delayed calls for controls, story, greeting, and NASA content
             this.time.delayedCall(500, () => {
+                this.sanctuaryOnboardingPending = false;
                 if (
                     this.continueFinaleAfterRepair ||
                     this.shipReconstructionHandoff
@@ -4603,7 +4620,7 @@ class GameScene extends Phaser.Scene {
             calibrating: {
                 state: 'calibrating',
                 tone: 'calibrating',
-                statusLabel: 'FIELD CALIBRATION 3/5'
+                statusLabel: 'LEVEL 3/5'
             },
             maturing: {
                 state: 'maturing',
@@ -7695,6 +7712,19 @@ class GameScene extends Phaser.Scene {
         this.carePanelManager?.togglePanel();
     }
 
+    isSanctuaryCareBlocked() {
+        return Boolean(this._isShuttingDown || this.sanctuaryOnboardingPending ||
+            window.OnboardingManager?.isProcessing || this.greetingElements?.length ||
+            this.controlsTutorial?.isVisible || this.storyModalElements?.length ||
+            this.villageArrivalRevealActive || this.rescuedResidentArrivalActive ||
+            this.guardianExchangeOpen || this.guardianCareActivityOpen || this.residentExchangeOpen || this.fendListeningOpen ||
+            this.isFieldKitModalOpen || this.fusionDiscoveryModalOpen ||
+            this.hamburgerMenu?.isOpen || this.hamburgerMenu?.settingsModal?.isVisible ||
+            this.hamburgerMenu?.cloudSaveModal?.isVisible || this.hamburgerMenu?.beaconLogModal?.isVisible ||
+            this.chatOverlay?.getIsVisible?.() ||
+            this.villageCommandPanel?.domElement);
+    }
+
     createFloatingParticles() {
         this.floatingParticles.forEach((particle) => particle.destroy());
         this.floatingParticles = [];
@@ -8789,8 +8819,19 @@ class GameScene extends Phaser.Scene {
     }
 
     showBonusClaimedMessage() {
-        const bonusText = this.add.text(400, 100, '🎉 Daily Bonus Claimed!', {
-            fontSize: '20px',
+        window.UXEnhancements?.announce('Daily bonus claimed successfully!', 'assertive');
+        if (this.sanctuaryNotices) {
+            this.sanctuaryNotices.enqueue(this, 'daily-supplies', finish => this.createBonusClaimedMessage(finish), 1);
+            return;
+        }
+        this.createBonusClaimedMessage();
+    }
+
+    createBonusClaimedMessage(finish = null) {
+        let holdTimer = null;
+        let disposed = false;
+        const bonusText = this.add.text(this.scale.width / 2, 100, 'Supplies added!', {
+            fontSize: '18px',
             color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2,
@@ -8800,29 +8841,39 @@ class GameScene extends Phaser.Scene {
         });
         bonusText.setOrigin(0.5);
         bonusText.setScrollFactor(0);
-
-        // Announce to screen reader
-        if (window.UXEnhancements) {
-            window.UXEnhancements.announce('Daily bonus claimed successfully!', 'assertive');
-        }
+        bonusText.setDepth(18000);
+        const cleanup = () => {
+            if (disposed) return;
+            disposed = true;
+            holdTimer?.remove?.();
+            this.tweens.killTweensOf(bonusText);
+            bonusText.destroy();
+        };
 
         this.tweens.add({
             targets: bonusText,
-            scale: { from: 0.8, to: 1.2 },
             alpha: { from: 0, to: 1 },
             duration: 500,
             ease: 'Back.easeOut',
             onComplete: () => {
-                this.time.delayedCall(2000, () => {
+                if (disposed) return;
+                holdTimer = this.time.delayedCall(2000, () => {
+                    if (disposed) return;
                     this.tweens.add({
                         targets: bonusText,
                         alpha: 0,
                         duration: 500,
-                        onComplete: () => bonusText.destroy()
+                        onComplete: () => {
+                            if (!disposed) {
+                                if (finish) finish();
+                                else cleanup();
+                            }
+                        }
                     });
                 });
             }
         });
+        return cleanup;
     }
 
     handleFlowerInteraction(player, flower) {
@@ -9893,7 +9944,8 @@ class GameScene extends Phaser.Scene {
         if (
             !record?.imageUrl ||
             this._isShuttingDown ||
-            this.villageCommandPanel !== panel
+            this.villageCommandPanel !== panel ||
+            !mediaService.isActivePortrait(record)
         ) {
             return false;
         }
@@ -14135,14 +14187,26 @@ class GameScene extends Phaser.Scene {
         onComplete = null,
         personalityCoreOverride = null
     ) {
+        if (this._isShuttingDown || this.greetingElements?.length) return;
+        if (this.carePanelManager?.panelVisible || this.creatureRadialMenu?.isVisible ||
+            this.hamburgerMenu?.isOpen || this.chatOverlay?.getIsVisible?.() ||
+            this.isFieldKitModalOpen || this.fusionDiscoveryModalOpen || this.villageCommandPanel?.domElement) {
+            this.greetingRetryTimer?.remove?.();
+            this.greetingRetryTimer = this.time.delayedCall(250, () => {
+                this.greetingRetryTimer = null;
+                this.showDailyGreetingOverlay(creatureName, dailyBonus, onComplete, personalityCoreOverride);
+            });
+            return;
+        }
         const { width, height } = this.scale;
 
         // Create overlay
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, width, height);
+        const zoom = this.cameras?.main?.zoom || 1;
+        overlay.fillRect((width - width / zoom) / 2, (height - height / zoom) / 2, width / zoom, height / zoom);
         overlay.setScrollFactor(0);
-        overlay.setDepth(5000);
+        overlay.setDepth(20000);
 
         // Greeting panel
         const panelWidth = Math.min(400, width - 40);
@@ -14156,7 +14220,7 @@ class GameScene extends Phaser.Scene {
         panel.lineStyle(3, 0x7B68EE);
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
         panel.setScrollFactor(0);
-        panel.setDepth(5001);
+        panel.setDepth(20001);
 
         const personalityCore = personalityCoreOverride || window.GameState?.get(
             'creature.genes.personality.core'
@@ -14174,7 +14238,7 @@ class GameScene extends Phaser.Scene {
             fontSize: '20px',
             color: '#8FE3CF',
             fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
         // Greeting text
         const greetingText = this.add.text(width / 2, panelY + 70, greeting, {
@@ -14183,16 +14247,27 @@ class GameScene extends Phaser.Scene {
             align: 'center',
             lineSpacing: 6,
             wordWrap: { width: panelWidth - 48 }
-        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20002);
 
-        const elements = [overlay, panel, title, greetingText];
+        const inputShield = this.add.zone(width / 2, height / 2, width / zoom, height / zoom)
+            .setScrollFactor(0).setDepth(20001).setInteractive();
+        const elements = [overlay, inputShield, panel, title, greetingText];
         // Store elements so OnboardingManager can detect dismissal
         this.greetingElements = elements;
+        this.sanctuaryNotices?.refresh();
+        const restoreMobileControls = this.mobileControls?.suspend?.() === true;
+        let greetingClosed = false;
 
         // Helper to close and cleanup
         const closeGreeting = () => {
+            if (greetingClosed) return;
+            greetingClosed = true;
             elements.forEach(el => el.destroy());
             this.greetingElements = [];
+            this.joystickX = 0;
+            this.joystickY = 0;
+            this.input.keyboard?.resetKeys?.();
+            if (restoreMobileControls && !this._isShuttingDown) this.mobileControls?.resume?.();
             if (onComplete) onComplete();
         };
 
@@ -14206,7 +14281,7 @@ class GameScene extends Phaser.Scene {
                     align: 'center',
                     lineSpacing: 4
                 }
-            ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+            ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20002);
             elements.push(bonusText);
 
             // Claim button
@@ -14214,8 +14289,8 @@ class GameScene extends Phaser.Scene {
                 fontSize: '16px',
                 color: '#FFFFFF',
                 backgroundColor: '#4CAF50',
-                padding: { x: 20, y: 10 }
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+                padding: { x: 20, y: 18 }
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
             claimBtn.setInteractive({ useHandCursor: true });
             elements.push(claimBtn);
 
@@ -14244,8 +14319,8 @@ class GameScene extends Phaser.Scene {
                 fontSize: '15px',
                 color: '#FFFFFF',
                 backgroundColor: '#7B68EE',
-                padding: { x: 25, y: 10 }
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+                padding: { x: 25, y: 18 }
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
             closeBtn.setInteractive({ useHandCursor: true });
             elements.push(closeBtn);
 
@@ -14689,6 +14764,7 @@ class GameScene extends Phaser.Scene {
      */
     showCreatureRadialMenu() {
         if (!this.player || !this.creatureRadialMenu) return;
+        if (this.isSanctuaryCareBlocked() || this.carePanelManager?.panelVisible) return;
 
         // Don't show if already visible or if chat is open
         if (this.creatureRadialMenu.isVisible || this.chatOverlay?.getIsVisible()) {
@@ -14760,6 +14836,7 @@ class GameScene extends Phaser.Scene {
             ).catch?.(() => null);
         }
         if (!portrait?.identityKey || !portrait?.imageUrl) return false;
+        if (!preview && !mediaService.isActivePortrait(portrait)) return false;
         if (
             !preview &&
             mediaService?.hasAppearance?.('first_living_form', portrait.identityKey)
@@ -14791,7 +14868,8 @@ class GameScene extends Phaser.Scene {
             if (
                 !textureKey ||
                 this._isShuttingDown ||
-                !this.sys?.isActive?.()
+                !this.sys?.isActive?.() ||
+                (!preview && !mediaService.isActivePortrait(portrait))
             ) {
                 return false;
             }
@@ -14812,7 +14890,9 @@ class GameScene extends Phaser.Scene {
             this.showLivingPortraitReadyNotice(portrait, textureKey, { preview });
             return true;
         } finally {
-            this.livingPortraitNoticePendingIdentity = null;
+            if (this.livingPortraitNoticePendingIdentity === portrait.identityKey) {
+                this.livingPortraitNoticePendingIdentity = null;
+            }
         }
     }
 
@@ -15847,6 +15927,21 @@ class GameScene extends Phaser.Scene {
     update(time, delta) {
         // Guard: Skip update if scene is shutting down or not ready
         if (this._isShuttingDown || !this.player?.active || !this.player.body?.enable) {
+            return;
+        }
+        if (this.greetingElements?.length) {
+            this.player.body.setVelocity(0, 0);
+            this.input.keyboard?.resetKeys?.();
+            return;
+        }
+        if (this.carePanelManager?.panelVisible) {
+            this.player.body.setVelocity(0, 0);
+            if (this.feedKey && Phaser.Input.Keyboard.JustDown(this.feedKey)) this.carePanelManager.performAction('feed');
+            if (this.playKey && Phaser.Input.Keyboard.JustDown(this.playKey)) this.carePanelManager.performAction('play');
+            if (this.restKey && Phaser.Input.Keyboard.JustDown(this.restKey)) this.carePanelManager.performAction('rest');
+            if (this.careKey && Phaser.Input.Keyboard.JustDown(this.careKey)) {
+                this.carePanelManager.togglePanel();
+            }
             return;
         }
         this.updateSanctuaryActorDepths();
@@ -18605,6 +18700,11 @@ class GameScene extends Phaser.Scene {
         this.economyHud = null;
         this.mobileHUD?.destroy();
         this.mobileHUD = null;
+        this.greetingRetryTimer?.remove?.();
+        this.greetingRetryTimer = null;
+        this.greetingElements = [];
+        this.sanctuaryNotices?.destroy();
+        this.sanctuaryNotices = null;
         this.carePanelManager?.destroy();
         this.carePanelManager = null;
         this.chatOverlay?.cleanup();

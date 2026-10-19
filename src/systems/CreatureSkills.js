@@ -944,6 +944,11 @@ class CreatureSkills {
                 skillLevels: this.skillLevels,
                 skillXP: this.skillXP || {}
             };
+            if (window.GameState?.set) {
+                window.GameState.set('creatureSkills', data);
+                window.GameState.save();
+                return;
+            }
             localStorage.setItem('creatureSkills', JSON.stringify(data));
         } catch (e) {
             console.warn('[CreatureSkills] Failed to save skill progress:', e);
@@ -952,9 +957,12 @@ class CreatureSkills {
 
     loadSkillProgress() {
         try {
-            const data = localStorage.getItem('creatureSkills');
+            // Existing saves retain their legacy skills; a confirmed new game
+            // owns an explicitly empty record in the main campaign save.
+            const saved = window.GameState?.get?.('creatureSkills');
+            const data = saved || localStorage.getItem('creatureSkills');
             if (data) {
-                const parsed = JSON.parse(data);
+                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
                 this.skillLevels = parsed.skillLevels || {};
                 this.skillXP = parsed.skillXP || {};
             }

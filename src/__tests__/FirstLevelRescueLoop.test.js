@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection } = require('./support/forestCompletionContract.cjs');
 const vm = require('vm');
+const { checkpointHelpers, checkpointFixture } = require('./support/expeditionCheckpointFixtures.cjs');
 
 function loadPlatformerLevelScene(sceneWindow = {}) {
     const filePath = path.join(__dirname, '../scenes/PlatformerLevelScene.js');
@@ -27,6 +29,7 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
     }
 
     const sandbox = {
+        ...checkpointHelpers,
         module: { exports: {} },
         exports: {},
         console,
@@ -296,6 +299,39 @@ describe('first expedition rescue loop', () => {
         });
     });
 
+    test.each([
+        'mythical_forest', 'crystal_caves', 'stellar_reef', 'void_peaks', 'aurora_depths', 'final_void'
+    ])('%s gate presentation agrees with the restored checkpoint and out-of-order route state', gateId => {
+        const definition = checkpointHelpers.getExpeditionCheckpointDefinition(gateId);
+        const checkpoint = checkpointFixture(gateId, 2, { routeSignalMask: 4 });
+        const before = JSON.stringify(checkpoint);
+        const gameState = {
+            get: key => key === 'story.projectBeacon.expeditionCheckpoint' ? checkpoint : false,
+            set: jest.fn(), save: jest.fn()
+        };
+        const PlatformerLevelScene = loadPlatformerLevelScene({ GameState: gameState });
+        const scene = new PlatformerLevelScene({ key: definition.sceneKey, levelId: definition.levelId });
+        scene.levelWidth = 6000;
+        scene.levelHeight = 1200;
+        scene.player = { setPosition: jest.fn(), setVelocity: jest.fn() };
+        const signals = definition.checkpoints.map(([id]) => ({ id, activated: false }));
+        scene.restoreExpeditionRouteState = resume => scene.restoreExpeditionRouteSignals(resume, {
+            signals, countProperty: 'restoredCount', readyProperty: 'routeReady', drawSignal: jest.fn()
+        });
+
+        expect(scene.restorePersistedExpeditionCheckpoint()).toBe(true);
+        expect(signals.map(signal => signal.activated)).toEqual([false, false, true]);
+        expect(scene.routeReady).toBe(false);
+        const gateResume = checkpointHelpers.getExpeditionCheckpointResume(gameState, gateId);
+        expect(scene.getExpeditionResumePresentation()).toEqual({
+            checkpointId: gateResume.checkpointId, label: gateResume.label, current: 1, total: 3
+        });
+        expect(scene.player.setPosition).toHaveBeenCalledWith(checkpoint.x, checkpoint.y);
+        expect(JSON.stringify(checkpoint)).toBe(before);
+        expect(gameState.set).not.toHaveBeenCalled();
+        expect(gameState.save).not.toHaveBeenCalled();
+    });
+
     test('restores only the contiguous route signals through the saved anchor', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'ReefLevel' });
@@ -538,9 +574,7 @@ describe('first expedition rescue loop', () => {
             /continueAfterForestRestoration\(\)[\s\S]*showCaydenBirthdayQuestion/
         );
         expect(source).toContain("'forest-guardian-withdrawal'");
-        expect(source).toContain("'FOREST EXPEDITION COMPLETE'");
-        expect(source).toContain("'[ ENTER SANCTUARY ]'");
-        expect(source).toContain("'NEXT EXPEDITION OPEN: CRYSTAL CAVES'");
+        expectForestCompletionConnection();
     });
 
     test('keeps first-expedition control coaching brief and dismissible', () => {
@@ -731,7 +765,7 @@ describe('first expedition rescue loop', () => {
         expect(source.includes('this.bossMaxHealth = 24;')).toBe(true);
         expect(source.includes('(this.forestRecoveryDamage || 0) >= 4')).toBe(true);
         expect(source).toContain('DODGE, THEN STRIKE THE PURPLE CORRUPTION');
-        expect(source).toContain('ELDER TREANT RESTORED');
+        expectForestCompletionConnection();
         expect(source).toContain('ELDER TREANT // TRAPPED');
         expect(source).toContain(
             'VOID CORRUPTION // ${corruptionRemaining}/${this.bossMaxHealth}'
@@ -853,8 +887,7 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('Free the guardian and recover the Forest Core');
         expect(source).toContain('DODGE, THEN STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('THE GUARDIAN AWAKENS');
-        expect(source).toContain('ELDER TREANT RESTORED');
-        expect(source).toContain("Guardian's Gift: Forest Core");
+        expectForestCompletionConnection();
         expect(source).not.toContain(
             'showDamageNumber(this.boss.x, this.boss.y - 80, amount, false)'
         );

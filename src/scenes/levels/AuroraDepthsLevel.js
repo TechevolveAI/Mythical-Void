@@ -1,4 +1,6 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import { createAuroraCompletionHandler } from '../controllers/AuroraCompletionTransaction.js';
+import AuroraVictorySequence from '../controllers/AuroraVictorySequence.js';
 
 const SHADOW_PHOENIX_TEXTURE = 'shadowPhoenix';
 const SHADOW_PHOENIX_ASSET = '/game/guardians/shadow-phoenix.webp';
@@ -192,6 +194,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     init(data) {
+        this.completionSaveAttempt?.retire();
+        this.auroraVictory?.retire();
+        this.completionSaveLifetime = {};
+        this.completionSaveAttempt = null;
+        this.auroraVictory = null;
+        this.auroraVictoryShown = false;
         super.init(data);
 
         this.testMode = data?.testMode || false;
@@ -2576,230 +2584,46 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     onBossDefeated() {
-        if (this.bossDefeated) return;
-
+        if (this.bossDefeated || this.levelCompletionActive) return false;
+        const reader = window.GameState?.captureSaveAdmissionOwner?.();
+        const victory = new AuroraVictorySequence(this);
         console.log('[AuroraDepthsLevel] Aurora Phoenix restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
-
-        this.bossAITimer?.remove?.();
-        this.bossInstructionTimer?.remove?.();
+        this.enterLevelCompletionState();
+        if (!reader?.isCurrent() || !victory.requireCurrent()) { victory.retire(); return false; }
+        victory.present(() => this.bossAITimer?.remove?.());
+        victory.present(() => this.bossInstructionTimer?.remove?.());
+        victory.present(() => this.bossAttackUnlockTimer?.remove?.());
+        victory.present(() => this.bossPhaseRecoveryTimer?.remove?.());
+        victory.present(() => this.clearBossEncounterTimers());
+        victory.present(() => this.clearBossEncounterEffects());
+        victory.present(() => this.tweens.killTweensOf(victory.boss));
+        if (!victory.requireCurrent()) return false;
         this.bossInstructionTimer = null;
-        this.bossAttackUnlockTimer?.remove?.();
         this.bossAttackUnlockTimer = null;
-        this.bossPhaseRecoveryTimer?.remove?.();
         this.bossPhaseRecoveryTimer = null;
         this.bossRecoveryUntil = 0;
-        this.clearBossEncounterTimers();
-        this.clearBossEncounterEffects();
-        this.bossExposureText?.setText('VOID PRESSURE // CLEARED');
-
-        if (this.boss?.body) {
-            this.boss.body.enable = false;
-        }
-        if (this.bossBody?.body) {
-            this.bossBody.body.enable = false;
-        }
-        this.boss?.setVelocity?.(0, 0);
-        this.bossBody?.setVelocity?.(0, 0);
-        this.tweens.killTweensOf(this.boss);
-        this.boss?.setTint?.(0xA9F3E4);
-        window.FeedbackManager?.cameraFlash?.(this, 420, 169, 243, 228);
-        window.FeedbackManager?.cameraShake?.(this, 350, 0.012);
-        this.showFloatingText(
-            'PHOENIX ROUTE STABLE',
-            this.boss?.x || 4400,
-            (this.boss?.y || 550) - 100,
-            '#A9F3E4'
-        );
-
-        // The restored guardian sheds the remaining Void pressure as warm light.
-        for (let i = 0; i < 24; i++) {
-            this.time.delayedCall(i * 50, () => {
-                const flame = this.add.graphics();
-                flame.fillStyle(Math.random() > 0.5 ? 0xA9F3E4 : 0xF2C94C, 1);
-                flame.fillCircle(0, 0, 10 + Math.random() * 15);
-                flame.setPosition(
-                    (this.boss?.x || 4400) + (Math.random() - 0.5) * 100,
-                    (this.boss?.y || 550) + (Math.random() - 0.5) * 80
-                );
-                flame.setDepth(900);
-
-                this.tweens.add({
-                    targets: flame,
-                    y: flame.y - 100,
-                    alpha: 0,
-                    scale: 0.3,
-                    duration: 1000,
-                    onComplete: () => flame.destroy()
-                });
-            });
-        }
-
-        this.tweens.add({
-            targets: this.boss,
-            alpha: 0.2,
-            scale: 0.7,
-            y: this.boss.y - 120,
-            duration: 1800,
-            ease: 'Sine.easeIn',
-            onComplete: () => {
-                this.boss?.destroy?.();
-                this.boss = null;
-                this.bossBody?.destroy?.();
-                this.bossBody = null;
-
-                if (this.bossGlow) {
-                    this.bossGlow.destroy();
-                }
-
-                this.showBossVictory();
-            }
-        });
-
-        if (this.bossUI) {
-            this.tweens.add({
-                targets: this.bossUI,
-                alpha: 0,
-                duration: 500
-            });
-        }
+        return victory.start();
     }
 
     showBossVictory() {
-        const layout = this.getLevelModalLayout({ maxWidth: 480, maxHeight: 300 });
-        const { width, contentWidth, y, font } = layout;
+        if (this.completionSaveAttempt?.phase === 'presented') return finishAuroraCompletion.present(this);
+        if (this.auroraVictory?.phase !== 'completing' || !this.auroraVictory.requireCurrent()) return false;
+        return finishAuroraCompletion(this);
+    }
 
-        this.completeLevelProgression({
-            achievementLevelId: 'auroraDepths',
-            shipPartId: 'aurora_reactor',
-            katanaUpgradeId: 'aurora_guard',
-            speedrunThreshold: 300000
-        });
-
-        this.auroraReactorFound = true;
-
-        const victoryText = this.add.text(width / 2, y(150), 'AURORA PHOENIX RESTORED', {
-            fontSize: font(32, 24),
-            color: '#FFD700',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4,
-            align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
-
-        this.tweens.add({
-            targets: victoryText,
-            alpha: 1,
-            scaleX: { from: 0.5, to: 1 },
-            scaleY: { from: 0.5, to: 1 },
-            duration: 500,
-            yoyo: true,
-            hold: 2000,
-            onComplete: () => {
-                victoryText.destroy();
-                this.showKatanaUpgradeReveal({
-                    onClose: () => this.showLevelComplete()
-                });
-            }
-        });
-
-        if (window.AudioManager) {
-            window.AudioManager.playLevelUp();
-        }
-
-        if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'shadow_phoenix' });
-        }
+    startSavedAuroraCompletion(source) {
+        return this.auroraVictory?.saved(source) === true;
     }
 
     showLevelComplete() {
-        this.bindLevelCompletionReturn();
-
-        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 370 });
-        const {
-            width, height, panelWidth, panelHeight, panelX, panelY,
-            contentWidth, y, font, buttonPadding
-        } = layout;
-
-        const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.8);
-        overlay.fillRect(0, 0, width, height);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(2500);
-
-        const panel = this.add.graphics();
-        panel.fillStyle(0x0A1A2A, 1);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-        panel.lineStyle(3, 0x00E676, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-        panel.setScrollFactor(0);
-        panel.setDepth(2501);
-
-        this.add.text(width / 2, y(40), 'FINAL ROUTE IDENTIFIED', {
-            fontSize: font(28, 23),
-            color: '#00E676',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
-
-        const katanaUpgrade = this.levelCompletionResult?.katanaUpgrade;
-        const upgradeStatus = this.levelCompletionResult?.katanaUpgradeAwarded
-            ? 'installed'
-            : 'online';
-        this.add.text(
-            width / 2,
-            y(120),
-            `Phoenix Gift: Aurora Reactor\n` +
-            `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n` +
-            this.getBossPowerupRewardCopy({ compact: true }) + '\n' +
-            (katanaUpgrade
-                ? `Creature-Tech: ${katanaUpgrade.name} ${upgradeStatus}\n`
-                : '') +
-            'Earth Contact: Possible, not transmitted\n' +
-            this.getVillageCompletionCopy({ compact: true }) + '\n' +
-            this.getGuardianSanctuaryArrivalCopy({ compact: true }),
-            {
-            fontSize: font(17, 14),
-            color: '#FFD700',
-            align: 'center',
-            lineSpacing: 4,
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
-
-        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
-        this.add.text(
-            width / 2,
-            y(250),
-            `Ship Parts: ${shipParts.length}/${totalRequired}\n` +
-            'Install the Aurora Reactor at Wanderer-77. The Final Void opens next.',
-            {
-            fontSize: font(16, 14),
-            color: '#7FFFD4',
-            align: 'center',
-            lineSpacing: 4,
-            wordWrap: { width: contentWidth }
-            }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
-
-        const returnBtn = this.add.text(width / 2, y(330), '[ INSTALL AURORA REACTOR ]', {
-            fontSize: font(20, 17),
-            color: '#00E676',
-            backgroundColor: '#1A3A4A',
-            padding: buttonPadding
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive({ cursor: 'pointer' });
-
-        returnBtn.on('pointerover', () => returnBtn.setColor('#7FFFD4'));
-        returnBtn.on('pointerout', () => returnBtn.setColor('#00E676'));
-        returnBtn.on('pointerdown', () => {
-            this.returnToHub();
-        });
+        return finishAuroraCompletion.present(this);
     }
 
     shutdown() {
+        this.completionSaveAttempt?.retire();
+        this.auroraVictory?.retire();
         console.log('[AuroraDepthsLevel] Shutting down');
 
         this.clearLevelEntryKeyHandler();
@@ -2866,6 +2690,13 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         super.shutdown();
     }
 }
+
+const finishAuroraCompletion = createAuroraCompletionHandler(Object.freeze({
+    prototype: AuroraDepthsLevel.prototype,
+    methods: Object.freeze(Object.fromEntries(['onBossDefeated', 'showBossVictory', 'startSavedAuroraCompletion', 'showLevelComplete',
+        'getLevelModalLayout', 'showRegionalVictorySummary', 'syncCampaignObjectiveDisplay', 'refreshCurrentEcologyNode',
+        'scheduleGuardianTransition', 'returnToHub'].map(name => [name, AuroraDepthsLevel.prototype[name]])))
+}));
 
 export default AuroraDepthsLevel;
 

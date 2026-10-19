@@ -13,11 +13,14 @@ export function solveCutoutPose(beat, progress = 1) {
     const p = smooth(progress);
     const load = beat === 'load' ? p : beat === 'reach' ? 1 - p : 0;
     const press = beat === 'reach' ? p : beat === 'contact' ? 1 : beat === 'recover' ? 1 - p : 0;
-    const bodyLean = load * 0.018 - press * 0.012;
-    const bodyPosition = [640, 980 + load * 7 + press * 4];
+    // Readable anticipation and follow-through at phone scale. The hips drive
+    // connected tissue; the ground contacts and damaging palms stay anchored.
+    const bodyLean = -load * 0.09 + press * 0.115;
+    const bodyPosition = [640 - load * 64 + press * 100, 980 + load * 75 + press * 10];
+    const hipOffset = minus(add(rotate([0,20], bodyLean), bodyPosition), [640,1000]);
     const joints = ARM_CHAINS.map(chain => {
         const left = chain.side === 'left';
-        const upperAngle = left ? -load * 0.16 : load * 0.07;
+        const upperAngle = bodyLean + (left ? -load * 0.16 : load * 0.07);
         const lowerAngle = left ? load * 0.26 : -load * 0.11;
         const shoulder = add(rotate(minus(chain.shoulder, [640,980]), bodyLean), bodyPosition);
         const elbow = add(shoulder, rotate(minus(chain.elbow, chain.shoulder), upperAngle));
@@ -29,7 +32,7 @@ export function solveCutoutPose(beat, progress = 1) {
         const wrist = add(elbow, rotate([offset[0], offset[1] * stretch], lowerAngle));
         return {side:chain.side, shoulder, elbow, wrist, upperAngle, lowerAngle, stretch};
     });
-    return { p, load, press, bodyLean, bodyPosition, joints };
+    return { p, load, press, bodyLean, bodyPosition, hipOffset, joints };
 }
 
 // Bake only existing pixels into small transparent textures. Polygons describe
@@ -84,13 +87,14 @@ export default class TrumptopusCutoutRig {
             'forearm-left','forearm-right','upper-left','upper-right','body']) this.root.bringToTop(this.sprites.get(id));
         this.lower = this.parts.get('lower-body');
         this.lowerResolution=Math.max(0.2,this.scale*1.5);
+        this.lowerPadding=160;
         const canvas = document.createElement('canvas');
-        canvas.width = Math.ceil((this.lower.bounds.width + 100)*this.lowerResolution);
+        canvas.width = Math.ceil((this.lower.bounds.width + this.lowerPadding*2)*this.lowerResolution);
         canvas.height = Math.ceil(this.lower.bounds.height*this.lowerResolution);
         this.deform = scene.textures.addCanvas(`${prefix}-lower-motion`, canvas);
         const lowerSprite = this.sprites.get('lower-body');
         lowerSprite.setTexture(this.deform.key).setOrigin(
-            (640 - this.lower.bounds.x + 50)*this.lowerResolution / canvas.width,
+            (640 - this.lower.bounds.x + this.lowerPadding)*this.lowerResolution / canvas.width,
             (1000 - this.lower.bounds.y)*this.lowerResolution / canvas.height).setScale(1/this.lowerResolution);
         const pixels=this.lower.canvas.getContext('2d').getImageData(0,0,this.lower.canvas.width,this.lower.canvas.height).data;
         let lastRow=0;
@@ -110,11 +114,15 @@ export default class TrumptopusCutoutRig {
 
     setPose(beat, progress = 1, { deferForearms = false } = {}) {
         if(this.destroyed)return;
-        const {p,load,press,bodyLean,bodyPosition,joints} = solveCutoutPose(beat,progress);
+        const {p,load,press,bodyLean,bodyPosition,hipOffset,joints} = solveCutoutPose(beat,progress);
         const body = this.sprites.get('body');
         body.setRotation(bodyLean).setPosition(...bodyPosition);
-        this.sprites.get('rear-left').setRotation(-load * 0.055 + press * 0.035);
-        this.sprites.get('rear-right').setRotation(load * 0.045 - press * 0.025);
+        for (const side of ['left','right']) {
+            const pivot=this.parts.get(`rear-${side}`).pivot;
+            this.sprites.get(`rear-${side}`)
+                .setPosition(...add(rotate(minus(pivot,[640,980]),bodyLean),bodyPosition))
+                .setRotation(bodyLean+(side==='left'?-load*.055+press*.035:load*.045-press*.025));
+        }
         this.joints = joints;
         for (const {side,shoulder,elbow,wrist,upperAngle,lowerAngle} of joints) {
             this.sprites.get(`upper-${side}`).setPosition(...shoulder).setRotation(upperAngle);
@@ -123,10 +131,10 @@ export default class TrumptopusCutoutRig {
                 wave:press*Math.sin(Math.PI*p)*24,travel:p});
         }
         // Deformation begins at the hip and travels down into the planted base.
-        // Both endpoints stay fixed; no whole-character hopping or translation.
+        // The hip follows the torso while the bottom row stays planted.
         const phase = beat === 'load' ? p * 0.25 : beat === 'reach' ? 0.25 + p * 0.45 : beat === 'contact' ? 0.7 : beat === 'recover' ? 0.7 + p * 0.3 : 0;
         const strength = beat === 'rest' ? 0 : (beat === 'recover' ? 1 - p : 1);
-        const signature=`${phase}:${strength}`;
+        const signature=`${phase}:${strength}:${hipOffset}`;
         if(this.lowerSignature!==signature){
             const ctx = this.deform.context,source = this.lower.canvas;
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -135,7 +143,10 @@ export default class TrumptopusCutoutRig {
             for (let y = 0; y < source.height; y += step) {
                 const t = y / source.height;
                 const wave = Math.exp(-(((t - phase) / 0.22) ** 2)) * Math.sin(Math.PI * t) * 21 * strength;
-                ctx.drawImage(source, 0, y, source.width, Math.min(step, source.height - y), 50 + wave, y, source.width, Math.min(step, source.height - y));
+                const slice=Math.min(step,source.height-y),compression=1-hipOffset[1]/source.height;
+                ctx.drawImage(source, 0, y, source.width, slice,
+                    this.lowerPadding + hipOffset[0]*(1-t) + wave, hipOffset[1]+y*compression,
+                    source.width, slice*compression+.5);
             }
             ctx.restore();
             this.deform.refresh();this.lowerSignature=signature;

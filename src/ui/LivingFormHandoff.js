@@ -89,6 +89,7 @@ export default class LivingFormHandoff {
         this.onPortraitShown = null;
         this.portraitShownIdentity = null;
         this.keepVisibleOnContinue = false;
+        this.isCurrentOwner = () => true;
     }
 
     show({
@@ -105,11 +106,13 @@ export default class LivingFormHandoff {
         onContinue = null,
         onPortraitShown = null,
         keepVisibleOnContinue = false,
-        mode = 'arrival'
+        mode = 'arrival',
+        isCurrent = () => true
     } = {}) {
         if (this.domElement || typeof document === 'undefined') {
             return false;
         }
+        this.isCurrentOwner = isCurrent;
 
         const safeName = normalizeDisplayText(name, 'Creature', 20);
         const safeSpecies = formatIdentifier(species, 'UNKNOWN SPECIES');
@@ -446,12 +449,18 @@ export default class LivingFormHandoff {
         this.continueHandler = event => {
             event?.preventDefault?.();
             event?.stopPropagation?.();
-            if (this.continueActivated || !this.isVisible) return;
+            if (this.continueActivated || !this.isVisible || !isCurrent()) return;
             this.continueActivated = true;
             const continueAction = onContinue;
             this.beginTransition();
             if (!this.keepVisibleOnContinue) this.destroy();
-            continueAction?.();
+            try {
+                const accepted = continueAction?.();
+                if (accepted === false && this.keepVisibleOnContinue && isCurrent()) this.offerContinueRetry();
+            } catch (error) {
+                if (this.keepVisibleOnContinue && isCurrent()) this.offerContinueRetry();
+                throw error;
+            }
         };
         this.continueButtons.forEach(button => {
             button.addEventListener('pointerup', this.continueHandler);
@@ -518,6 +527,7 @@ export default class LivingFormHandoff {
             this.startPortraitStatusSequence();
             Promise.resolve(portraitPromise)
                 .then(record => {
+                    if (!isCurrent()) return;
                     this.portraitPending = false;
                     this.clearStatusTimers();
                     if (!record?.imageUrl) {
@@ -537,6 +547,7 @@ export default class LivingFormHandoff {
                     });
                 })
                 .catch(error => {
+                    if (!isCurrent()) return;
                     this.markPortraitUnavailable(error);
                 });
         }
@@ -569,6 +580,21 @@ export default class LivingFormHandoff {
                 ? 'Opening the Sanctuary now. The living portrait will keep developing and follow you.'
                 : 'Opening the Sanctuary now.';
         }
+    }
+
+    offerContinueRetry() {
+        if (!this.isVisible || !this.isCurrentOwner()) return;
+        this.continueActivated = false;
+        this.root?.classList.remove('is-transitioning');
+        this.mobileDock?.classList.remove('is-transitioning');
+        this.continueButtons.forEach(button => {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+            button.textContent = 'TRY AGAIN';
+        });
+        if (this.shareButton) this.shareButton.disabled = false;
+        if (this.status) this.status.textContent = 'We could not finish saving yet. Keep this page open and try again.';
+        if (this.mobileDockStatus) this.mobileDockStatus.textContent = 'YOUR CREATURE IS STILL HERE';
     }
 
     startPortraitStatusSequence() {
@@ -652,7 +678,8 @@ export default class LivingFormHandoff {
     }
 
     setArtwork(imageUrl, { source, alt, record = null }) {
-        if (!this.image || typeof imageUrl !== 'string') return;
+        if (!this.image || typeof imageUrl !== 'string' || !this.isCurrentOwner()) return;
+        const isCurrent = this.isCurrentOwner;
         const token = ++this.renderToken;
         const isGenerated = source === 'protected_living_portrait';
         const isLocalReference = source === 'local_creature_reference';
@@ -668,7 +695,7 @@ export default class LivingFormHandoff {
         let artworkRevealed = false;
         const revealArtwork = () => {
             if (artworkRevealed) return;
-            if (!this.isVisible || token !== this.renderToken) return;
+            if (!this.isVisible || token !== this.renderToken || !isCurrent()) return;
             artworkRevealed = true;
             this.image.alt = alt;
             this.image.classList.add('is-ready');
@@ -698,11 +725,17 @@ export default class LivingFormHandoff {
                     'first_living_form',
                     record
                 );
+                if (!isCurrent()) return;
+                this.sourceLabel.textContent = 'PROTECTED LIVING PORTRAIT';
+                this.status.textContent =
+                    'Exact interpretation secured to this creature record. Temporary image links are not saved.';
+                this.status.classList.remove('is-fallback');
                 const identity = record?.identityKey || imageUrl;
                 if (this.portraitShownIdentity !== identity) {
                     this.portraitShownIdentity = identity;
                     this.onPortraitShown?.(record);
                 }
+                if (!isCurrent()) return;
                 if (!window.GameState?.get?.(
                     'story.projectBeacon.firstForestCinematicSeen'
                 )) {
@@ -712,14 +745,11 @@ export default class LivingFormHandoff {
                         record
                     }).catch?.(() => null);
                 }
+                if (!isCurrent()) return;
                 this.root?.classList.remove(
                     'shows-pixel-reference',
                     'has-portrait-failure'
                 );
-                this.sourceLabel.textContent = 'PROTECTED LIVING PORTRAIT';
-                this.status.textContent =
-                    'Exact interpretation secured to this creature record. Temporary image links are not saved.';
-                this.status.classList.remove('is-fallback');
                 window.AudioManager?.playLevelUp?.();
             } else if (isLocalReference) {
                 if (
@@ -735,7 +765,7 @@ export default class LivingFormHandoff {
         };
         this.image.onload = revealArtwork;
         this.image.onerror = () => {
-            if (!this.isVisible || token !== this.renderToken) return;
+            if (!this.isVisible || token !== this.renderToken || !isCurrent()) return;
             if (isGenerated && this.pixelReferenceImage) {
                 this.setArtwork(this.pixelReferenceImage, {
                     source: 'local_creature_reference',

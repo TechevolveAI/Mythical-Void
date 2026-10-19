@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { parse } = require('@babel/parser');
 
 const levelDirectory = path.join(__dirname, '../scenes/levels');
 const forestSource = fs.readFileSync(
@@ -148,8 +149,12 @@ describe('early guardian and miniboss pacing contracts', () => {
         );
         expect(forestSource.match(/this\.clearForestBossPacing\(\{ includePhase: true \}\);/g))
             .toHaveLength(2);
-        expect(crystalSource.match(/this\.clearCrystalBossPacing\(\{ includePhase: true \}\);/g))
-            .toHaveLength(2);
+        const crystalClass = parse(crystalSource, { sourceType: 'module' }).program.body.find(node => node.type === 'ClassDeclaration');
+        for (const name of ['onBossDefeated', 'shutdown']) {
+            const method = crystalClass.body.body.find(node => node.key?.name === name);
+            expect(crystalSource.slice(method.start, method.end).match(/this\.clearCrystalBossPacing\(\{ includePhase: true \}\)/g))
+                .toHaveLength(1);
+        }
         expect(crystalSource.match(/this\.clearSpiderBossPacing\(\);/g))
             .toHaveLength(4);
     });

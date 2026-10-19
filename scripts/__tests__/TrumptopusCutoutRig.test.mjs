@@ -58,6 +58,23 @@ test('invalid pose names or non-finite progress fail explicitly', () => {
     assert.throws(()=>solveCutoutPose('rest',NaN));
     assert.throws(()=>solveCutoutPose('rest',Infinity));
 });
+test('the torso visibly winds back and drives forward even at a 300px boss height', () => {
+    const scale=300/(CUTOUT_REFERENCE.floor-51);
+    const load=solveCutoutPose('load',1),contact=solveCutoutPose('contact',1);
+    assert((contact.bodyPosition[0]-load.bodyPosition[0])*scale>24);
+    assert((load.bodyPosition[1]-contact.bodyPosition[1])*scale>10);
+    assert(contact.bodyLean-load.bodyLean>.2);
+});
+test('the hip stays inside the deformation texture and the grounded row stays fixed', () => {
+    for(const beat of ['rest','load','reach','contact','recover'])for(let step=0;step<=100;step++){
+        const {hipOffset}=solveCutoutPose(beat,step/100);
+        assert(Math.abs(hipOffset[0])+21<160,'Tissue clips the expanded texture margin');
+        const height=partBounds(CUTOUT_PARTS.find(part=>part.id==='lower-body')).height;
+        const compression=1-hipOffset[1]/height;
+        assert(compression>.85&&compression<=1);
+        assert(Math.abs(hipOffset[1]+height*compression-height)<1e-8);
+    }
+});
 test('shutdown is idempotent and late pose updates cannot touch destroyed textures', () => {
     const removed=[];
     let destroyed=0;

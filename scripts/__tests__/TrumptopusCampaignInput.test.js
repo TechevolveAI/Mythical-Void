@@ -55,6 +55,30 @@ test('all three real priorities are covered, and an invalid choice fails before 
     await expect(completeCampaignEnding({},'','',{priority:'invalid'})).rejects.toThrow('Unknown ending priority');
 });
 
+test('fresh-game cancellation clicks the current real ending controls',()=>{
+    const fs=require('node:fs'),path=require('node:path'),{parse}=require('@babel/parser');
+    const source=fs.readFileSync(path.join(__dirname,'../../src/scenes/VictoryScene.js'),'utf8');
+    const scene=parse(source,{sourceType:'module'}).program.body.map(node=>node.declaration||node)
+        .find(node=>node.type==='ClassDeclaration'&&node.id.name==='VictoryScene');
+    const labels=(node,match,index)=>{
+        const found=[];
+        const visit=value=>{
+            if(!value||typeof value!=='object')return;
+            if(value.type==='CallExpression'&&match(value.callee)&&value.arguments[index]?.type==='StringLiteral')
+                found.push(value.arguments[index].value);
+            for(const child of Object.values(value))if(Array.isArray(child))child.forEach(visit);else visit(child);
+        };
+        visit(node);return found;
+    };
+    const uiLabels=name=>labels(scene.body.body.find(node=>node.key?.name===name),
+        callee=>callee.type==='MemberExpression'&&['createButton','createChoiceButton'].includes(callee.property.name),2);
+    expect(uiLabels('showEndingEpilogue')).toContain('NEW GAME');
+    expect(uiLabels('showNewGamePlusConfirmation')).toContain('KEEP MY GAME');
+    const proofLabels=labels(parse(completeCampaignEnding.toString()),callee=>callee.type==='Identifier'&&callee.name==='clickSceneText',1);
+    expect(proofLabels).toContain('NEW GAME');expect(proofLabels).toContain('KEEP MY GAME');
+    expect(proofLabels).not.toContain('NEW GAME+');expect(proofLabels).not.toContain('KEEP PRIORITY');
+});
+
 test('seeded victory is opt-in, labelled, and cannot claim approach gameplay',()=>{
     const ordinary=createCampaignProofHtml();
     expect(ordinary).not.toContain('recordTrumptopusVictory(state');

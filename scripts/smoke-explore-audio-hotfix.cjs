@@ -157,7 +157,8 @@ async function main() {
                 const state = await page.evaluate(() => {
                     const s = mythicalGame.scene.keys.GameScene;
                     const onboarding = window.OnboardingManager;
-                    const button = s.greetingElements?.find(o => o.input?.enabled);
+                    const button = s.greetingElements?.find(o => o.input?.enabled &&
+                        ['LOG SUPPLIES', 'RETURN TO SANCTUARY'].includes(o.text));
                     return {
                         greeting: button ? hotfixScreenPoint(s, button) : null,
                         ready: onboarding?.scene === s && onboarding.flowContext && !onboarding.isProcessing &&

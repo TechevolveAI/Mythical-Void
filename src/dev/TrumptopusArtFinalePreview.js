@@ -29,6 +29,7 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
     }
 
     create() {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         this.rigFrameCosts=[];
         super.create();
         if(!this.textures.exists('trumptopus-source'))throw new Error('Private Trumptopus source artwork did not load');
@@ -60,6 +61,7 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
     }
 
     update(time,delta) {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         super.update(time,delta);
         // The parent moves the foothold after drawExchange. Follow its actual
         // static body here so art and collision never differ by one game step.

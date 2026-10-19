@@ -5,6 +5,7 @@ const vm = require('vm');
 const { parse } = require('@babel/parser');
 const bossConfigs = require('../config/bosses.json');
 const projectBeacon = require('../config/project-beacon.json');
+const { checkpointHelpers, checkpointFixture } = require('./support/expeditionCheckpointFixtures.cjs');
 
 // Execute production declarations, not copied algorithms or source-text assertions.
 // AST selection avoids importing Phaser, browser globals, or provider services.
@@ -44,6 +45,7 @@ const ship = loadPureHelpers('systems/ShipReconstruction.js', [
 const guide = loadPureHelpers('systems/CampaignJourneyGuide.js', [
     'CAMPAIGN_ROUTE', 'getCampaignRoute', 'getCampaignPrerequisiteState', 'getCampaignJourneyStep'
 ], null, {
+    ...checkpointHelpers,
     getShipReconstructionSnapshot: ship.getShipReconstructionSnapshot,
     ...loadPureHelpers('systems/CampaignLegacy.js', ['CAMPAIGN_INTENTS'], [])
 });
@@ -341,7 +343,7 @@ describe('campaign helper hardening regressions', () => {
                         state.set('hubWorld.shipParts.finalBossUnlocked', installedFlag);
                         state.set('hubWorld.shipCompletionCutsceneShown', revealFlag);
                         state.set('story.projectBeacon.expeditionCheckpoint', hasCheckpoint
-                            ? { sceneKey: 'FinalVoidLevel', label: 'Trust Marker' }
+                            ? checkpointFixture('final_void', 2)
                             : null);
                         const before = JSON.stringify(state.state);
                         const unlocked = rawUnlocked && installedFlag && revealFlag;
@@ -369,7 +371,7 @@ describe('campaign helper hardening regressions', () => {
                     unlocked, prerequisitesMet: true, shipRequirementsMet: true
                 }));
                 expect(guide.getCampaignJourneyStep(state).status).toBe(unlocked ? 'ready' : 'locked');
-                state.set('story.projectBeacon.expeditionCheckpoint', { sceneKey: level.sceneKey });
+                state.set('story.projectBeacon.expeditionCheckpoint', checkpointFixture(level.gateId));
                 expect(guide.getCampaignJourneyStep(state).status).toBe(unlocked ? 'resume' : 'locked');
                 expect(state.getCampaignGateAccess).toHaveBeenCalledWith(level.gateId);
             });

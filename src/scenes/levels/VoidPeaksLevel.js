@@ -1,9 +1,11 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import { createPeaksCompletionHandler } from '../controllers/PeaksCompletionTransaction.js';
 import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';
 import { MOUNTAIN_BOSS_NAME, MOUNTAIN_ASCENT, mountainSteps, mountainStepRise, mountainEmitter } from '../../systems/MountainBossAscent.js';
 import { drawMountainPressureBar } from '../../systems/MountainBossPresentation.js';
 import { PEAK_WORLD_HEIGHT, PEAK_ROUTE, PEAK_RELAYS, PEAK_FRAGMENTS, PEAK_RETURN_CURRENTS, peakCheckpointSupport } from '../../systems/VoidPeaksRoute.js';
 import { nextMountainAttack, mountainAttackPlan } from '../../systems/MountainBossPatterns.js';
+import { PATROL_SENTINEL_FRAME } from '../../systems/PatrolSentinelArtwork.js';
 
 const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
 const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain-cosmic.webp';
@@ -143,6 +145,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossPhase = 1;
         this.titanAttackIndex = 0;
         this.bossAttackTimer = null;
+        this.titanControlTimers = new Map();
         this.peakHazards = [];
         this.peakReturnCurrents = [];
         this.activePeakReturnCurrent = null;
@@ -182,6 +185,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.deferredTitanCombat = null;
+        this.titanEntrance = null;
         this.titanRecoveryDamage = 0;
         this.titanAttacksCompleted = 0;
         this.titanLastHitAt = -Infinity;
@@ -193,6 +198,17 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     init(data) {
+        this.completionSaveAttempt?.retire();
+        this.completionSaveAttempt = null;
+        this.completionSaveLifetime = {};
+        this.clearTitanEntrance();
+        this.clearTitanControlTimers();
+        this.clearTitanWindup();
+        this.deferredTitanCombat = null;
+        this.titanEntrance = null;
+        this.clearMountainAttackLaunches();
+        this.clearMountainProjectiles();
+        this.clearMountainSnowGrenades();
         super.init(data);
 
         this.testMode = data?.testMode || false;
@@ -211,6 +227,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossPhase = 1;
         this.titanAttackIndex = 0;
         this.bossAttackTimer = null;
+        this.titanControlTimers = new Map();
         this.peakHazards = [];
         this.peakReturnCurrents = [];
         this.activePeakReturnCurrent = null;
@@ -917,7 +934,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             );
             enemy.setCollideWorldBounds(true);
             enemy.setBounce(0.05);
-            enemy.body.setSize(44, 52, true);
+            enemy.body.setSize(PATROL_SENTINEL_FRAME.bodyWidth, PATROL_SENTINEL_FRAME.bodyHeight, true);
             enemy.health = encounter.health;
             enemy.maxHealth = encounter.health;
             enemy.enemyType = 'voidPeakSentinel';
@@ -1100,20 +1117,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createSentinelTexture(textureKey, color) {
-        if (this.textures.exists(textureKey)) return;
-
-        const g = this.make.graphics({ add: false });
-        g.fillStyle(color, 1);
-        g.fillRoundedRect(12, 16, 40, 44, 10);
-        g.fillStyle(0xFF4500, 0.85);
-        g.fillTriangle(32, 0, 12, 24, 52, 24);
-        g.fillStyle(0xFFFFFF, 0.9);
-        g.fillCircle(24, 35, 4);
-        g.fillCircle(40, 35, 4);
-        g.lineStyle(3, 0x9400D3, 0.8);
-        g.strokeRoundedRect(12, 16, 40, 44, 10);
-        g.generateTexture(textureKey, 64, 70);
-        g.destroy();
+        this.createPatrolSentinelTexture(textureKey, {
+            bodyColor: color,
+            accentColor: 0x9400D3,
+            eyeColor: 0xFFFFFF
+        });
     }
 
     createStarFragments() {
@@ -2075,6 +2083,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.keepMountainArenaGrounded();
         this.updatePeakEnemyActivation();
         super.update(time, delta);
+        this.updateTitanEntrance(time, delta);
+        this.updateDeferredTitanCombat();
         if (this.levelCompletionActive) return;
 
         if (!this.mountainAwake && this.player?.x >= 4640 && this.player.body?.bottom <= 560) {
@@ -2224,13 +2234,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     startBossFight() {
         if (this.bossFightActive || this.bossDefeated) return;
 
+        this.deferredTitanCombat = null;
         console.log('[VoidPeaksLevel] Starting Cosmic Titan boss fight!');
         this.bossFightActive = true;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
-        this.bossAttackPreviewTimer?.remove?.();
-        this.bossAttackPreviewTimer = null;
+        this.cancelTitanControlTimer('bossAttackPreviewTimer');
         this.titanAttackLocked = true;
+        const entrance = this.createTitanEntrance();
         this.retirePeakPatrolsForTitan();
         this.clearGuardianGateState();
         this.mountainApproachLabel?.setVisible(false);
@@ -2243,16 +2254,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.astronautFollower?.setContextualFormation?.({ x: 62, y: 0 }, 'mountain-guardian');
         this.stageTitanArenaEntry();
         this.cameras.main.stopFollow();
-        this.cameras.main.pan(
+        if (!entrance.isCurrent()) { entrance.retire(); return; }
+        entrance.panTo(
             TITAN_ARENA.introFocusX,
             MOUNTAIN_ASCENT.faceY,
             900
         );
-        window.FeedbackManager?.cameraFlash?.(this, 220, 75, 0, 130);
-        window.FeedbackManager?.cameraShake?.(this, 450, 0.012);
+        if (!entrance.isCurrent()) { entrance.retire(); return; }
 
         const { width, height } = this.cameras.main;
-        const warning = this.add.text(
+        entrance.warning = this.add.text(
             width / 2,
             height / 2,
             MOUNTAIN_BOSS_NAME.toUpperCase(),
@@ -2269,11 +2280,134 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(2600);
 
-        this.scheduleGuardianTransition('peaks-guardian-spawn', 900, () => {
-            warning.destroy();
-            if (this.boss?.active || this.bossDefeated) return;
-            this.spawnCosmicTitan();
+        if (!entrance.isCurrent()) { entrance.warning.destroy(); entrance.warning = null; entrance.retire(); return; }
+        entrance.after('peaks-guardian-spawn', 900, () => {
+            entrance.spawnPending = true;
+            this.updateTitanEntrance();
         });
+        try {
+            window.FeedbackManager?.cameraFlash?.(this, 220, 75, 0, 130);
+            if (entrance.isCurrent()) window.FeedbackManager?.cameraShake?.(this, 450, 0.012);
+        } catch (error) {
+            console.warn('[VoidPeaksLevel] Optional entrance feedback failed', error);
+        }
+    }
+
+    createTitanEntrance() {
+        this.clearTitanEntrance();
+        const player = this.player, playerBody = player?.body, camera = this.cameras.main;
+        const plugin = this.scene, encounter = this.guardianEncounter, phase = this.bossPhase;
+        const clock = this.time, tweens = this.tweens, world = this.physics.world, events = this.events;
+        const guards = this.guardianTransitionGuards;
+        const entrance = { boss: this.boss, bossBody: this.boss?.body, camera, transitions: new Map(), retired: false,
+            spawnPending: false, panPending: false, panSettled: false, motionFinished: false, emerged: false };
+        entrance.isCurrent = () => !entrance.retired && this.titanEntrance === entrance &&
+            this.player === player && player?.active && player.body === playerBody &&
+            this.boss === entrance.boss && (!entrance.boss || (entrance.boss.active && entrance.boss.body === entrance.bossBody)) &&
+            this.cameras.main === camera && this.scene === plugin && this.guardianEncounter === encounter && this.bossPhase === phase &&
+            this.guardianTransitionGuards === guards &&
+            this.time === clock && this.tweens === tweens && this.physics.world === world && this.events === events &&
+            this.bossFightActive && !this.bossDefeated && !this.bossCombatReady && !this.levelCompletionActive;
+        entrance.playable = () => !this.isPlayerDead && !this.pauseMenuActive && !clock.paused &&
+            this.sys?.isActive?.() !== false && playerBody?.enable && (!entrance.boss || entrance.bossBody?.enable);
+        entrance.cancel = key => {
+            const owned = entrance.transitions.get(key);
+            if (!owned) return;
+            entrance.transitions.delete(key);
+            const { guards, record } = owned;
+            record.settled = true;
+            record.sceneTimer?.remove?.();
+            if (record.wallTimer != null) window.clearTimeout(record.wallTimer);
+            if (guards.get(key) === record) guards.delete(key);
+        };
+        entrance.after = (key, delay, callback) => {
+            if (!entrance.isCurrent()) return null;
+            entrance.cancel(key);
+            const record = this.scheduleGuardianTransition(key, delay, () => {
+                if (entrance.transitions.get(key)?.record !== record) return;
+                entrance.transitions.delete(key);
+                if (!entrance.isCurrent()) { entrance.retire(); return; }
+                try { callback(); } catch (error) { entrance.retire(); throw error; }
+            });
+            entrance.transitions.set(key, { guards, record });
+        };
+        entrance.retire = () => {
+            if (entrance.retired) return;
+            entrance.retired = true;
+            if (this.titanEntrance === entrance) this.titanEntrance = null;
+            [...entrance.transitions.keys()].forEach(entrance.cancel);
+            entrance.motion?.remove(); entrance.pan?.reset(); entrance.pan = null; entrance.warning?.destroy();
+            events.off('shutdown', entrance.retire); player.off('destroy', entrance.retire);
+            entrance.boss?.off('destroy', entrance.retire);
+        };
+        entrance.panTo = (x, y, duration, ease = 'Linear', complete = () => {}) => {
+            if (!entrance.isCurrent()) return;
+            entrance.pan?.reset();
+            // Native Pan writes through a guarded camera boundary, so a retired
+            // first update cannot move a camera reused by another presentation.
+            const proxy = {
+                scene: this,
+                get scrollX() { return camera.scrollX; }, get scrollY() { return camera.scrollY; },
+                getScroll: (...args) => camera.getScroll(...args),
+                setScroll: (...args) => { if (entrance.isCurrent() && entrance.playable()) camera.setScroll(...args); },
+                centerOn: (...args) => { if (entrance.isCurrent() && entrance.playable()) camera.centerOn(...args); },
+                emit: (event, _proxy, ...args) => { if (entrance.isCurrent()) camera.emit(event, camera, ...args); }
+            };
+            const pan = entrance.pan = new Phaser.Cameras.Scene2D.Effects.Pan(proxy);
+            pan.start(x, y, duration, ease, true, (_camera, progress) => {
+                if (!entrance.isCurrent()) { entrance.retire(); return; }
+                if (progress >= 0.999) complete();
+            });
+        };
+        this.titanEntrance = entrance;
+        try { events.once('shutdown', entrance.retire); player.once('destroy', entrance.retire); }
+        catch (error) { entrance.retire(); throw error; }
+        return entrance;
+    }
+
+    clearTitanEntrance() {
+        this.titanEntrance?.retire();
+    }
+
+    updateTitanEntrance(time = 0, delta = 0) {
+        const entrance = this.titanEntrance;
+        if (!entrance) return false;
+        if (!entrance.isCurrent()) { entrance.retire(); return false; }
+        if (!entrance.playable()) return false;
+        if (entrance.spawnPending) {
+            entrance.spawnPending = false;
+            entrance.warning?.destroy(); entrance.warning = null;
+            try { this.spawnCosmicTitan(); } catch (error) { entrance.retire(); throw error; }
+            if (!entrance.isCurrent()) return false;
+        }
+        if (entrance.motionFinished && !entrance.emerged) {
+            entrance.emerged = true;
+            const boss = entrance.boss;
+            boss.setOrigin(MOUNTAIN_ASCENT.originX, 0.97);
+            boss.setPosition(TITAN_ARENA.bossX, MOUNTAIN_ASCENT.summitY);
+            boss.setAngle(0);
+            this.bossTargetScale = entrance.endScale;
+            boss.body.updateFromGameObject();
+            try { window.FeedbackManager?.cameraShake?.(this, 180, 0.004); }
+            catch (error) { console.warn('[VoidPeaksLevel] Optional emergence feedback failed', error); }
+            if (!entrance.isCurrent()) return false;
+        }
+        if (entrance.panPending) {
+            entrance.panPending = false;
+            entrance.panTo(this.player.x, this.player.y, 1000, 'Power2', () => { entrance.panSettled = true; });
+            entrance.after('peaks-guardian-arena-pan', 1500, () => {
+                entrance.panSettled = true;
+                this.updateTitanEntrance();
+            });
+        }
+        entrance.pan?.update(time, delta);
+        if (!entrance.isCurrent()) return false;
+        if (entrance.emerged && entrance.panSettled) {
+            const camera = entrance.camera;
+            entrance.retire();
+            return this.beginTitanCombat(camera);
+        }
+        return false;
     }
 
     stageTitanArenaEntry() {
@@ -2300,13 +2434,19 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     spawnCosmicTitan() {
+        const entrance = this.titanEntrance;
+        if (!entrance?.isCurrent() || this.boss?.active) return false;
         this.createTitanTexture();
+        if (!entrance.isCurrent()) return false;
 
         this.boss = this.physics.add.sprite(
             MOUNTAIN_ASCENT.faceX,
             MOUNTAIN_ASCENT.faceY,
             COSMIC_TITAN_TEXTURE
         );
+        const boss = entrance.boss = this.boss;
+        entrance.bossBody = boss.body;
+        boss.once('destroy', entrance.retire);
         this.boss.setImmovable(true);
         this.boss.setCollideWorldBounds(false);
         this.boss.body.setAllowGravity(false);
@@ -2328,62 +2468,60 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         // The climb remains solid terrain; the awakened character leaves it.
         const endScale = TITAN_ARENA.combatHeight / this.boss.height;
-        this.tweens.add({
-            targets: this.boss, x: TITAN_ARENA.bossX,
+        entrance.endScale = endScale;
+        const motion = { progress: 0 };
+        const target = { x: TITAN_ARENA.bossX,
             y: MOUNTAIN_ASCENT.summitY - TITAN_ARENA.combatHeight * (0.97 - MOUNTAIN_ASCENT.originY),
-            scaleX: endScale, scaleY: endScale, angle: -7,
+            scaleX: endScale, scaleY: endScale, angle: -7 };
+        const keys = Object.keys(target);
+        let start;
+        entrance.motion = this.tweens.add({
+            targets: motion, progress: 1,
             duration: 900, ease: 'Cubic.easeOut',
+            onStart: () => {
+                if (!entrance.isCurrent()) { entrance.retire(); return; }
+                start = Object.fromEntries(keys.map(key => [key, boss[key]]));
+            },
+            onUpdate: () => {
+                if (!entrance.isCurrent()) { entrance.retire(); return; }
+                if (!entrance.playable() || !start) return;
+                keys.forEach(key => { boss[key] = start[key] + (target[key] - start[key]) * motion.progress; });
+            },
             onComplete: () => {
-                if (!this.boss?.active || this.bossDefeated) return;
-                this.boss.setOrigin(MOUNTAIN_ASCENT.originX, 0.97);
-                this.boss.setPosition(TITAN_ARENA.bossX, MOUNTAIN_ASCENT.summitY);
-                this.boss.setAngle(0);
-                this.bossTargetScale = endScale;
-                this.boss.body.updateFromGameObject();
-                window.FeedbackManager?.cameraShake?.(this, 180, 0.004);
+                if (!entrance.isCurrent()) { entrance.retire(); return; }
+                entrance.motionFinished = true;
+                this.updateTitanEntrance();
             }
         });
 
         this.bossHealth = this.bossMaxHealth;
         this.createBossHealthBar();
-        this.scheduleGuardianTransition('peaks-guardian-pan-start', 500, () => {
-            if (!this.player?.active || !this.cameras.main) return;
-            const camera = this.cameras.main;
-            let arenaEntrySettled = false;
-            const settleArenaEntry = () => {
-                if (arenaEntrySettled) return;
-                arenaEntrySettled = true;
-                this.cancelGuardianTransition('peaks-guardian-arena-pan');
-                this.beginTitanCombat(camera);
-            };
-            camera.pan(
-                this.player.x,
-                this.player.y,
-                1000,
-                'Power2',
-                true,
-                (camera, progress) => {
-                    if (progress >= 0.999) {
-                        settleArenaEntry();
-                    }
-                }
-            );
-            this.scheduleGuardianTransition(
-                'peaks-guardian-arena-pan',
-                1500,
-                settleArenaEntry
-            );
+        entrance.after('peaks-guardian-pan-start', 500, () => {
+            entrance.panPending = true;
+            this.updateTitanEntrance();
         });
+        return true;
     }
 
     beginTitanCombat(camera = this.cameras.main) {
         if (
             this.bossCombatReady ||
+            this.levelCompletionActive ||
             !this.bossFightActive ||
             !this.boss?.active ||
             !this.player?.active
         ) return false;
 
+        if (this.isPlayerDead || this.pauseMenuActive || this.time.paused || this.sys?.isActive?.() === false) {
+            this.deferredTitanCombat = {
+                boss: this.boss, bossBody: this.boss.body,
+                player: this.player, playerBody: this.player.body,
+                plugin: this.scene, encounter: this.guardianEncounter,
+                clock: this.time, world: this.physics.world
+            };
+            return false;
+        }
+        this.deferredTitanCombat = null;
         this.bossCombatReady = true;
         this.bossCombatReadyAt = this.time.now;
         this.titanAttackLocked = false;
@@ -2419,15 +2557,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             'Dodge the snow. Strike while the peaks are quiet!'
         );
 
-        this.bossAttackPreviewTimer = this.time.delayedCall(
+        this.scheduleTitanControlTimer('bossAttackPreviewTimer',
             TITAN_ARENA.openingGraceMs,
-            () => {
-                this.bossAttackPreviewTimer = null;
+            isCurrent => {
                 if (this.bossAttackPreview) {
                     this.performTitanAttack(this.bossAttackPreview);
                 } else {
                     this.performTitanAttack();
-                    this.startTitanAttackLoop();
+                    if (isCurrent()) this.startTitanAttackLoop();
                 }
             }
         );
@@ -2435,17 +2572,29 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         return true;
     }
 
+    updateDeferredTitanCombat() {
+        const pending = this.deferredTitanCombat;
+        if (!pending) return false;
+        if (this.boss !== pending.boss || !pending.boss.active || pending.boss.body !== pending.bossBody ||
+            this.player !== pending.player || !pending.player.active || pending.player.body !== pending.playerBody ||
+            this.scene !== pending.plugin || this.guardianEncounter !== pending.encounter ||
+            this.time !== pending.clock || this.physics?.world !== pending.world ||
+            !this.bossFightActive || this.bossDefeated || this.levelCompletionActive || this.bossCombatReady) {
+            this.deferredTitanCombat = null;
+            return false;
+        }
+        if (this.isPlayerDead || this.pauseMenuActive || this.time.paused ||
+            this.sys?.isActive?.() === false || !this.cameras?.main) return false;
+        this.deferredTitanCombat = null;
+        return this.beginTitanCombat(this.cameras.main);
+    }
+
     startTitanAttackLoop() {
         if (!this.bossCombatReady || !this.bossFightActive || this.bossDefeated) {
             return null;
         }
-        this.bossAttackTimer?.remove?.();
-        this.bossAttackTimer = this.time.addEvent({
-            delay: 2600,
-            callback: () => this.performTitanAttack(),
-            loop: true
-        });
-        return this.bossAttackTimer;
+        return this.scheduleTitanControlTimer('bossAttackTimer', 2600,
+            () => this.performTitanAttack(), { loop: true, phaseBound: false });
     }
 
     createTitanTexture() {
@@ -2595,12 +2744,79 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         return timer;
     }
 
+    cancelTitanControlTimer(slot) {
+        const owner = this.titanControlTimers?.get(slot);
+        if (owner) owner.retire();
+        else {
+            this[slot]?.remove?.(false);
+            this[slot] = null;
+        }
+    }
+
+    clearTitanControlTimers() {
+        [...(this.titanControlTimers?.values() || [])].forEach(owner => owner.retire());
+    }
+
+    scheduleTitanControlTimer(slot, delay, callback, { loop = false, phaseBound = true, encounterTimer = false } = {}) {
+        this.cancelTitanControlTimer(slot);
+        const owners = this.titanControlTimers ||= new Map();
+        const boss = this.boss, player = this.player, bossBody = boss?.body, playerBody = player?.body;
+        const plugin = this.scene, encounter = this.guardianEncounter, phase = this.bossPhase;
+        const clock = this.time, tweens = this.tweens, world = this.physics?.world, events = this.events;
+        const timers = this.bossEncounterTimers;
+        // Pause and checkpoint recovery retain native Clock time. Actor/phase
+        // ownership is separate from the attack method's live-player guard.
+        const ownsContext = () => bossBody && playerBody && this.boss === boss && boss?.active && boss.body === bossBody &&
+            this.player === player && player?.active && player.body === playerBody &&
+            this.scene === plugin && this.guardianEncounter === encounter && (!phaseBound || this.bossPhase === phase) &&
+            this.time === clock && this.tweens === tweens && this.physics?.world === world && this.events === events &&
+            this.bossFightActive && this.bossCombatReady && !this.bossDefeated && !this.levelCompletionActive;
+        if (!ownsContext()) return null;
+        const owner = { timer: null, retired: false, delivering: false, fired: false };
+        const isCurrent = () => !owner.retired && this.titanControlTimers === owners && owners.get(slot) === owner &&
+            (this[slot] === owner.timer || (owner.delivering && this[slot] === null)) &&
+            (!encounterTimer || (this.bossEncounterTimers === timers && (owner.delivering || timers.has(owner.timer)))) && ownsContext();
+        owner.retire = () => {
+            if (owner.retired) return;
+            owner.retired = true;
+            // Do not delete a replacement record or clear its native timer alias.
+            if (owners.get(slot) === owner) owners.delete(slot);
+            if (this[slot] === owner.timer) this[slot] = null;
+            timers?.delete(owner.timer);
+            events.off('shutdown', owner.retire);
+            boss.off('destroy', owner.retire); player.off('destroy', owner.retire);
+            owner.timer?.remove(false);
+        };
+        owners.set(slot, owner);
+        try {
+            events.once('shutdown', owner.retire); boss.once('destroy', owner.retire); player.once('destroy', owner.retire);
+            const deliver = () => {
+                if (owner.delivering || (!loop && owner.fired)) return;
+                if (!isCurrent()) { owner.retire(); return; }
+                owner.delivering = true;
+                if (!loop) { owner.fired = true; this[slot] = null; timers?.delete(owner.timer); }
+                try { callback(isCurrent); }
+                catch (error) { owner.retire(); throw error; }
+                finally { owner.delivering = false; if (!loop) owner.retire(); }
+            };
+            owner.timer = loop ? clock.addEvent({ delay, callback: deliver, loop: true }) : clock.delayedCall(delay, deliver);
+            if (owner.retired || owners.get(slot) !== owner) { owner.timer.remove(false); return null; }
+            this[slot] = owner.timer;
+            if (encounterTimer) timers.add(owner.timer);
+            return owner.timer;
+        } catch (error) { owner.retire(); throw error; }
+    }
+
     clearBossEncounterTimers() {
+        this.cancelTitanControlTimer('titanAttackRecoveryTimer');
         this.bossEncounterTimers.forEach(timer => timer?.remove?.(false));
         this.bossEncounterTimers.clear();
     }
 
     clearBossEncounterEffects() {
+        this.clearMountainAttackLaunches();
+        this.clearMountainProjectiles();
+        this.clearMountainSnowGrenades();
         this.bossEncounterEffects.forEach(effect => this.releaseBossEffect(effect));
     }
 
@@ -2647,30 +2863,84 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.time.now < this.titanRecoveryUntil
         ) return;
 
+        const windupContext = this.captureMountainAttackContext();
+        if (!windupContext.isCurrent()) return;
         const attack = forcedAttack || nextMountainAttack(this.titanAttackIndex++, this.bossPhase);
         const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800;
         const attackTarget = { x: this.player.x, y: this.player.y };
+        if (!this.startTitanWindup(windupContext)) return;
         this.titanAttackLocked = true;
         this.titanRecoveryUntil = 0;
-        this.tweens.add({
-            targets: this.boss,
-            x: Phaser.Math.Clamp(this.boss.x + (this.player.x > this.boss.x ? 42 : -42), 4870, 5010),
-            angle: this.player.x > this.boss.x ? 5 : -5,
-            duration: TITAN_ATTACK_WINDUP, ease: 'Sine.easeInOut'
-        });
         this.broadcastTitanWarning(attack, attackTarget);
 
-        this.titanAttackUnlockTimer?.remove?.();
-        this.titanAttackUnlockTimer = this.time.delayedCall(
+        this.scheduleTitanControlTimer('titanAttackUnlockTimer',
             TITAN_ATTACK_WINDUP + attackWindow + TITAN_RECOVERY_WINDOW,
             () => {
                 if (!this.titanPhaseRecoveryTimer && !this.bossDefeated) {
                     this.titanAttackLocked = false;
                     this.bossSubtitle?.setText?.('Watch the snowy peaks');
                 }
-                this.titanAttackUnlockTimer = null;
             }
         );
+    }
+
+    startTitanWindup(context = this.captureMountainAttackContext()) {
+        this.clearTitanWindup();
+        if (!context.isCurrent()) return null;
+        const { boss, player, tweenManager } = context;
+        const events = this.events;
+        const endX = Phaser.Math.Clamp(boss.x + (player.x > boss.x ? 42 : -42), 4870, 5010);
+        const endAngle = player.x > boss.x ? 5 : -5;
+        const motion = { progress: 0 };
+        const owner = { tween: null, retired: false, started: false };
+        let startX, startAngle;
+        const isCurrent = () => !owner.retired && this.titanWindupMotion === owner &&
+            this.events === events && context.isCurrent();
+        owner.retire = () => {
+            if (owner.retired) return;
+            owner.retired = true;
+            if (this.titanWindupMotion === owner) this.titanWindupMotion = null;
+            events.off('shutdown', owner.retire);
+            boss.off('destroy', owner.retire);
+            player.off('destroy', owner.retire);
+            owner.tween?.remove();
+            owner.tween = null;
+        };
+        owner.cancel = () => {
+            if (owner.started && isCurrent()) boss.angle = startAngle;
+            owner.retire();
+        };
+        this.titanWindupMotion = owner;
+        try {
+            events.once('shutdown', owner.retire);
+            boss.once('destroy', owner.retire);
+            player.once('destroy', owner.retire);
+            // Tween a local value so even the first stale update cannot move a
+            // reused actor before an onUpdate ownership check gets to run.
+            owner.tween = tweenManager.add({
+                targets: motion, progress: 1,
+                duration: TITAN_ATTACK_WINDUP, ease: 'Sine.easeInOut',
+                onStart: () => {
+                    if (!isCurrent()) { owner.retire(); return; }
+                    startX = boss.x;
+                    startAngle = boss.angle;
+                    owner.started = true;
+                },
+                onUpdate: () => {
+                    if (!isCurrent()) { owner.retire(); return; }
+                    if (!owner.started) return;
+                    boss.x = startX + (endX - startX) * motion.progress;
+                    boss.angle = startAngle + (endAngle - startAngle) * motion.progress;
+                },
+                onComplete: owner.retire
+            });
+            if (owner.retired) { owner.tween?.remove(); return null; }
+            return owner;
+        } catch (error) { owner.retire(); throw error; }
+    }
+
+    clearTitanWindup() {
+        this.titanWindupMotion?.cancel();
     }
 
     broadcastTitanWarning(attack, attackTarget) {
@@ -2683,62 +2953,96 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.bossSubtitle?.setText?.(warnings[attack] || 'NETWORK WARNING // PRESSURE SURGE');
         const telegraph = this.createTitanAttackTelegraph(attack, attackTarget);
-        this.titanWarningTimer?.remove?.();
-        this.titanWarningTimer = this.time.delayedCall(TITAN_ATTACK_WINDUP, () => {
-            this.titanWarningTimer = null;
+        this.scheduleTitanControlTimer('titanWarningTimer', TITAN_ATTACK_WINDUP, isCurrent => {
             this.releaseBossEffect(telegraph);
-            if (!this.boss?.active || this.bossDefeated || this.titanPhaseRecoveryTimer) return;
+            if (!isCurrent() || this.titanPhaseRecoveryTimer) return;
             this.executeTitanAttack(attack, attackTarget);
+            if (!isCurrent()) return;
             const recoveryDelay = TITAN_ATTACK_WINDOWS[attack] || 1800;
-            this.scheduleBossTimer(recoveryDelay, () => {
-                if (!this.bossDefeated) {
-                    this.clearBossEncounterEffects();
-                    this.titanAttacksCompleted += 1;
-                    this.titanRecoveryDamage = 0;
-                    this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
-                    this.bossSubtitle?.setText?.('Your turn! Strike now');
-                    this.tweens.add({ targets: this.boss, angle: 0, duration: 250 });
-                }
-            });
+            this.scheduleTitanControlTimer('titanAttackRecoveryTimer', recoveryDelay, recoveryCurrent => {
+                this.clearBossEncounterEffects();
+                if (!recoveryCurrent()) return;
+                this.titanAttacksCompleted += 1;
+                this.titanRecoveryDamage = 0;
+                this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
+                this.bossSubtitle?.setText?.('Your turn! Strike now');
+                if (recoveryCurrent()) this.tweens.add({ targets: this.boss, angle: 0, duration: 250 });
+            }, { encounterTimer: true });
         });
     }
 
+    captureMountainAttackContext() {
+        const boss = this.boss, player = this.player;
+        const bossBody = boss?.body, playerBody = player?.body;
+        const plugin = this.scene, encounter = this.guardianEncounter, phase = this.bossPhase;
+        const clock = this.time, tweenManager = this.tweens, world = this.physics?.world;
+        return { boss, player, clock, tweenManager,
+            isCurrent: () => this.boss === boss && this.player === player &&
+                boss?.active && boss.body === bossBody && bossBody?.enable &&
+                player?.active && player.body === playerBody && playerBody?.enable &&
+                this.scene === plugin && this.guardianEncounter === encounter && this.bossPhase === phase &&
+                this.time === clock && this.tweens === tweenManager && this.physics?.world === world &&
+                this.bossFightActive && this.bossCombatReady && !this.bossDefeated &&
+                !this.isPlayerDead && !this.levelCompletionActive && this.sys.isActive()
+        };
+    }
+
     executeTitanAttack(attack, attackTarget) {
+        const context = this.captureMountainAttackContext();
+        if (!context.isCurrent()) return;
         if (attack === 'voidPunch') {
             this.fireMountainSnowGrenade(attackTarget);
             return;
         }
-        mountainAttackPlan(attack).forEach(({ at, kind }) => {
-            this.scheduleBossTimer(at, () => {
-                if (kind === 'groundWave') this.fireMountainGroundWave();
-                else this.fireMountainLaser(kind, attackTarget);
+        this.mountainAttackLaunches ??= new Set();
+        const launches = this.mountainAttackLaunches, timers = this.bossEncounterTimers;
+        const launch = { retired: false, pending: new Set() };
+        const target = { x: attackTarget.x, y: attackTarget.y };
+        launch.retire = () => {
+            if (launch.retired) return;
+            launch.retired = true;
+            launches.delete(launch);
+            this.events.off('shutdown', launch.retire);
+            context.boss.off('destroy', launch.retire);
+            context.player.off('destroy', launch.retire);
+            launch.pending.forEach(record => {
+                record.active = false;
+                timers.delete(record.timer);
+                record.timer.remove(false);
             });
-        });
+            launch.pending.clear();
+        };
+        launches.add(launch);
+        try {
+            this.events.once('shutdown', launch.retire);
+            context.boss.once('destroy', launch.retire);
+            context.player.once('destroy', launch.retire);
+            mountainAttackPlan(attack).forEach(({ at, kind }) => {
+                const record = { active: true, timer: null };
+                record.timer = context.clock.delayedCall(at, () => {
+                    if (!record.active || launch.retired) return;
+                    record.active = false;
+                    launch.pending.delete(record);
+                    timers.delete(record.timer);
+                    if (!context.isCurrent()) { launch.retire(); return; }
+                    try {
+                        if (kind === 'groundWave') this.fireMountainGroundWave();
+                        else this.fireMountainLaser(kind, target);
+                    } catch (error) { launch.retire(); throw error; }
+                    if (!launch.pending.size) launch.retire();
+                });
+                launch.pending.add(record);
+                timers.add(record.timer);
+            });
+        } catch (error) { launch.retire(); throw error; }
+    }
+
+    clearMountainAttackLaunches() {
+        [...(this.mountainAttackLaunches || [])].forEach(launch => launch.retire());
     }
 
     fireMountainGroundWave() {
-        if (!this.boss?.active || this.bossDefeated || !this.player?.body) return null;
-        const direction = this.player.x >= this.boss.x ? 1 : -1;
-        const wave = this.trackBossEffect(this.add.circle(
-            this.boss.x + direction * 62, MOUNTAIN_ASCENT.summitY - 26, 26, 0xE8F9FF
-        ).setStrokeStyle(4, 0x81CFE0).setDepth(910));
-        this.physics.add.existing(wave);
-        wave.body.setAllowGravity(false).setCircle(26).setVelocityX(direction * 180);
-        this.tweens.add({ targets: wave, angle: direction * 720, duration: 1800 });
-        let retired = false;
-        let overlap;
-        const retire = () => {
-            if (retired) return;
-            retired = true;
-            this.releaseBossEffect(overlap);
-            this.releaseBossEffect(wave);
-        };
-        overlap = this.trackBossEffect(this.physics.add.overlap(this.player, wave, () => {
-            if (!this.bossDefeated && wave.active) this.takeDamage(1);
-            retire();
-        }));
-        this.scheduleBossTimer(1850, retire);
-        return wave;
+        return this.fireMountainProjectile('groundWave');
     }
 
     getMountainAttackEmitters(attack) {
@@ -2748,59 +3052,206 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     fireMountainLaser(kind, target) {
-        if (!this.boss?.active || this.bossDefeated || !this.player?.body) return null;
-        const origin = mountainEmitter(this.boss, kind);
-        const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
-        const bolt = this.trackBossEffect(this.add.circle(origin.x, origin.y, 8, 0xF0FCFF)
-            .setStrokeStyle(2, 0x79C7DD).setDepth(910));
-        this.physics.add.existing(bolt);
-        bolt.body.setAllowGravity(false).setCircle(8);
-        bolt.body.setVelocity(Math.cos(angle) * 255, Math.sin(angle) * 255);
-        let retired = false;
-        let overlap;
-        const retire = () => {
-            if (retired) return;
-            retired = true;
-            this.releaseBossEffect(overlap);
-            this.releaseBossEffect(bolt);
+        return this.fireMountainProjectile(kind, target);
+    }
+
+    fireMountainProjectile(kind, target = null) {
+        const context = this.captureMountainAttackContext();
+        if (!context.isCurrent()) return null;
+        const { boss, player, clock, tweenManager } = context;
+        this.mountainProjectiles ??= new Set();
+        const owners = this.mountainProjectiles, effects = this.bossEncounterEffects, timers = this.bossEncounterTimers;
+        const owner = { retired: false };
+        let projectile, overlap, expiry, spin, destroying = false, consumed = false;
+        const onDestroy = () => { destroying = true; owner.retire(); };
+        owner.retire = () => {
+            if (owner.retired) return;
+            owner.retired = true;
+            owners.delete(owner);
+            this.events.off('shutdown', owner.retire);
+            boss.off('destroy', owner.retire);
+            player.off('destroy', owner.retire);
+            expiry?.remove(false);
+            timers.delete(expiry);
+            spin?.stop();
+            effects.delete(overlap);
+            overlap?.destroy();
+            effects.delete(projectile);
+            projectile?.off('destroy', onDestroy);
+            if (!destroying) projectile?.destroy();
         };
-        overlap = this.trackBossEffect(this.physics.add.overlap(this.player, bolt, () => {
-            if (!this.bossDefeated && bolt.active) this.takeDamage(1);
-            retire();
-        }));
-        this.scheduleBossTimer(2400, retire);
-        return bolt;
+        const requireCurrent = () => {
+            if (!owner.retired && context.isCurrent()) return true;
+            owner.retire();
+            return false;
+        };
+        owners.add(owner);
+        try {
+            this.events.once('shutdown', owner.retire);
+            boss.once('destroy', owner.retire);
+            player.once('destroy', owner.retire);
+            const wave = kind === 'groundWave';
+            const direction = player.x >= boss.x ? 1 : -1;
+            const origin = wave ? { x: boss.x + direction * 62, y: MOUNTAIN_ASCENT.summitY - 26 }
+                : mountainEmitter(boss, kind);
+            projectile = this.add.circle(origin.x, origin.y, wave ? 26 : 8, wave ? 0xE8F9FF : 0xF0FCFF)
+                .setStrokeStyle(wave ? 4 : 2, wave ? 0x81CFE0 : 0x79C7DD).setDepth(910);
+            effects.add(projectile);
+            projectile.once('destroy', onDestroy);
+            this.physics.add.existing(projectile);
+            if (wave) {
+                projectile.body.setAllowGravity(false).setCircle(26).setVelocityX(direction * 180);
+                spin = tweenManager.add({ targets: projectile, angle: direction * 720, duration: 1800,
+                    onUpdate: requireCurrent });
+            } else {
+                const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
+                projectile.body.setAllowGravity(false).setCircle(8);
+                projectile.body.setVelocity(Math.cos(angle) * 255, Math.sin(angle) * 255);
+            }
+            overlap = this.physics.add.overlap(player, projectile, () => {
+                if (consumed || !requireCurrent() || !projectile.active) return;
+                consumed = true;
+                try { this.takeDamage(1); }
+                finally { owner.retire(); }
+            }, () => !consumed && requireCurrent() && projectile.active);
+            effects.add(overlap);
+            expiry = clock.delayedCall(wave ? 1850 : 2400, owner.retire);
+            timers.add(expiry);
+            return projectile;
+        } catch (error) { owner.retire(); throw error; }
+    }
+
+    clearMountainProjectiles() {
+        [...(this.mountainProjectiles || [])].forEach(projectile => projectile.retire());
     }
 
     fireMountainSnowGrenade(target) {
-        const origin = mountainEmitter(this.boss);
+        const boss = this.boss, player = this.player;
+        const bossBody = boss?.body, playerBody = player?.body;
+        const plugin = this.scene, encounter = this.guardianEncounter, phase = this.bossPhase;
+        const clock = this.time, tweenManager = this.tweens, world = this.physics?.world;
+        const effects = this.bossEncounterEffects, encounterTimers = this.bossEncounterTimers;
+        const grenade = { retired: false, timers: new Set(), tweens: new Set(), objects: new Map() };
+        const isCurrent = () => !grenade.retired && this.boss === boss && this.player === player &&
+            boss?.active && boss.body === bossBody && bossBody?.enable &&
+            player?.active && player.body === playerBody && playerBody?.enable &&
+            this.scene === plugin && this.guardianEncounter === encounter && this.bossPhase === phase &&
+            this.time === clock && this.tweens === tweenManager && this.physics?.world === world &&
+            this.bossFightActive && this.bossCombatReady && !this.bossDefeated &&
+            !this.isPlayerDead && !this.levelCompletionActive && this.sys.isActive();
+        if (!isCurrent()) return null;
+
+        this.mountainSnowGrenades ??= new Set();
+        const owners = this.mountainSnowGrenades;
+        owners.add(grenade);
+        let destroying = null;
+        const release = object => {
+            if (!grenade.objects.has(object)) return;
+            const onDestroy = grenade.objects.get(object);
+            if (onDestroy) object.off('destroy', onDestroy);
+            grenade.objects.delete(object);
+            effects.delete(object);
+            if (object !== destroying) object.destroy();
+        };
+        grenade.retire = () => {
+            if (grenade.retired) return;
+            grenade.retired = true;
+            owners.delete(grenade);
+            this.events.off('shutdown', grenade.retire);
+            boss.off('destroy', grenade.retire);
+            player.off('destroy', grenade.retire);
+            grenade.timers.forEach(record => {
+                record.active = false;
+                encounterTimers.delete(record.timer);
+                record.timer.remove(false);
+            });
+            grenade.timers.clear();
+            grenade.tweens.forEach(tween => tween.stop());
+            grenade.tweens.clear();
+            [...grenade.objects.keys()].forEach(release);
+        };
+        const requireCurrent = () => {
+            if (isCurrent()) return true;
+            grenade.retire();
+            return false;
+        };
+        const own = object => {
+            const onDestroy = () => { destroying = object; grenade.retire(); };
+            grenade.objects.set(object, onDestroy);
+            effects.add(object);
+            object.once('destroy', onDestroy);
+            return object;
+        };
+        const after = (delay, callback) => {
+            const record = { active: true, timer: null };
+            record.timer = clock.delayedCall(delay, () => {
+                if (!record.active || grenade.retired) return;
+                record.active = false;
+                grenade.timers.delete(record);
+                encounterTimers.delete(record.timer);
+                if (!requireCurrent()) return;
+                try { callback(); }
+                catch (error) { grenade.retire(); throw error; }
+            });
+            grenade.timers.add(record);
+            encounterTimers.add(record.timer);
+        };
+        const animate = config => {
+            const tween = tweenManager.add({ ...config,
+                onUpdate: () => { if (requireCurrent()) config.onUpdate?.(); }
+            });
+            grenade.tweens.add(tween);
+        };
+        const origin = mountainEmitter(boss);
         const landingX = Phaser.Math.Clamp(target.x, MOUNTAIN_ASCENT.summitX + 34, 5166);
         const landingY = MOUNTAIN_ASCENT.summitY - 14;
-        const snow = this.trackBossEffect(this.add.circle(origin.x, origin.y, 14, 0xEAFBFF)
-            .setStrokeStyle(3, 0x82CDDC).setDepth(910));
-        const progress = { t: 0 };
-        this.tweens.add({ targets: progress, t: 1, duration: 1000,
-            onUpdate: () => {
-                if (!snow.active) return;
-                snow.setPosition(origin.x + (landingX - origin.x) * progress.t,
-                    origin.y + (landingY - origin.y) * progress.t - Math.sin(Math.PI * progress.t) * 72);
-            }
-        });
-        this.scheduleBossTimer(1000, () => {
-            this.releaseBossEffect(snow);
-            if (this.bossDefeated || !this.player?.body) return;
-            const burst = this.trackBossEffect(this.add.circle(landingX, landingY, 46, 0xD8F7FF, 0.7)
-                .setStrokeStyle(3, 0xFFFFFF).setDepth(910));
-            this.physics.add.existing(burst);
-            burst.body.setAllowGravity(false).setCircle(46);
-            const overlap = this.trackBossEffect(this.physics.add.overlap(this.player, burst, () => this.takeDamage(1)));
-            this.tweens.add({ targets: burst, alpha: 0.15, duration: 650 });
-            this.scheduleBossTimer(650, () => {
-                this.releaseBossEffect(overlap);
-                this.releaseBossEffect(burst);
+        try {
+            this.events.once('shutdown', grenade.retire);
+            boss.once('destroy', grenade.retire);
+            player.once('destroy', grenade.retire);
+            const snow = own(this.add.circle(origin.x, origin.y, 14, 0xEAFBFF)
+                .setStrokeStyle(3, 0x82CDDC).setDepth(910));
+            const progress = { t: 0 };
+            animate({ targets: progress, t: 1, duration: 1000,
+                onUpdate: () => {
+                    if (!snow.active) return;
+                    snow.setPosition(origin.x + (landingX - origin.x) * progress.t,
+                        origin.y + (landingY - origin.y) * progress.t - Math.sin(Math.PI * progress.t) * 72);
+                }
             });
-        });
-        return snow;
+            after(1000, () => {
+                release(snow);
+                const burst = own(this.add.circle(landingX, landingY, 46, 0xD8F7FF, 0.7)
+                    .setStrokeStyle(3, 0xFFFFFF).setDepth(910));
+                this.physics.add.existing(burst);
+                burst.body.setAllowGravity(false).setCircle(46);
+                const overlap = this.physics.add.overlap(player, burst, () => {
+                    if (requireCurrent() && burst.active) this.takeDamage(1);
+                });
+                // Colliders have no GameObject destroy event, but share its cleanup.
+                grenade.objects.set(overlap, null);
+                effects.add(overlap);
+                animate({ targets: burst, alpha: 0.15, duration: 650 });
+                after(650, grenade.retire);
+            });
+            return snow;
+        } catch (error) { grenade.retire(); throw error; }
+    }
+
+    clearMountainSnowGrenades() {
+        [...(this.mountainSnowGrenades || [])].forEach(grenade => grenade.retire());
+    }
+
+    onPlayerDeath() {
+        if (this.isPlayerDead) return;
+        this.clearTitanWindup();
+        this.cancelTitanControlTimer('titanWarningTimer');
+        this.cancelTitanControlTimer('titanAttackUnlockTimer');
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
+        this.titanRecoveryUntil = 0;
+        if (!this.titanPhaseRecoveryTimer) this.titanAttackLocked = false;
+        return super.onPlayerDeath();
     }
 
     keepMountainArenaGrounded() {
@@ -2816,13 +3267,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     enterTitanPhase(nextPhase) {
+        this.clearTitanWindup();
         this.bossPhase = nextPhase;
         this.titanAttackLocked = true;
-        this.titanWarningTimer?.remove?.();
-        this.titanWarningTimer = null;
-        this.titanAttackUnlockTimer?.remove?.();
-        this.titanAttackUnlockTimer = null;
-        this.titanPhaseRecoveryTimer?.remove?.();
+        this.cancelTitanControlTimer('titanWarningTimer');
+        this.cancelTitanControlTimer('titanAttackUnlockTimer');
+        this.cancelTitanControlTimer('titanPhaseRecoveryTimer');
         this.clearBossEncounterTimers();
         this.clearBossEncounterEffects();
         this.boss?.setVelocity?.(0, 0);
@@ -2845,9 +3295,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             onComplete: () => this.releaseBossEffect(phaseRing)
         });
 
-        this.titanPhaseRecoveryTimer = this.time.delayedCall(TITAN_PHASE_RECOVERY, () => {
-            this.titanPhaseRecoveryTimer = null;
-            if (!this.boss?.active || this.bossDefeated) return;
+        this.scheduleTitanControlTimer('titanPhaseRecoveryTimer', TITAN_PHASE_RECOVERY, () => {
             this.titanAttackLocked = false;
             this.titanRecoveryUntil = 0;
             this.performTitanAttack();
@@ -2894,166 +3342,129 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     defeatBoss() {
-        if (this.bossDefeated) return;
-
+        if (this.bossDefeated) return false;
+        const state = window.GameState, root = state?.state, admission = state?.saveAdmission;
+        const epoch = state?.getSaveAdmission?.().epoch;
+        const reader = state?.captureSaveAdmissionOwner?.();
+        const cloud = window.CloudSave, cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+        const physics = this.physics, boss = this.boss, player = this.player, body = player?.body, world = physics?.world;
+        const sys = this.sys, events = this.events, lifetime = this.completionSaveLifetime;
+        const input = this.input, camera = this.cameras?.main, encounter = this.guardianEncounter, clock = this.time, plugin = this.scene;
+        const original = () => window.GameState === state && state?.state === root && state?.saveAdmission === admission &&
+            (!reader || reader.isCurrent()) && window.CloudSave === cloud && cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser &&
+            state?.getSaveAdmission?.().epoch === epoch && this.boss === boss && this.player === player && player?.body === body &&
+            this.physics === physics && physics?.world === world && this.sys === sys && this.events === events && this.completionSaveLifetime === lifetime &&
+            this.input === input && this.cameras?.main === camera && this.guardianEncounter === encounter &&
+            this.time === clock && this.scene === plugin && this.sys?.isActive?.() !== false && !this._returningToHub;
+        const optional = action => { if (original()) { try { action(); } catch { /* Cleanup must not swallow the save/recovery route. */ } } };
         console.log('[VoidPeaksLevel] Cosmic Titan restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
-        this.astronautFollower?.setContextualFormation?.(null);
-        // The final hit owns progression; presentation can be interrupted safely.
-        this.completeLevelProgression({
-            achievementLevelId: 'voidPeaks',
-            shipPartId: 'hull_plating',
-            speedrunThreshold: 180000,
-            deferPresentation: true
-        });
+        this.enterLevelCompletionState();
+        if (!original()) return false;
+        optional(() => this.clearTitanEntrance());
+        optional(() => this.clearTitanControlTimers());
+        optional(() => this.clearTitanWindup());
+        optional(() => this.astronautFollower?.setContextualFormation?.(null));
+        if (!original()) return false;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
         this.titanOpeningCameraFraming = false;
-        this.bossAttackTimer?.remove?.();
-        this.bossAttackPreviewTimer?.remove?.();
+        optional(() => this.bossAttackTimer?.remove?.());
+        optional(() => this.bossAttackPreviewTimer?.remove?.());
+        if (!original()) return false;
         this.bossAttackPreviewTimer = null;
-        this.titanWarningTimer?.remove?.();
+        optional(() => this.titanWarningTimer?.remove?.());
+        if (!original()) return false;
         this.titanWarningTimer = null;
-        this.titanAttackUnlockTimer?.remove?.();
+        optional(() => this.titanAttackUnlockTimer?.remove?.());
+        if (!original()) return false;
         this.titanAttackUnlockTimer = null;
-        this.titanPhaseRecoveryTimer?.remove?.();
+        optional(() => this.titanPhaseRecoveryTimer?.remove?.());
+        if (!original()) return false;
         this.titanPhaseRecoveryTimer = null;
-        this.clearBossEncounterTimers();
-        this.clearBossEncounterEffects();
+        optional(() => this.clearBossEncounterTimers());
+        optional(() => this.clearBossEncounterEffects());
+        if (!original()) return false;
         this.titanAttackLocked = false;
         this.titanRecoveryUntil = 0;
-        this.bossPressureText?.setText('VOID PRESSURE // CLEARED');
+        return finishPeaksCompletion(this);
+    }
 
-        try {
-            if (window.AchievementSystem?.recordEvent) {
-                window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'cosmic_titan' });
-            }
-        } catch (error) {
-            console.warn('[VoidPeaksLevel] Optional guardian badge failed after saved victory', error);
-        }
-
-        if (this.boss?.body) {
-            this.boss.body.enable = false;
-        }
-        this.boss?.setVelocity?.(0, 0);
-        this.boss?.setTint?.(0x8FE3CF);
-        window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
-        this.showFloatingText(
+    startSavedPeakVictory({ isCurrent }) {
+        if (!isCurrent()) return false;
+        const boss = this.boss, terrain = this.mountainBody, clock = this.time, tweens = this.tweens;
+        const body = boss?.body, owner = boss?.scene, active = boss?.active, destroy = boss?.destroy;
+        const bodyWorld = body?.world, bodyObject = body?.gameObject, destroyBody = body?.destroy;
+        const fields = ['bossNameText', 'bossSubtitle', 'bossHealthBar', 'bossPressureText'];
+        const actors = fields.map(name => this[name]);
+        const stable = () => isCurrent() && this.time === clock && this.tweens === tweens && this.mountainBody === terrain &&
+            fields.every((name, index) => this[name] === actors[index]);
+        const current = () => stable() && this.boss === boss && boss?.body === body && boss?.scene === owner && boss?.active === active &&
+            boss?.destroy === destroy && body?.world === bodyWorld && body?.gameObject === bodyObject && body?.destroy === destroyBody;
+        const optional = action => { if (current()) { try { action(); } catch { /* Saved rewards remain accessible without optional feedback. */ } } };
+        const finish = () => {
+            if (!current()) return false;
+            optional(() => destroy?.call(boss));
+            // Native GameObject.destroy retires these exact slots. Only this
+            // known transition permits clearing the old scene's boss pointer.
+            if (!stable() || this.boss !== boss || boss?.body !== undefined || boss?.scene !== undefined || boss?.active !== false) return false;
+            this.boss = null;
+            try { if (stable()) terrain?.setVisible(true).clearTint(); } catch { /* Optional terrain feedback. */ }
+            if (!stable() || this.boss !== null) return false;
+            return this.showBossVictory();
+        };
+        // Establish the mandatory exit before optional effects can fail.
+        if (!this.scheduleGuardianTransition('peaks-saved-victory', 1800, finish)) return false;
+        optional(() => { if (boss?.body) boss.body.enable = false; });
+        optional(() => boss?.setVelocity?.(0, 0));
+        optional(() => boss?.setTint?.(0x8FE3CF));
+        optional(() => this.bossPressureText?.setText('VOID PRESSURE // CLEARED'));
+        optional(() => window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207));
+        optional(() => this.showFloatingText(
             'TITAN ROUTE STABLE',
-            this.boss?.x || 4720,
-            (this.boss?.y || 415) - 110,
+            boss?.x || 4720,
+            (boss?.y || 415) - 110,
             '#8FE3CF'
-        );
-
-        window.FXLibrary?.stardustBurst?.(
+        ));
+        optional(() => window.FXLibrary?.stardustBurst?.(
             this,
-            this.boss?.x || 4720,
-            this.boss?.y || 415,
+            boss?.x || 4720,
+            boss?.y || 415,
             {
                 count: 36,
                 color: [0x8FE3CF, 0xF2C94C, 0xBFA6FF, 0xFFFFFF],
                 duration: 1800
             }
-        );
-
-        this.scheduleGuardianTransition('peaks-saved-victory', 1800, () => {
-            this.boss?.destroy?.();
-            this.boss = null;
-            this.mountainBody?.setVisible(true).clearTint();
-            this.showBossVictory();
-        });
-        this.tweens.add({
-            targets: this.boss,
+        ));
+        optional(() => tweens.add({
+            targets: boss,
             alpha: 0.12,
             duration: 1800,
             ease: 'Sine.easeInOut'
-        });
-
-        this.tweens.add({
-            targets: [
-                this.bossNameText,
-                this.bossSubtitle,
-                this.bossHealthBar,
-                this.bossPressureText
-            ],
+        }));
+        optional(() => tweens.add({
+            targets: actors,
             alpha: 0,
             duration: 500
-        });
+        }));
+        return stable();
     }
 
     showBossVictory() {
-        if (this.peakVictoryShown) return;
-        this.peakVictoryShown = true;
-        this.showLevelComplete();
-        window.AudioManager?.playLevelUp?.();
+        return finishPeaksCompletion.present(this);
     }
 
     showLevelComplete() {
-        if (this.peakResultShown) return;
-        this.peakResultShown = true;
-        const continueJourney = () => {
-            if (this.residentReleaseOpen || this._returningToHub) return;
-            this.presentLevelCompletion();
-            if (this.residentReleaseOpen) {
-                this.pendingResidentReleaseContinuation = () => this.returnToHub();
-            } else this.returnToHub();
-        };
-        this.bindLevelCompletionReturn(continueJourney);
-        this.physics.pause();
-        const layout = this.getLevelModalLayout({ maxWidth: 440, maxHeight: 440 });
-        const {
-            width, panelWidth, panelHeight, panelX, panelY,
-            contentWidth, y, font, buttonPadding
-        } = layout;
-
-        const panel = this.add.graphics();
-        panel.fillStyle(0x101F27, 0.97);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
-        panel.lineStyle(2, 0xC9AC70, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
-        panel.setScrollFactor(0);
-        panel.setDepth(3000);
-
-        const heading = this.add.text(width / 2, y(48), 'THE MOUNTAIN IS FREE', {
-            fontSize: font(28, 23),
-            color: '#8FE3CF',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
-
-        const reward = this.levelCompletionResult?.bossPowerupReward;
-        const title = this.add.text(width / 2, y(110), 'Hull Plating recovered', {
-            fontSize: font(22, 19), color: '#F3D797', fontStyle: 'bold', align: 'center',
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
-        const rewardCopy = reward?.awarded
-            ? `${reward.name}\n${reward.resultText || reward.description}\n${reward.queued ? 'Safe in your reward inbox.' : 'Ready in Pause > Power-ups.'}`
-            : 'The ship is one step closer to flying again.';
-        const detail = this.add.text(width / 2, y(200), rewardCopy, {
-            fontSize: font(17, 15), color: '#EEF4F1', align: 'center', lineSpacing: 5,
-            wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
-        const villageCredit = this.getVillageCompletionCopy({ compact: true });
-        const saved = this.add.text(width / 2, y(304), [
-            `+${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins`, villageCredit
-        ].filter(Boolean).join('\n'), {
-            fontSize: font(16, 14), color: '#C2D3D6', align: 'center', wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
-        const returnBtn = this.add.text(width / 2, y(390), 'CONTINUE', {
-            fontSize: font(20, 17),
-            color: '#11202A',
-            backgroundColor: '#8FE3CF',
-            fontStyle: 'bold',
-            padding: { ...buttonPadding, y: Math.max(14, buttonPadding.y) }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setInteractive({ useHandCursor: true });
-        this.layoutCampaignEntryContent(layout, [heading, title, detail, saved, returnBtn], { gaps: [18, 18, 14, 22] });
-        this.peakResultElements = [heading, title, detail, saved, returnBtn];
-        returnBtn.on('pointerup', continueJourney);
+        return finishPeaksCompletion.present(this);
     }
 
     shutdown() {
+        this.completionSaveAttempt?.retire();
+        this.clearTitanEntrance();
+        this.clearTitanControlTimers();
+        this.clearTitanWindup();
+        this.deferredTitanCombat = null;
         this.peakTerrainArt?.forEach(art => art.destroy());
         this.peakTerrainArt = [];
         this.peakTerrainStone = null;
@@ -3126,6 +3537,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] Shutting down');
     }
 }
+
+const finishPeaksCompletion = createPeaksCompletionHandler(Object.freeze({
+    prototype: VoidPeaksLevel.prototype,
+    methods: Object.freeze(Object.fromEntries(['defeatBoss', 'startSavedPeakVictory', 'showBossVictory', 'showLevelComplete',
+        'showRegionalVictorySummary', 'syncCampaignObjectiveDisplay', 'refreshCurrentEcologyNode', 'scheduleGuardianTransition', 'returnToHub']
+        .map(name => [name, VoidPeaksLevel.prototype[name]])))
+}));
 
 export default VoidPeaksLevel;
 

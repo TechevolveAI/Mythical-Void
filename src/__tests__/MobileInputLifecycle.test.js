@@ -177,6 +177,34 @@ describe('MobileInputLifecycle behavior', () => {
         jest.restoreAllMocks();
     });
 
+    test.each(INPUTS.flatMap(source => [true, false].flatMap(cancelable =>
+        ['up', 'cancel'].map(end => [source, cancelable, end]))))(
+        '%s retains native ownership with cancelable=%s through %s', (source, cancelable, end) => {
+            const h = setup(source);
+            const send = (phase, x, y) => {
+                const touch = h.point(0, x, y);
+                const type = source === 'pointer' ? `pointer${phase}`
+                    : `touch${{ down: 'start', move: 'move', up: 'end', cancel: 'cancel' }[phase]}`;
+                const event = new Event(type, { bubbles: true, cancelable });
+                Object.assign(event, source === 'pointer'
+                    ? { pointerId: 0, pointerType: 'touch', clientX: touch.clientX, clientY: touch.clientY }
+                    : { changedTouches: [touch], touches: ['up', 'cancel'].includes(phase) ? [] : [touch] });
+                const cancel = jest.spyOn(event, 'preventDefault');
+                h.canvas.dispatchEvent(event);
+                expect(cancel).toHaveBeenCalledTimes(cancelable && !(source === 'pointer' && phase === 'cancel') ? 1 : 0);
+            };
+            const x = h.controls.joystickCenterX, y = h.controls.joystickCenterY;
+            send('down', x, y);
+            send('move', x, y + 35);
+            expect(h.controls.joystickActive).toBe(true);
+            expect(h.vector().y).toBeGreaterThan(0.8);
+            send(end, x, y + 35);
+            jest.advanceTimersByTime(1000);
+            expect(h.controls.activePointerId).toBeNull();
+            expect(h.vector()).toEqual({ x: 0, y: 0 });
+        }
+    );
+
     describe.each(INPUTS)('%s ownership', source => {
         test('refreshes and a toolbar resize preserve the owner until a real release', () => {
             const h = setup(source);

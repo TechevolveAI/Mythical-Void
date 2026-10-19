@@ -36,7 +36,9 @@ describe('late guardian pacing contracts', () => {
         expect(warning).toContain(
             'this.createTitanAttackTelegraph(attack, attackTarget)'
         );
-        expect(warning).toContain('this.time.delayedCall(TITAN_ATTACK_WINDUP');
+        expect(warning).toContain("this.scheduleTitanControlTimer('titanWarningTimer', TITAN_ATTACK_WINDUP");
+        const controlTimer = methodSource(titan, 'scheduleTitanControlTimer', 'clearBossEncounterTimers');
+        expect(controlTimer).toContain('clock.delayedCall(delay, deliver)');
         expect(warning.indexOf('createTitanAttackTelegraph')).toBeLessThan(
             warning.indexOf('this.executeTitanAttack(attack, attackTarget)')
         );
@@ -62,10 +64,10 @@ describe('late guardian pacing contracts', () => {
         expect(phase).toContain('this.clearBossEncounterEffects();');
         expect(phase).toContain('The peaks are shifting. Catch your breath!');
         expect(phase).toContain(
-            'this.time.delayedCall(TITAN_PHASE_RECOVERY'
+            "this.scheduleTitanControlTimer('titanPhaseRecoveryTimer', TITAN_PHASE_RECOVERY"
         );
         expect(phase).toContain('this.titanAttackLocked = false;');
-        expect(defeat).toContain('this.clearBossEncounterEffects();');
+        expect(defeat).toContain('optional(() => this.clearBossEncounterEffects())');
         expect(shutdown).toContain('this.clearBossEncounterTimers();');
     });
 
@@ -143,8 +145,8 @@ describe('late guardian pacing contracts', () => {
         expect(attackSection).toContain('this.trackBossEffect(');
         expect(attackSection).toContain('this.scheduleBossTimer(');
         expect(attackSection).toContain('this.trackBossTimer(');
-        expect(defeat).toContain('this.clearBossEncounterTimers();');
-        expect(defeat).toContain('this.clearBossEncounterEffects();');
+        expect(defeat).toContain('victory.present(() => this.clearBossEncounterTimers())');
+        expect(defeat).toContain('victory.present(() => this.clearBossEncounterEffects())');
         expect(shutdown).toContain('this.bossPhaseRecoveryTimer?.remove?.();');
         expect(shutdown).toContain('this.clearBossEncounterEffects();');
     });

@@ -364,7 +364,15 @@ class BreedingEngine {
         return this.breedCreaturesWithLineage(parent1Genes, parent2Genes).genes;
     }
 
-    breedCreaturesWithLineage(parent1Genes, parent2Genes) {
+    breedCreaturesWithLineage(parent1Genes, parent2Genes, { random = Math.random } = {}) {
+        if (typeof random !== 'function') throw new TypeError('breeding_random_required');
+        const selectAllele = alleles => {
+            const value = random();
+            if (!Number.isFinite(value) || value < 0 || value >= 1) {
+                throw new RangeError('breeding_random_out_of_range');
+            }
+            return alleles[Math.floor(value * alleles.length)];
+        };
         const offspringGenes = {};
         const inheritance = {};
         const safeParent1Genes = this.resolveCreatureGenes(parent1Genes);
@@ -378,8 +386,8 @@ class BreedingEngine {
             const parent2Alleles = safeParent2Genes[traitKey];
 
             // Each parent contributes one allele randomly
-            const alleleFromParent1 = parent1Alleles[Math.floor(Math.random() * parent1Alleles.length)];
-            const alleleFromParent2 = parent2Alleles[Math.floor(Math.random() * parent2Alleles.length)];
+            const alleleFromParent1 = selectAllele(parent1Alleles);
+            const alleleFromParent2 = selectAllele(parent2Alleles);
 
             // Validate alleles are valid variations, fallback to first variation if not
             const validAllele1 = variations.includes(alleleFromParent1) ? alleleFromParent1 : variations[0];
@@ -580,12 +588,16 @@ class BreedingEngine {
     getVisualConfigFromPhenotype(
         phenotype,
         parentGenetics = null,
-        offspringRarity = 'common'
+        offspringRarity = 'common',
+        { inheritMutations = null } = {}
     ) {
+        if (inheritMutations !== null && typeof inheritMutations !== 'function') {
+            throw new TypeError('breeding_visual_inheritance_required');
+        }
         // Handle null/undefined phenotype
         const safePhenotype = phenotype || {};
 
-        return {
+        const visual = {
             headMods: {
                 horns: this.mapHornsTrait(safePhenotype.horns),
                 ears: this.mapEarsTrait(safePhenotype.earShape),
@@ -597,11 +609,14 @@ class BreedingEngine {
                 pattern: this.mapPatternTrait(safePhenotype.pattern)
             },
             eyeColor: this.traitDefinitions.eyeColor?.variations[safePhenotype.eyeColor]?.color || 0x4169E1,
-            inheritedMutations: this.inheritMutationsFromParents(
-                parentGenetics,
-                offspringRarity
-            )
+            inheritedMutations: inheritMutations === null
+                ? this.inheritMutationsFromParents(parentGenetics, offspringRarity)
+                : inheritMutations(parentGenetics, offspringRarity)
         };
+        if (inheritMutations !== null && !Array.isArray(visual.inheritedMutations)) {
+            throw new TypeError('breeding_visual_mutations_invalid');
+        }
+        return visual;
     }
 
     /**

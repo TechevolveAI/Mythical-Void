@@ -34,7 +34,21 @@ const RARITY_COLOR_FAMILIES = Object.freeze({
 });
 
 class CreatureGenetics {
-    constructor() {
+    constructor({ random = null, creation = null } = {}) {
+        if (random !== null && typeof random !== 'function') {
+            throw new TypeError('genetics_random_required');
+        }
+        this.randomSource = random;
+        if (creation !== null && (!creation || typeof creation !== 'object' || Array.isArray(creation) ||
+            Object.keys(creation).length !== 3 ||
+            !['now', 'nextGeneticId', 'emit'].every(key => typeof creation[key] === 'function'))) {
+            throw new TypeError('genetics_creation_required');
+        }
+        if (creation !== null && random === null) throw new TypeError('genetics_creation_random_required');
+        this.creationSource = creation === null ? null : Object.freeze({
+            now: creation.now, nextGeneticId: creation.nextGeneticId, emit: creation.emit
+        });
+        this.creationIds = creation === null ? null : new Set();
         this.initialized = false;
         this.geneticIdCounter = 0;
         this.config = null;
@@ -215,6 +229,37 @@ class CreatureGenetics {
         };
     }
 
+    sampleRandom() {
+        // Resolve the legacy source at call time so existing Fusion scopes keep
+        // working; isolated instances never replace the global random source.
+        if (this.randomSource === null) return Math.random();
+        const value = this.randomSource();
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value >= 1) {
+            throw new RangeError('genetics_random_out_of_range');
+        }
+        return value;
+    }
+
+    generationTime() {
+        if (this.creationSource === null) return Date.now();
+        const value = this.creationSource.now();
+        if (!Number.isSafeInteger(value) || value < 0) throw new RangeError('genetics_creation_time_invalid');
+        return value;
+    }
+
+    emitGenerationEvent(name, payload) {
+        if (this.creationSource !== null) {
+            this.creationSource.emit(name, payload);
+        } else if (typeof window !== 'undefined' && window.GameState && typeof window.GameState.emit === 'function') {
+            window.GameState.emit(name, payload);
+        }
+    }
+
+    generationLog(level, ...args) {
+        // Isolated proposals collect events explicitly and never write runtime IDs to host logs.
+        if (this.creationSource === null) console[level](...args);
+    }
+
     /**
      * Initialize the genetics system
      */
@@ -222,16 +267,16 @@ class CreatureGenetics {
         this.config = config || this.getDefaultConfig();
         this.initialized = true;
         
-        console.log('genetics:info [CreatureGenetics] Space-Mythic genetics system initialized', {
+        this.generationLog('log', 'genetics:info [CreatureGenetics] Space-Mythic genetics system initialized', {
             species: Object.keys(this.speciesTemplates).length,
             personalities: Object.keys(this.personalityTraits).length,
             affinities: Object.keys(this.cosmicAffinities).length
         });
         
         // Emit initialization event
-        if (window.GameState && typeof window.GameState.emit === 'function') {
-            window.GameState.emit('genetics/system_initialized', {
-                timestamp: Date.now(),
+        if (this.creationSource !== null || (typeof window !== 'undefined' && window.GameState && typeof window.GameState.emit === 'function')) {
+            this.emitGenerationEvent('genetics/system_initialized', {
+                timestamp: this.generationTime(),
                 systemReady: true
             });
         }
@@ -263,19 +308,22 @@ class CreatureGenetics {
 
         if (typeof rarityOrSeed === 'string' && ['common', 'uncommon', 'rare', 'epic', 'legendary'].includes(rarityOrSeed)) {
             rarity = rarityOrSeed; // Use provided rarity
-            console.log(`genetics:info [CreatureGenetics] Using provided rarity: ${rarity}`);
+            this.generationLog('log', `genetics:info [CreatureGenetics] Using provided rarity: ${rarity}`);
         } else if (rarityOrSeed !== null) {
+            if (this.randomSource !== null) {
+                throw new TypeError('genetics_explicit_random_with_legacy_seed');
+            }
             seed = rarityOrSeed; // Use as seed
             if (typeof Math.seedrandom === 'function') {
                 Math.seedrandom(seed);
             } else {
-                console.warn(
+                this.generationLog('warn',
                     'genetics:warn [CreatureGenetics] Seeded generation requested without a seeded random provider'
                 );
             }
         }
 
-        const startTime = Date.now();
+        const startTime = this.generationTime();
 
         // 1. Determine species
         const species = this.selectSpecies();
@@ -302,24 +350,24 @@ class CreatureGenetics {
             id: geneticId,
             species: species,
             rarity: rarity,
-            generatedAt: Date.now(),
+            generatedAt: this.generationTime(),
             traits: {
                 // Visual DNA
                 bodyShape: {
                     type: this.selectBodyShape(template),
-                    intensity: 0.3 + Math.random() * 0.4 // 0.3-0.7 range
+                    intensity: 0.3 + this.sampleRandom() * 0.4 // 0.3-0.7 range
                 },
                 colorGenome: this.generateColorGenome(template, rarity),
                 features: {
                     eyes: {
                         size: this.weightedChoice(['small', 'medium', 'large'], [0.2, 0.6, 0.2]),
                         color: this.selectEyeColor(template),
-                        glow: Math.random() * 0.8 + 0.2 // 0.2-1.0 range
+                        glow: this.sampleRandom() * 0.8 + 0.2 // 0.2-1.0 range
                     },
                     wings: {
                         type: template.wingType,
-                        span: 0.8 + Math.random() * 0.4, // 0.8-1.2 range
-                        shimmer: rarity === 'common' ? Math.random() * 0.5 : Math.random() * 0.8 + 0.2
+                        span: 0.8 + this.sampleRandom() * 0.4, // 0.8-1.2 range
+                        shimmer: rarity === 'common' ? this.sampleRandom() * 0.5 : this.sampleRandom() * 0.8 + 0.2
                     },
                     markings: this.generateMarkings(rarity),
                     specialFeatures: this.generateSpecialFeatures(rarity),
@@ -336,7 +384,7 @@ class CreatureGenetics {
                 timesBreeded: 0,
                 maxBreedingTimes: 5,
                 compatibleSpecies: [species], // Can breed within same species
-                fertilityRate: 0.8 + (Math.random() * 0.2) // 0.8-1.0
+                fertilityRate: 0.8 + (this.sampleRandom() * 0.2) // 0.8-1.0
             },
             lineage: {
                 parent1: null,
@@ -348,7 +396,7 @@ class CreatureGenetics {
             isShiny: false,
             shinyType: null,
             metadata: {
-                generationTime: Date.now() - startTime,
+                generationTime: this.generationTime() - startTime,
                 version: '1.0.0'
             }
         };
@@ -366,7 +414,7 @@ class CreatureGenetics {
      * Select species based on rarity weights
      */
     selectSpecies() {
-        const random = Math.random();
+        const random = this.sampleRandom();
         let accumulator = 0;
         
         for (const [species, template] of Object.entries(this.speciesTemplates)) {
@@ -384,7 +432,7 @@ class CreatureGenetics {
      * Select rarity level
      */
     selectRarity() {
-        const random = Math.random();
+        const random = this.sampleRandom();
         let accumulator = 0;
         
         for (const [rarity, weight] of Object.entries(this.rarityWeights)) {
@@ -410,9 +458,9 @@ class CreatureGenetics {
         };
         
         return {
-            colorIntensity: Math.min(1.0, Math.random() * rarityMultiplier[rarity]),
-            featureComplexity: Math.min(1.0, Math.random() * rarityMultiplier[rarity]),
-            effectStrength: Math.min(1.0, Math.random() * rarityMultiplier[rarity])
+            colorIntensity: Math.min(1.0, this.sampleRandom() * rarityMultiplier[rarity]),
+            featureComplexity: Math.min(1.0, this.sampleRandom() * rarityMultiplier[rarity]),
+            effectStrength: Math.min(1.0, this.sampleRandom() * rarityMultiplier[rarity])
         };
     }
 
@@ -424,13 +472,13 @@ class CreatureGenetics {
      */
     generateTrulyRandomColor() {
         // Full hue range: 0-360 degrees (any color on the wheel)
-        const hue = Math.random() * 360;
+        const hue = this.sampleRandom() * 360;
 
         // Saturation: 40-100% (avoid washed-out grays, but allow some softer tones)
-        const saturation = 0.4 + Math.random() * 0.6;
+        const saturation = 0.4 + this.sampleRandom() * 0.6;
 
         // Lightness: 30-80% (avoid too dark or too bright/white)
-        const lightness = 0.3 + Math.random() * 0.5;
+        const lightness = 0.3 + this.sampleRandom() * 0.5;
 
         return this.hslToHex(hue, saturation, lightness);
     }
@@ -555,7 +603,7 @@ class CreatureGenetics {
             markingsColor = this.generateTrulyRandomColor();  // Pattern markings
 
             // DEBUG: Log generated colors to verify randomness
-            console.log(`[CreatureGenetics] RANDOM COLORS for ${rarity}:`, {
+            this.generationLog('log', `[CreatureGenetics] RANDOM COLORS for ${rarity}:`, {
                 body: `#${primaryColor.toString(16).padStart(6, '0')}`,
                 wings: `#${secondaryColor.toString(16).padStart(6, '0')}`,
                 accent: `#${accentColor.toString(16).padStart(6, '0')}`,
@@ -610,7 +658,7 @@ class CreatureGenetics {
         
         // Select quirks
         const selectedQuirks = [];
-        const numQuirks = Math.random() < 0.3 ? 2 : 1; // 30% chance for 2 quirks
+        const numQuirks = this.sampleRandom() < 0.3 ? 2 : 1; // 30% chance for 2 quirks
         
         for (let i = 0; i < numQuirks; i++) {
             const availableQuirks = traitData.quirks.filter(q => !selectedQuirks.includes(q));
@@ -623,8 +671,8 @@ class CreatureGenetics {
             core: corePersonality,
             description: traitData.description,
             quirks: selectedQuirks,
-            socialLevel: Math.random() * 0.6 + 0.2, // 0.2-0.8 range
-            independence: Math.random() * 0.6 + 0.2, // 0.2-0.8 range
+            socialLevel: this.sampleRandom() * 0.6 + 0.2, // 0.2-0.8 range
+            independence: this.sampleRandom() * 0.6 + 0.2, // 0.2-0.8 range
             emotionModifiers: traitData.emotionModifiers,
             carePreferences: traitData.carePreferences
         };
@@ -639,7 +687,7 @@ class CreatureGenetics {
         
         // Rarity affects power level
         const basePowerLevel = affinityData.powerLevel.min + 
-            (Math.random() * (affinityData.powerLevel.max - affinityData.powerLevel.min));
+            (this.sampleRandom() * (affinityData.powerLevel.max - affinityData.powerLevel.min));
         
         const rarityBonus = {
             common: 0,
@@ -664,18 +712,27 @@ class CreatureGenetics {
      * Generate unique genetic identifier
      */
     generateGeneticId(species, visualTraits, personality) {
+        if (this.creationSource !== null) {
+            const id = this.creationSource.nextGeneticId();
+            if (typeof id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(id)) {
+                throw new TypeError('genetics_creation_id_invalid');
+            }
+            if (this.creationIds.has(id)) throw new Error('genetics_creation_id_reused');
+            this.creationIds.add(id);
+            return id;
+        }
         this.geneticIdCounter = (this.geneticIdCounter + 1) % 1679616;
         const randomSuffix = (
             typeof globalThis !== 'undefined' &&
             typeof globalThis.crypto?.randomUUID === 'function'
         )
             ? globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 8)
-            : Math.random().toString(36).slice(2, 10).padEnd(8, '0');
+            : this.sampleRandom().toString(36).slice(2, 10).padEnd(8, '0');
         const components = [
             species.substring(0, 3).toUpperCase(),
             personality.core.substring(0, 3).toUpperCase(),
             Math.floor(visualTraits.colorIntensity * 100).toString(16),
-            Date.now().toString(36).slice(-6),
+            this.generationTime().toString(36).slice(-6),
             this.geneticIdCounter.toString(36).padStart(4, '0'),
             randomSuffix
         ];
@@ -730,7 +787,7 @@ class CreatureGenetics {
     }
 
     selectFromPalette(palette) {
-        return palette[Math.floor(Math.random() * palette.length)];
+        return palette[Math.floor(this.sampleRandom() * palette.length)];
     }
 
     selectEyeColor(template) {
@@ -744,7 +801,7 @@ class CreatureGenetics {
 
         // Production mode: 50% unique shapes, 30% preferred, 20% common
         // Balanced for good variety while maintaining some patterns
-        const random = Math.random();
+        const random = this.sampleRandom();
         if (random < 0.5) {
             // Unique body types (50% chance)
             const uniqueShapes = ['fish', 'cyclops', 'serpentine', 'avian', 'quadruped', 'blob', 'reptilian', 'insectoid'];
@@ -776,7 +833,7 @@ class CreatureGenetics {
             legendary: 1.0   // Always has markings
         };
         
-        if (Math.random() > rarityPatternChance[rarity]) {
+        if (this.sampleRandom() > rarityPatternChance[rarity]) {
             return { 
                 pattern: 'none', 
                 intensity: 0,
@@ -798,12 +855,12 @@ class CreatureGenetics {
         
         return {
             pattern: selectedPattern,
-            intensity: Math.random() * 0.6 + 0.3, // 0.3-0.9 range
+            intensity: this.sampleRandom() * 0.6 + 0.3, // 0.3-0.9 range
             distribution: distribution,
             colorVariant: colorVariant,
-            scale: Math.random() * 0.8 + 0.2, // 0.2-1.0 scale
-            opacity: Math.random() * 0.4 + 0.4, // 0.4-0.8 opacity
-            animation: rarity === 'legendary' || (rarity === 'rare' && Math.random() < 0.5) 
+            scale: this.sampleRandom() * 0.8 + 0.2, // 0.2-1.0 scale
+            opacity: this.sampleRandom() * 0.4 + 0.4, // 0.4-0.8 opacity
+            animation: rarity === 'legendary' || (rarity === 'rare' && this.sampleRandom() < 0.5)
                 ? this.generateMarkingAnimation() : null
         };
     }
@@ -832,26 +889,26 @@ class CreatureGenetics {
         };
         
         const rarityData = featuresByRarity[rarity];
-        if (!rarityData || Math.random() > rarityData.probability) {
+        if (!rarityData || this.sampleRandom() > rarityData.probability) {
             return [];
         }
         
         const numFeatures = rarity === 'legendary' ? 
-            Math.floor(Math.random() * 3) + 1 : // 1-3 features for legendary
+            Math.floor(this.sampleRandom() * 3) + 1 : // 1-3 features for legendary
             rarity === 'rare' ?
-                Math.floor(Math.random() * 2) + 1 : // 1-2 features for rare
+                Math.floor(this.sampleRandom() * 2) + 1 : // 1-2 features for rare
                 1; // 1 feature for uncommon
         
         const selectedFeatures = [];
         const availableFeatures = [...rarityData.features];
         
         for (let i = 0; i < numFeatures && availableFeatures.length > 0; i++) {
-            const featureIndex = Math.floor(Math.random() * availableFeatures.length);
+            const featureIndex = Math.floor(this.sampleRandom() * availableFeatures.length);
             const feature = availableFeatures.splice(featureIndex, 1)[0];
             
             selectedFeatures.push({
                 type: feature,
-                intensity: Math.random() * 0.8 + 0.2, // 0.2-1.0 intensity
+                intensity: this.sampleRandom() * 0.8 + 0.2, // 0.2-1.0 intensity
                 variant: this.generateFeatureVariant(feature),
                 animation: this.shouldAnimateFeature(feature, rarity) ? 
                     this.generateFeatureAnimation(feature) : null
@@ -961,7 +1018,7 @@ class CreatureGenetics {
             // Each subsequent mutation has lower chance
             const adjustedChance = chance * Math.pow(0.6, i);
 
-            if (Math.random() < adjustedChance) {
+            if (this.sampleRandom() < adjustedChance) {
                 // Select random mutation type not already selected
                 const availableTypes = wackyMutationTypes.filter(
                     type => !mutations.some(m => m.type === type)
@@ -974,9 +1031,9 @@ class CreatureGenetics {
                     mutations.push({
                         type: selectedType,
                         variant: this.randomChoice(variants),
-                        intensity: 0.3 + Math.random() * 0.5, // 0.3-0.8 range
+                        intensity: 0.3 + this.sampleRandom() * 0.5, // 0.3-0.8 range
                         inherited: false, // Will be true if from parent
-                        dominance: Math.random() * 0.6 + 0.3 // 0.3-0.9 dominance for breeding
+                        dominance: this.sampleRandom() * 0.6 + 0.3 // 0.3-0.9 dominance for breeding
                     });
                 }
             }
@@ -984,7 +1041,7 @@ class CreatureGenetics {
 
         // Log significant mutations
         if (mutations.length > 0) {
-            console.log(`genetics:info [CreatureGenetics] Generated ${mutations.length} wacky mutation(s):`,
+            this.generationLog('log', `genetics:info [CreatureGenetics] Generated ${mutations.length} wacky mutation(s):`,
                 mutations.map(m => `${m.type}:${m.variant}`).join(', ')
             );
         }
@@ -1018,17 +1075,17 @@ class CreatureGenetics {
             // Inheritance chance based on dominance
             const inheritanceChance = mutation.dominance * 0.7; // Max 63% chance
 
-            if (Math.random() < inheritanceChance) {
+            if (this.sampleRandom() < inheritanceChance) {
                 inheritedMutations.push({
                     ...mutation,
                     inherited: true,
                     // Slight variation in intensity from parent
                     intensity: Math.min(0.9, Math.max(0.2,
-                        mutation.intensity + (Math.random() - 0.5) * 0.2
+                        mutation.intensity + (this.sampleRandom() - 0.5) * 0.2
                     )),
                     // Dominance can shift slightly
                     dominance: Math.min(0.95, Math.max(0.2,
-                        mutation.dominance + (Math.random() - 0.5) * 0.15
+                        mutation.dominance + (this.sampleRandom() - 0.5) * 0.15
                     ))
                 });
             }
@@ -1041,7 +1098,7 @@ class CreatureGenetics {
         // Filter new mutations based on penalty and avoid duplicates
         newMutations.forEach(newMut => {
             const alreadyHas = inheritedMutations.some(m => m.type === newMut.type);
-            const passedPenaltyRoll = Math.random() > newMutationPenalty;
+            const passedPenaltyRoll = this.sampleRandom() > newMutationPenalty;
 
             if (!alreadyHas && passedPenaltyRoll) {
                 inheritedMutations.push(newMut);
@@ -1070,9 +1127,9 @@ class CreatureGenetics {
         
         return {
             type: this.randomChoice(animationTypes),
-            speed: Math.random() * 0.5 + 0.3, // 0.3-0.8 speed
-            intensity: Math.random() * 0.6 + 0.2, // 0.2-0.8 intensity
-            pattern: Math.random() < 0.5 ? 'synchronized' : 'cascading'
+            speed: this.sampleRandom() * 0.5 + 0.3, // 0.3-0.8 speed
+            intensity: this.sampleRandom() * 0.6 + 0.2, // 0.2-0.8 intensity
+            pattern: this.sampleRandom() < 0.5 ? 'synchronized' : 'cascading'
         };
     }
 
@@ -1109,10 +1166,10 @@ class CreatureGenetics {
         ];
         
         if (dynamicFeatures.includes(featureType)) {
-            return Math.random() < (animationProbability[rarity] || 0.3);
+            return this.sampleRandom() < (animationProbability[rarity] || 0.3);
         }
         
-        return Math.random() < (animationProbability[rarity] || 0.1) * 0.5;
+        return this.sampleRandom() < (animationProbability[rarity] || 0.1) * 0.5;
     }
 
     /**
@@ -1132,9 +1189,9 @@ class CreatureGenetics {
         
         return {
             type: this.randomChoice(animations),
-            duration: Math.random() * 2000 + 1000, // 1-3 seconds
+            duration: this.sampleRandom() * 2000 + 1000, // 1-3 seconds
             easing: this.randomChoice(['linear', 'ease-in-out', 'bounce', 'elastic']),
-            loop: Math.random() < 0.8 // 80% chance to loop
+            loop: this.sampleRandom() < 0.8 // 80% chance to loop
         };
     }
 
@@ -1230,7 +1287,7 @@ class CreatureGenetics {
         const b = color & 0xFF;
         
         // Apply random variation
-        const variation = (Math.random() - 0.5) * strength * 255;
+        const variation = (this.sampleRandom() - 0.5) * strength * 255;
         
         const mutatedR = Math.max(0, Math.min(255, r + variation));
         const mutatedG = Math.max(0, Math.min(255, g + variation));
@@ -1246,23 +1303,23 @@ class CreatureGenetics {
         const enhancements = {
             common: {
                 intensity: 0,
-                shimmer: 0.3 + Math.random() * 0.3
+                shimmer: 0.3 + this.sampleRandom() * 0.3
             },
             uncommon: {
                 intensity: 0.1,
-                shimmer: 0.5 + Math.random() * 0.3
+                shimmer: 0.5 + this.sampleRandom() * 0.3
             },
             rare: {
                 intensity: 0.2,
-                shimmer: 0.65 + Math.random() * 0.25
+                shimmer: 0.65 + this.sampleRandom() * 0.25
             },
             epic: {
                 intensity: 0.25,
-                shimmer: 0.75 + Math.random() * 0.2
+                shimmer: 0.75 + this.sampleRandom() * 0.2
             },
             legendary: {
                 intensity: 0.32,
-                shimmer: 0.85 + Math.random() * 0.15
+                shimmer: 0.85 + this.sampleRandom() * 0.15
             }
         };
         
@@ -1286,8 +1343,8 @@ class CreatureGenetics {
             type: this.randomChoice(complexityByRarity[rarity] || ['linear']),
             startColor: color1,
             endColor: color2,
-            intensity: Math.random() * 0.6 + 0.2,
-            angle: Math.random() * 360
+            intensity: this.sampleRandom() * 0.6 + 0.2,
+            angle: this.sampleRandom() * 360
         };
     }
 
@@ -1375,18 +1432,18 @@ class CreatureGenetics {
         const flags = [];
         
         if (rarity === 'uncommon' || rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
-            if (Math.random() < 0.3) flags.push('chromatic_shift');
-            if (Math.random() < 0.2) flags.push('luminance_boost');
+            if (this.sampleRandom() < 0.3) flags.push('chromatic_shift');
+            if (this.sampleRandom() < 0.2) flags.push('luminance_boost');
         }
         
         if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
-            if (Math.random() < 0.4) flags.push('prismatic_effect');
-            if (Math.random() < 0.3) flags.push('cosmic_resonance');
+            if (this.sampleRandom() < 0.4) flags.push('prismatic_effect');
+            if (this.sampleRandom() < 0.3) flags.push('cosmic_resonance');
         }
         
         if (rarity === 'legendary') {
-            if (Math.random() < 0.5) flags.push('stellar_core');
-            if (Math.random() < 0.3) flags.push('reality_flux');
+            if (this.sampleRandom() < 0.5) flags.push('stellar_core');
+            if (this.sampleRandom() < 0.3) flags.push('reality_flux');
         }
         
         return flags;
@@ -1449,12 +1506,12 @@ class CreatureGenetics {
     }
 
     randomChoice(array) {
-        return array[Math.floor(Math.random() * array.length)];
+        return array[Math.floor(this.sampleRandom() * array.length)];
     }
 
     weightedChoice(choices, weights) {
         const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-        let random = Math.random() * totalWeight;
+        let random = this.sampleRandom() * totalWeight;
         
         for (let i = 0; i < choices.length; i++) {
             if (random < weights[i]) {
@@ -1470,7 +1527,7 @@ class CreatureGenetics {
      * Log genetics creation for telemetry
      */
     logGeneticsCreation(genetics) {
-        console.log(`genetics:debug [CreatureGenetics] Generated ${genetics.rarity} ${genetics.species}:`, {
+        this.generationLog('log', `genetics:debug [CreatureGenetics] Generated ${genetics.rarity} ${genetics.species}:`, {
             id: genetics.id,
             personality: genetics.personality.core,
             cosmicElement: genetics.cosmicAffinity.element,
@@ -1480,8 +1537,8 @@ class CreatureGenetics {
         });
         
         // Emit telemetry event
-        if (window.GameState && typeof window.GameState.emit === 'function') {
-            window.GameState.emit('telemetry/creature_generated', {
+        if (this.creationSource !== null || (typeof window !== 'undefined' && window.GameState && typeof window.GameState.emit === 'function')) {
+            this.emitGenerationEvent('telemetry/creature_generated', {
                 genetics: {
                     species: genetics.species,
                     rarity: genetics.rarity,
@@ -1523,7 +1580,7 @@ class CreatureGenetics {
         // 10% shiny chance (high for testing, reduce to 1-2% for production)
         const SHINY_CHANCE = 0.10;
 
-        if (Math.random() > SHINY_CHANCE) {
+        if (this.sampleRandom() > SHINY_CHANCE) {
             return; // Not shiny
         }
 
@@ -1536,7 +1593,7 @@ class CreatureGenetics {
         ];
 
         const totalWeight = shinyTypes.reduce((sum, s) => sum + s.weight, 0);
-        let random = Math.random() * totalWeight;
+        let random = this.sampleRandom() * totalWeight;
         let selectedType = 'sparkle'; // Default
 
         for (const shinyType of shinyTypes) {
@@ -1569,7 +1626,7 @@ class CreatureGenetics {
                 colorGenome.secondary = this.shiftHue(colorGenome.secondary, 180);
                 colorGenome.accent = this.shiftHue(colorGenome.accent, 180);
                 colorGenome.hasRainbowShimmer = true;
-                colorGenome.rainbowSpeed = 0.5 + Math.random() * 0.5; // 0.5-1.0
+                colorGenome.rainbowSpeed = 0.5 + this.sampleRandom() * 0.5; // 0.5-1.0
                 colorGenome.shimmerIntensity = Math.min(1.0, colorGenome.shimmerIntensity + 0.3);
                 break;
 
@@ -1598,19 +1655,19 @@ class CreatureGenetics {
         }
 
         // Log shiny generation
-        console.log(`genetics:info [CreatureGenetics] ✨ SHINY ${selectedType.toUpperCase()} creature generated!`, {
+        this.generationLog('log', `genetics:info [CreatureGenetics] ✨ SHINY ${selectedType.toUpperCase()} creature generated!`, {
             species: genetics.species,
             rarity: genetics.rarity,
             shinyType: selectedType
         });
 
         // Emit shiny event for celebrations/achievements
-        if (window.GameState && typeof window.GameState.emit === 'function') {
-            window.GameState.emit('creature/shiny_generated', {
+        if (this.creationSource !== null || (typeof window !== 'undefined' && window.GameState && typeof window.GameState.emit === 'function')) {
+            this.emitGenerationEvent('creature/shiny_generated', {
                 species: genetics.species,
                 rarity: genetics.rarity,
                 shinyType: selectedType,
-                timestamp: Date.now()
+                timestamp: this.generationTime()
             });
         }
     }
@@ -1675,7 +1732,7 @@ class CreatureGenetics {
 }
 
 // Create singleton instance
-window.CreatureGenetics = window.CreatureGenetics || new CreatureGenetics();
+if (typeof window !== 'undefined') window.CreatureGenetics = window.CreatureGenetics || new CreatureGenetics();
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {

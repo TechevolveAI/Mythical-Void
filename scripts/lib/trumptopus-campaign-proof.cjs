@@ -264,10 +264,10 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
     assert.equal(ending.antagonist.outcome,'banished');assert.equal(ending.empress,null);
     assert.equal(ending.items.find(i=>i.id==='super_blast').quantity,1);
     if(exerciseRecovery) {
-        await clickSceneText(page,'NEW GAME+');
+        await clickSceneText(page,'NEW GAME');
         await layout('new-game-plus-confirmation');
         await page.screenshot({path:path.join(output,`${name}-new-game-plus-confirmation.png`)});
-        await clickSceneText(page,'KEEP PRIORITY');
+        await clickSceneText(page,'KEEP MY GAME');
         await layout('new-game-plus-cancelled');
         assert.equal(await page.evaluate(()=>GameState.get('story.projectBeacon.finale.priority')),priority);
         assert.deepEqual(await page.evaluate(()=>GameState.get('inventory.items')),ending.items);

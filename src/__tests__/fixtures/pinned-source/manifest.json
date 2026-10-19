@@ -1,0 +1,463 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Exact historical source controls for offline regression tests; not active game modules",
+  "importedAtSource": "803cb26e323a5f26d7ab6ba2deaf3495b2fa67c0",
+  "entries": [
+    {
+      "reference": "12e4d9781c45cfc7c98b1ca0382f26774e981a9e:src/scenes/HatchingScene.js",
+      "commit": "12e4d9781c45cfc7c98b1ca0382f26774e981a9e",
+      "path": "src/scenes/HatchingScene.js",
+      "fixture": "8f192e4e78cda47ddf6059c0ab4399742b1494c3f543e087b191fb8b82eebc49.source",
+      "bytes": 194470,
+      "sha256": "8f192e4e78cda47ddf6059c0ab4399742b1494c3f543e087b191fb8b82eebc49"
+    },
+    {
+      "reference": "1f7424be1a73f3cfe2e4c17aafa957a6a43a78b7:src/scenes/HatchingScene.js",
+      "commit": "1f7424be1a73f3cfe2e4c17aafa957a6a43a78b7",
+      "path": "src/scenes/HatchingScene.js",
+      "fixture": "c45b036376dbd2386def9586e208ba3a7193b83b8099d52d7f75164da0756bad.source",
+      "bytes": 200222,
+      "sha256": "c45b036376dbd2386def9586e208ba3a7193b83b8099d52d7f75164da0756bad"
+    },
+    {
+      "reference": "26e58823:src/systems/GameState.js",
+      "commit": "26e5882303bc64ae4778df0a3a99c924edd6d683",
+      "path": "src/systems/GameState.js",
+      "fixture": "a5f7f06a2a84e0acb30dec5968f6ffed377b310367148dc837f5a11935f2d66c.source",
+      "bytes": 273027,
+      "sha256": "a5f7f06a2a84e0acb30dec5968f6ffed377b310367148dc837f5a11935f2d66c"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/completed-local-fusion.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/completed-local-fusion.json",
+      "fixture": "902e1953eaa9f1703f2d87806d89d4f92b6788126e892bd5abdab03eff691720.source",
+      "bytes": 26360,
+      "sha256": "902e1953eaa9f1703f2d87806d89d4f92b6788126e892bd5abdab03eff691720"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/completed-shared-fusion.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/completed-shared-fusion.json",
+      "fixture": "7f694d66abf05642fc729e978ed9abe511435691507c88f1c4cf2d46085a4f1e.source",
+      "bytes": 22517,
+      "sha256": "7f694d66abf05642fc729e978ed9abe511435691507c88f1c4cf2d46085a4f1e"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/current-veil-active.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/current-veil-active.json",
+      "fixture": "50d21d5f736df7d6e712bd749444338b77bc62aa5956f4bf9f65e13d0d00bb39.source",
+      "bytes": 20894,
+      "sha256": "50d21d5f736df7d6e712bd749444338b77bc62aa5956f4bf9f65e13d0d00bb39"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/existing-media.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/existing-media.json",
+      "fixture": "77fec0af016f9ef35263014e156e15a7fbf836711ac32b85886da954910f1717.source",
+      "bytes": 23329,
+      "sha256": "77fec0af016f9ef35263014e156e15a7fbf836711ac32b85886da954910f1717"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/future-major-version.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/future-major-version.json",
+      "fixture": "3e6cbb85f9c1a26e592a8f89020a63f093a270c03e6cd1d4820a58173cbcfcb0.source",
+      "bytes": 20615,
+      "sha256": "3e6cbb85f9c1a26e592a8f89020a63f093a270c03e6cd1d4820a58173cbcfcb0"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/legacy-count-only.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/legacy-count-only.json",
+      "fixture": "93f63c1e0df64b63ce880a117d026afffd59c91e6d77963d2520c2392aff0d1c.source",
+      "bytes": 18752,
+      "sha256": "93f63c1e0df64b63ce880a117d026afffd59c91e6d77963d2520c2392aff0d1c"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/legacy-media-reference.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/legacy-media-reference.json",
+      "fixture": "0b1dd4aee22d6a19760cf4b330b3651a846bbb56155f899d1e2d83032f947ec1.source",
+      "bytes": 23171,
+      "sha256": "0b1dd4aee22d6a19760cf4b330b3651a846bbb56155f899d1e2d83032f947ec1"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/legacy-single-creature.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/legacy-single-creature.json",
+      "fixture": "ca391ceb4f114a90a23bf03d9f8256c62d95c58039f597cb9dd65c97b2d3bdb3.source",
+      "bytes": 17224,
+      "sha256": "ca391ceb4f114a90a23bf03d9f8256c62d95c58039f597cb9dd65c97b2d3bdb3"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/manifest.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/manifest.json",
+      "fixture": "1defc4ffd1acc20b11ceca98550fc8649653e3d6c3a9f04928753048e55e8dfb.source",
+      "bytes": 4701,
+      "sha256": "1defc4ffd1acc20b11ceca98550fc8649653e3d6c3a9f04928753048e55e8dfb"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/new-player.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/new-player.json",
+      "fixture": "da9249c7594e2af04b1c960c4e83ab3ddc00d9f069edf8d83aec3475f9dcc2d1.source",
+      "bytes": 16586,
+      "sha256": "da9249c7594e2af04b1c960c4e83ab3ddc00d9f069edf8d83aec3475f9dcc2d1"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/pending-fusion.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/pending-fusion.json",
+      "fixture": "78cd898e2da900716a46af8de163082c7bcb36f231eacd0548dbfd4590d93c3a.source",
+      "bytes": 26626,
+      "sha256": "78cd898e2da900716a46af8de163082c7bcb36f231eacd0548dbfd4590d93c3a"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/pending-hatch.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/pending-hatch.json",
+      "fixture": "e5695ffad148a4456999f3a505be8b2c25fb47d7a76199af590901f425f7a602.source",
+      "bytes": 20935,
+      "sha256": "e5695ffad148a4456999f3a505be8b2c25fb47d7a76199af590901f425f7a602"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/pending-reconciliation.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/pending-reconciliation.json",
+      "fixture": "dea178d97d0cb3fd65627b717a1753ba466a578415b56d86399a3ac9ab06c108.source",
+      "bytes": 26946,
+      "sha256": "dea178d97d0cb3fd65627b717a1753ba466a578415b56d86399a3ac9ab06c108"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/pending-shared-reveal.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/pending-shared-reveal.json",
+      "fixture": "f2f138a5a0287870ca8bd6503a062315544406288a6742e0a8b2ad4ba5ebc20b.source",
+      "bytes": 22723,
+      "sha256": "f2f138a5a0287870ca8bd6503a062315544406288a6742e0a8b2ad4ba5ebc20b"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/progressed-roster.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/progressed-roster.json",
+      "fixture": "f78a4e852ee8ad412ff05b77e8d60dc8605a2e7c5fe37c6e4963932e8a17b93b.source",
+      "bytes": 28851,
+      "sha256": "f78a4e852ee8ad412ff05b77e8d60dc8605a2e7c5fe37c6e4963932e8a17b93b"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/protected-return-active.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/protected-return-active.json",
+      "fixture": "55c5848dd404cc480d15d28a9bd937eebc021e76c3409df39a94189d467b3fbf.source",
+      "bytes": 20948,
+      "sha256": "55c5848dd404cc480d15d28a9bd937eebc021e76c3409df39a94189d467b3fbf"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/restricted-baseline.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/restricted-baseline.json",
+      "fixture": "e426ee9470bd818588bd0cf747e7d27154701318ead634fa6dfb9c663ce2ba00.source",
+      "bytes": 19678,
+      "sha256": "e426ee9470bd818588bd0cf747e7d27154701318ead634fa6dfb9c663ce2ba00"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/returning-player.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/returning-player.json",
+      "fixture": "9a0a7471796424cb26a7bb1b2147af67aaf0904326b4e08e93e7f651fbbaa501.source",
+      "bytes": 20615,
+      "sha256": "9a0a7471796424cb26a7bb1b2147af67aaf0904326b4e08e93e7f651fbbaa501"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/shared-history-at-limit.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/shared-history-at-limit.json",
+      "fixture": "4154b1c0abc05c59de1af321cda1c0da6bc2449fb4a4f77c031211ddbb97e48b.source",
+      "bytes": 20474,
+      "sha256": "4154b1c0abc05c59de1af321cda1c0da6bc2449fb4a4f77c031211ddbb97e48b"
+    },
+    {
+      "reference": "358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/shared-history-over-limit.json",
+      "commit": "358e3f1e313e859b71198c5a817e7a4ae51cb874",
+      "path": "src/__tests__/fixtures/save-compatibility/shared-history-over-limit.json",
+      "fixture": "d6dc88ec2faba729705cbb1516f51b2d3fd58a733e440c6f390c883e069a4535.source",
+      "bytes": 20506,
+      "sha256": "d6dc88ec2faba729705cbb1516f51b2d3fd58a733e440c6f390c883e069a4535"
+    },
+    {
+      "reference": "4b6950b2:src/systems/AchievementSystem.js",
+      "commit": "4b6950b220fa8e634c381d361a42823856d6c1ba",
+      "path": "src/systems/AchievementSystem.js",
+      "fixture": "30d760516622b854ab58a4ea75fb51e7b47aeceae8eb2bf59557ded9c658de3f.source",
+      "bytes": 40201,
+      "sha256": "30d760516622b854ab58a4ea75fb51e7b47aeceae8eb2bf59557ded9c658de3f"
+    },
+    {
+      "reference": "4c14dc81d0a739076e0bc57f2a638ccce8c07afe:src/scenes/HatchingScene.js",
+      "commit": "4c14dc81d0a739076e0bc57f2a638ccce8c07afe",
+      "path": "src/scenes/HatchingScene.js",
+      "fixture": "482ff0c171eb0dfa41ff5ee6eda09e6935f82f95e0c42de8bbc900779b05ef7b.source",
+      "bytes": 202745,
+      "sha256": "482ff0c171eb0dfa41ff5ee6eda09e6935f82f95e0c42de8bbc900779b05ef7b"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/config/project-beacon.json",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/config/project-beacon.json",
+      "fixture": "f5ed0f4a69d9c8ef4d26a82e1e6a21a03859ed37ca7626ed31c312d8aeb9d949.source",
+      "bytes": 11549,
+      "sha256": "f5ed0f4a69d9c8ef4d26a82e1e6a21a03859ed37ca7626ed31c312d8aeb9d949"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/CompanionConsent.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/CompanionConsent.js",
+      "fixture": "d5d70deaaf8b1f61d8085073d2f49d559a4ee5557693cc70b6664d23dc3cc639.source",
+      "bytes": 14127,
+      "sha256": "d5d70deaaf8b1f61d8085073d2f49d559a4ee5557693cc70b6664d23dc3cc639"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/CurrentEcology.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/CurrentEcology.js",
+      "fixture": "80b742b5edf75fbb5f9122015e8dbfa31b1ab2c647e439436023201122d63e6b.source",
+      "bytes": 31893,
+      "sha256": "80b742b5edf75fbb5f9122015e8dbfa31b1ab2c647e439436023201122d63e6b"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/CurrentVeilMission.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/CurrentVeilMission.js",
+      "fixture": "abaf93c9e27adc97e8ae5276db26a170a7acac5689dcc81a6c15f5df78a8e718.source",
+      "bytes": 14834,
+      "sha256": "abaf93c9e27adc97e8ae5276db26a170a7acac5689dcc81a6c15f5df78a8e718"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/FendCommunity.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/FendCommunity.js",
+      "fixture": "4350d57001eae070bcaf078ae01a1b786994501ede3853e0d0425ee8c6403d86.source",
+      "bytes": 10465,
+      "sha256": "4350d57001eae070bcaf078ae01a1b786994501ede3853e0d0425ee8c6403d86"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/FendCulture.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/FendCulture.js",
+      "fixture": "83325a7a50524fe8fa7d86a4e6d1d391572f9c13a12696c264b9b38bc1979d87.source",
+      "bytes": 9818,
+      "sha256": "83325a7a50524fe8fa7d86a4e6d1d391572f9c13a12696c264b9b38bc1979d87"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/FendResidents.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/FendResidents.js",
+      "fixture": "05894313e73b55a8bc8843910602a83cfa445a02a394926231b02e6e30b3ba1f.source",
+      "bytes": 17482,
+      "sha256": "05894313e73b55a8bc8843910602a83cfa445a02a394926231b02e6e30b3ba1f"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/FusionConsent.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/FusionConsent.js",
+      "fixture": "b5b254e5fb016577068942e77f8ce4d3ed2aefbf190767506eca9c93264bc7df.source",
+      "bytes": 8556,
+      "sha256": "b5b254e5fb016577068942e77f8ce4d3ed2aefbf190767506eca9c93264bc7df"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/GameState.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/GameState.js",
+      "fixture": "499352af02cec214c97a2f4a07bd5ea4eab091b68d0d801f6952561982de686d.source",
+      "bytes": 220405,
+      "sha256": "499352af02cec214c97a2f4a07bd5ea4eab091b68d0d801f6952561982de686d"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/ProtectedReturnProtocol.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/ProtectedReturnProtocol.js",
+      "fixture": "193770f9fa22fcc490cb8d454466b214b1642802a64b82e99a3e9065fd719477.source",
+      "bytes": 12734,
+      "sha256": "193770f9fa22fcc490cb8d454466b214b1642802a64b82e99a3e9065fd719477"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/SharedFusionInvitationService.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/SharedFusionInvitationService.js",
+      "fixture": "efca959e11eefd064e510192e668e2950a0e9f968cb75bd0ad0359f6e27ce62b.source",
+      "bytes": 23407,
+      "sha256": "efca959e11eefd064e510192e668e2950a0e9f968cb75bd0ad0359f6e27ce62b"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/ShipEvidence.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/ShipEvidence.js",
+      "fixture": "16604f499be92a8f263f70528b5ec76cdb1069f201e07a400e5e70aee7d04bee.source",
+      "bytes": 18676,
+      "sha256": "16604f499be92a8f263f70528b5ec76cdb1069f201e07a400e5e70aee7d04bee"
+    },
+    {
+      "reference": "5adcb023ac80f97aa6a64143cec31519fa5e6b21:src/systems/SignalGarden.js",
+      "commit": "5adcb023ac80f97aa6a64143cec31519fa5e6b21",
+      "path": "src/systems/SignalGarden.js",
+      "fixture": "a30e5311b0a0753853e36eab3f1aae26adfe2a73dcc7e6fd1f2660cf866b0697.source",
+      "bytes": 2854,
+      "sha256": "a30e5311b0a0753853e36eab3f1aae26adfe2a73dcc7e6fd1f2660cf866b0697"
+    },
+    {
+      "reference": "6c1ff0ce:src/systems/GameState.js",
+      "commit": "6c1ff0ced0625797bbe956544c9383eaf714d9b3",
+      "path": "src/systems/GameState.js",
+      "fixture": "d0f216281d6e77a233b84c53b054205726bde64e69676df8c0d4240ee2e7795b.source",
+      "bytes": 265520,
+      "sha256": "d0f216281d6e77a233b84c53b054205726bde64e69676df8c0d4240ee2e7795b"
+    },
+    {
+      "reference": "6cec867f:src/scenes/levels/CrystalCavesLevel.js",
+      "commit": "6cec867fd112562e0b83cbd409a63686c1356851",
+      "path": "src/scenes/levels/CrystalCavesLevel.js",
+      "fixture": "56a788a8fa53ce81bab6f57a432ec5b62c8e69eb47ad53221221820096099a29.source",
+      "bytes": 234355,
+      "sha256": "56a788a8fa53ce81bab6f57a432ec5b62c8e69eb47ad53221221820096099a29"
+    },
+    {
+      "reference": "6d84454c:src/scenes/levels/AuroraDepthsLevel.js",
+      "commit": "6d84454c290b91d1e204a01494daf53aabeab414",
+      "path": "src/scenes/levels/AuroraDepthsLevel.js",
+      "fixture": "81e700fe22aa65a714171ccad7ce0eddce774fcea8eca297825f85133e1a1715.source",
+      "bytes": 98108,
+      "sha256": "81e700fe22aa65a714171ccad7ce0eddce774fcea8eca297825f85133e1a1715"
+    },
+    {
+      "reference": "9407eab8:src/scenes/SoulRevealScene.js",
+      "commit": "9407eab8d82e60c7a13717f248a52c52bf99f682",
+      "path": "src/scenes/SoulRevealScene.js",
+      "fixture": "bc0a14d0630b37d09efa1229cc92abd585b6c9112dad235034cc4934cdae5f75.source",
+      "bytes": 57301,
+      "sha256": "bc0a14d0630b37d09efa1229cc92abd585b6c9112dad235034cc4934cdae5f75"
+    },
+    {
+      "reference": "9407eab8:src/systems/QuestManager.js",
+      "commit": "9407eab8d82e60c7a13717f248a52c52bf99f682",
+      "path": "src/systems/QuestManager.js",
+      "fixture": "7b0a65f5f351ac5318c666b4cef2cd560ba193340afcea2a10e5979e1375260d.source",
+      "bytes": 29707,
+      "sha256": "7b0a65f5f351ac5318c666b4cef2cd560ba193340afcea2a10e5979e1375260d"
+    },
+    {
+      "reference": "99fe0e6d:src/scenes/levels/ReefLevel.js",
+      "commit": "99fe0e6de5e93b39b4b2e5acef38d6ce3695a212",
+      "path": "src/scenes/levels/ReefLevel.js",
+      "fixture": "b792f3988434ad35bbb129042c31391264f1609f6168af8974333a0307a7cce5.source",
+      "bytes": 191515,
+      "sha256": "b792f3988434ad35bbb129042c31391264f1609f6168af8974333a0307a7cce5"
+    },
+    {
+      "reference": "b13eb61c:src/scenes/SoulRevealScene.js",
+      "commit": "b13eb61c5c6d2aae2db01d1d38316e4813fa0aed",
+      "path": "src/scenes/SoulRevealScene.js",
+      "fixture": "16b7f19dbd83d553b248eb4a4786cb7ccac0578f5aa8dab832977716742d3e24.source",
+      "bytes": 68232,
+      "sha256": "16b7f19dbd83d553b248eb4a4786cb7ccac0578f5aa8dab832977716742d3e24"
+    },
+    {
+      "reference": "ba0d5544ab162dd19086aed40e5ad16b55d37762:src/scenes/levels/VoidPeaksLevel.js",
+      "commit": "ba0d5544ab162dd19086aed40e5ad16b55d37762",
+      "path": "src/scenes/levels/VoidPeaksLevel.js",
+      "fixture": "e6999a1138704a9ea85477889f3d5f9d2a8258928362cfc2e5554b409d247999.source",
+      "bytes": 126970,
+      "sha256": "e6999a1138704a9ea85477889f3d5f9d2a8258928362cfc2e5554b409d247999"
+    },
+    {
+      "reference": "c26b567f:src/scenes/levels/MythicalForestLevel.js",
+      "commit": "c26b567ff3ba3c3d7b1ebdfb668800d4fc767143",
+      "path": "src/scenes/levels/MythicalForestLevel.js",
+      "fixture": "1def6c2385711fbc4d4b1994bdc89b96e3f432b8f1277436473eb70667dc6593.source",
+      "bytes": 283541,
+      "sha256": "1def6c2385711fbc4d4b1994bdc89b96e3f432b8f1277436473eb70667dc6593"
+    },
+    {
+      "reference": "c26b567f:src/systems/AchievementSystem.js",
+      "commit": "c26b567ff3ba3c3d7b1ebdfb668800d4fc767143",
+      "path": "src/systems/AchievementSystem.js",
+      "fixture": "099619b34c9aa66decfc6d23658090c67c28f3a30713dd321cf6dc15fd13d2e9.source",
+      "bytes": 58552,
+      "sha256": "099619b34c9aa66decfc6d23658090c67c28f3a30713dd321cf6dc15fd13d2e9"
+    },
+    {
+      "reference": "c92119e2e0a68f230cdeee26dfd487bfbded86d7:src/systems/BreedingEngine.js",
+      "commit": "c92119e2e0a68f230cdeee26dfd487bfbded86d7",
+      "path": "src/systems/BreedingEngine.js",
+      "fixture": "a1ecb9a27b107a5fbacf5cce727ae0713b49ebd67a0bd019c3abe0dd42dbb9d0.source",
+      "bytes": 27911,
+      "sha256": "a1ecb9a27b107a5fbacf5cce727ae0713b49ebd67a0bd019c3abe0dd42dbb9d0"
+    },
+    {
+      "reference": "c92119e2e0a68f230cdeee26dfd487bfbded86d7:src/systems/CreatureGenetics.js",
+      "commit": "c92119e2e0a68f230cdeee26dfd487bfbded86d7",
+      "path": "src/systems/CreatureGenetics.js",
+      "fixture": "2ae66b7150732ec4a76326d9d2d57c87bde0060b015f7b3d8144f50ecd61c6f8.source",
+      "bytes": 65843,
+      "sha256": "2ae66b7150732ec4a76326d9d2d57c87bde0060b015f7b3d8144f50ecd61c6f8"
+    },
+    {
+      "reference": "d5579286:src/systems/GameState.js",
+      "commit": "d5579286b9f2e4403ff0f2c0a338f5847273b073",
+      "path": "src/systems/GameState.js",
+      "fixture": "967340e48bfacee87d460718384dafe1f94a67833b85c9995829a71d8d614eaf.source",
+      "bytes": 263314,
+      "sha256": "967340e48bfacee87d460718384dafe1f94a67833b85c9995829a71d8d614eaf"
+    },
+    {
+      "reference": "dbb01847:src/systems/ThoughtBubbleSystem.js",
+      "commit": "dbb01847e9c86605702fb08505813ad17a048f8a",
+      "path": "src/systems/ThoughtBubbleSystem.js",
+      "fixture": "fd2ab68497ee92fee67743061cd02264f51e09b98a167fbb15d6a81856f3e429.source",
+      "bytes": 28954,
+      "sha256": "fd2ab68497ee92fee67743061cd02264f51e09b98a167fbb15d6a81856f3e429"
+    },
+    {
+      "reference": "dfc31af7:src/scenes/PlatformerLevelScene.js",
+      "commit": "dfc31af714298ee8c650fb523719b5b02dddd776",
+      "path": "src/scenes/PlatformerLevelScene.js",
+      "fixture": "53b751f631b94ab2db7368df3fb16278f5e0fcf1628058110c20719d63a8ff14.source",
+      "bytes": 375456,
+      "sha256": "53b751f631b94ab2db7368df3fb16278f5e0fcf1628058110c20719d63a8ff14"
+    },
+    {
+      "reference": "eb264911:src/systems/AchievementSystem.js",
+      "commit": "eb264911b84d69bf2948c8f71d8dfb1733de1203",
+      "path": "src/systems/AchievementSystem.js",
+      "fixture": "9fb4ddc2d2778642694308112e6ba0a97b5775ac296e267177ba1d8f8de2a791.source",
+      "bytes": 50782,
+      "sha256": "9fb4ddc2d2778642694308112e6ba0a97b5775ac296e267177ba1d8f8de2a791"
+    },
+    {
+      "reference": "f312ae46:src/systems/GameState.js",
+      "commit": "f312ae46f8c9414f8a958852747b3fa7d348ac97",
+      "path": "src/systems/GameState.js",
+      "fixture": "cc71d53357e2c52286975a639e6b5ba12db84d6efa5ecd4b3bce2133b72ccde1.source",
+      "bytes": 263031,
+      "sha256": "cc71d53357e2c52286975a639e6b5ba12db84d6efa5ecd4b3bce2133b72ccde1"
+    },
+    {
+      "reference": "f900a4a110d06705d639e5fd9ce8ece2853ccd9b:src/scenes/BreedingHatchScene.js",
+      "commit": "f900a4a110d06705d639e5fd9ce8ece2853ccd9b",
+      "path": "src/scenes/BreedingHatchScene.js",
+      "fixture": "b51c6f285528037afcabc27dac860e6716729fc4d3094478003223eb8c52b5f6.source",
+      "bytes": 71744,
+      "sha256": "b51c6f285528037afcabc27dac860e6716729fc4d3094478003223eb8c52b5f6"
+    },
+    {
+      "reference": "ff7537d8:src/scenes/levels/VoidPeaksLevel.js",
+      "commit": "ff7537d82bf247b33b5896f8e0fe579fee9157f0",
+      "path": "src/scenes/levels/VoidPeaksLevel.js",
+      "fixture": "308143406cb5e8c5bec3dd051668fedfadca043f42dbd6ae2cd4dfb6a0e15dfd.source",
+      "bytes": 140314,
+      "sha256": "308143406cb5e8c5bec3dd051668fedfadca043f42dbd6ae2cd4dfb6a0e15dfd"
+    }
+  ]
+}

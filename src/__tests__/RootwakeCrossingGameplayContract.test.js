@@ -49,11 +49,11 @@ describe('Rootwake Crossing gameplay contract', () => {
     test('makes the real creature action cause the visible world change', () => {
         expect(levelSource).toContain("action: 'creature_resonance_slam'");
         expect(levelSource).toContain("worldChange: 'five_layer_crossing_raised'");
-        expect(levelSource).toContain("setData('rootwakeCreatureAction', 'resonance_slam')");
-        expect(levelSource).toContain('this.player?.setVelocityY?.(-340);');
-        expect(levelSource).toContain('const witnessOffsetX = this.isMobile ? -72 : -112;');
-        expect(levelSource).toContain('this.isMobile ? 372 : 610');
-        expect(levelSource).toContain('this.emitRootwakeGravitySeeds(color);');
+        // Behaviour, grounded contact and unchanged controls are exercised in
+        // ForestFirstCrossing.test.js, rather than requiring a forced jump.
+        expect(levelSource).toContain('this.showRootwakeContactTravel(crossing, isCurrent);');
+        expect(levelSource).toContain("presentation: 'grounded_creature_contact'");
+        expect(levelSource).not.toContain('this.player?.setVelocityY?.(-340);');
         expect(levelSource).toContain('this.drawRootwakeWorldState(true);');
         expect(levelSource).toContain("eventId: 'forest_rootwake_crossing'");
         expect(levelSource).toContain("outcome: 'gravity_path_raised'");
@@ -75,13 +75,13 @@ describe('Rootwake Crossing gameplay contract', () => {
     test('cannot remain stuck if the one-shot completion timer is dropped', () => {
         expect(levelSource).toContain('crossing.completesAt = this.time.now + 1750;');
         expect(levelSource).toContain('crossing.completeAwakening = completeAwakening;');
-        expect(levelSource).toContain('this.time.delayedCall(1750, completeAwakening);');
+        expect(levelSource).toContain('crossing.sequenceTimers.push(this.time.delayedCall(1750, completeAwakening));');
         expect(levelSource).toMatch(
             /this\.rootwakeSequenceActive[\s\S]*this\.time\.now >= crossing\.completesAt[\s\S]*crossing\.completeAwakening\?\.\(\)/
         );
     });
 
-    test('private capture proves transformation and continuous traversal', () => {
+    test('private capture retains transformation and continuous traversal assertions', () => {
         expect(smokeSource).toContain('smokeRootwakeSequence');
         expect(smokeSource).toContain("SMOKE_MODE === 'rootwake-sequence'");
         expect(smokeSource).toContain("stateBefore.rootwake?.action !== 'creature_resonance_slam'");

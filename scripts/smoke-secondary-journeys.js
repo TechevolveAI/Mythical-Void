@@ -9,6 +9,8 @@ const {
 } = require('./lib/browser-audio-policy.cjs');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
+const { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture } = require('./lib/first-sanctuary-fixture.cjs');
+const { stageGuardianHandoffServicesFixture } = require('./lib/guardian-handoff-fixture.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -10246,6 +10248,199 @@ async function smokePurchasedEgg(session, exceptions) {
     return { ...state, reveal };
 }
 
+async function reloadIntoScene(session, sceneName) {
+    await evaluate(session, 'window.smokeReloadPending = true');
+    await session.call('Page.reload', { ignoreCache: true });
+    await waitFor(() => evaluate(session, `Boolean(!window.smokeReloadPending &&
+        window.GameState?.state && window.mythicalGame?.isBooted)`),
+    { timeoutMs: 30000, message: 'New document after refresh' });
+    await waitForScene(session, sceneName, 30000);
+}
+
+async function smokeSuppliesLoop(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    const profile = getVisualReviewCreatureProfile();
+    await evaluate(session, `(() => {
+        const state = window.GameState, game = window.mythicalGame;
+        const profile = ${JSON.stringify(profile)};
+        const creature = { ...state.get('creature'), id: profile.genes.id, name: 'Nova',
+            hatched: true, named: true, genes: profile.genes, dna: profile.dna, textureName: null };
+        state.set('session.gameStarted', true);
+        state.set('creature', creature); state.set('creatures', [JSON.parse(JSON.stringify(creature))]);
+        state.set('activeCreatureIndex', 0); state.set('player.cosmicCoins', 500);
+        for (const key of ['controlsSeen', 'villageHeartArrivalSeen', 'livingFormSeen', 'crashStorySeen']) state.set('tutorial.' + key, true);
+        state.set('tutorial.livingFormPending', false);
+        state.save(); history.replaceState({}, '', '/play/');
+        game.scene.getScene('HatchingScene').scene.start('GameScene', { biome: 'nebula' });
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 30000);
+    await waitFor(() => evaluate(session, `Boolean(window.mythicalGame.scene.getScene('GameScene')?.player?.body)`),
+        { message: 'Sanctuary before supply purchase' });
+    await evaluate(session, `window.mythicalGame.scene.getScene('GameScene').openShop()`);
+    await waitForScene(session, 'ShopScene');
+    const clickTarget = async (expression, message) => {
+        const point = await waitFor(() => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScenes(true).find(scene => scene.scene.key !== 'GameScene') || window.mythicalGame.scene.getScene('GameScene');
+            const target = ${expression};
+            if (!target?.input?.enabled || !scene.input._list.includes(target)) return null;
+            return (${sceneTextScreenPoint.toString()})(target);
+        })()`), { message, timeoutMs: 12000 });
+        await (SMOKE_VIEWPORT_WIDTH <= 600 ? touch : tap)(session, point.x, point.y);
+        return point;
+    };
+    await clickTarget(`scene.categoryButtons.find(entry => entry.id === 'powerups').zone`, 'Shop power-up category');
+    const purchases = [];
+    for (const id of ['power_shot', 'power_shot', 'crystal_shield']) {
+        const before = await evaluate(session, `({ coins: window.EconomyManager.getBalance(),
+            count: window.InventoryManager.getAllItems().find(item => item.id === '${id}')?.quantity || 0,
+            price: window.mythicalGame.scene.getScene('ShopScene').shopItems.powerups.find(item => item.id === '${id}').price })`);
+        await clickTarget(`scene.itemButtons.find(entry => entry.item.id === '${id}').zone`, `Buy ${id}`);
+        await touchInteractiveSceneText(session, 'Confirm', { message: `Confirm purchase of ${id}` });
+        await waitFor(() => evaluate(session, `!window.mythicalGame.scene.getScene('ShopScene').isPurchasing &&
+            (window.InventoryManager.getAllItems().find(item => item.id === '${id}')?.quantity || 0) === ${before.count + 1}`),
+        { message: `Purchased ${id}` });
+        const coins = await evaluate(session, 'window.EconomyManager.getBalance()');
+        if (coins !== before.coins - before.price) throw new Error('Shop charged the wrong amount');
+        purchases.push({ id, price: before.price, coins });
+    }
+    await captureGameplayStill(session, 'supplies-shop.png');
+    await clickTarget('scene.closeButtonZone', 'Close shop');
+    await waitForScene(session, 'GameScene');
+    await reloadIntoScene(session, 'GameScene');
+    const readInventory = () => evaluate(session, `({ coins: window.GameState.get('player.cosmicCoins'),
+        items: window.InventoryManager.getAllItems().map(item => ({ id: item.id, quantity: item.quantity })) })`);
+    const restoredPurchase = await readInventory();
+    if (restoredPurchase.coins !== 250 || restoredPurchase.items.find(item => item.id === 'power_shot')?.quantity !== 2 ||
+        restoredPurchase.items.find(item => item.id === 'crystal_shield')?.quantity !== 1) {
+        throw new Error('Purchased supplies changed after reload: ' + JSON.stringify(restoredPurchase));
+    }
+    // Stage only the expedition and target position; purchasing, activation,
+    // projectile physics and damage use the real player paths below.
+    await startCampaignScene(session, { route: 'mythicalForest', sceneName: 'MythicalForestLevel', responsiveViewport: true });
+    await waitFor(() => evaluate(session, `Boolean(window.mythicalGame.scene.getScene('MythicalForestLevel')?.player?.body)`),
+        { message: 'Forest supply test ready' });
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        scene.showPauseMenu(); return true;
+    })()`);
+    await clickTarget(`scene.pauseMenuElements.find(item => item.text?.includes('POWER-UPS'))`, 'Open expedition power-ups');
+    const powerupControls = await clickTarget(`scene.pauseMenuElements.filter(item => item.text === 'USE')[0]`, 'Use purchased Power Shot');
+    if (powerupControls.bounds.bottom - powerupControls.bounds.top < 44 || powerupControls.bounds.right - powerupControls.bounds.left < 44) {
+        throw new Error('Purchased power-up has an undersized touch target: ' + JSON.stringify(powerupControls));
+    }
+    const activated = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        return { charge: scene.nextRangedDamageMultiplier, paused: scene.physics.world.isPaused,
+            count: window.InventoryManager.getAllItems().find(item => item.id === 'power_shot')?.quantity || 0 };
+    })()`);
+    if (activated.charge !== 5 || activated.count !== 1 || !activated.paused) throw new Error('Power Shot did not activate exactly once: ' + JSON.stringify(activated));
+    await clickTarget(`scene.pauseMenuElements.filter(item => item.text === 'USE')[0]`, 'Reject duplicate Power Shot activation');
+    const rejected = await evaluate(session, `window.InventoryManager.getAllItems().find(item => item.id === 'power_shot')?.quantity`);
+    if (rejected !== 1) throw new Error('Already-charged Power Shot consumed another item');
+    await captureGameplayStill(session, 'supplies-powerup.png');
+    await touchInteractiveSceneText(session, '← BACK');
+    await clickTarget(`scene.pauseMenuElements.find(item => item.text?.includes('RESUME'))`, 'Resume expedition');
+    const target = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const player = scene.player;
+        player.body.setAllowGravity(false); player.setVelocity(0, 0); player.facingRight = true;
+        const source = scene.enemies.getChildren().find(enemy => enemy.active && enemy.texture);
+        if (!source) return null;
+        const enemy = scene.physics.add.sprite(player.x + 100, player.y - 10, source.texture.key);
+        scene.enemies.add(enemy);
+        enemy.body.setAllowGravity(false); enemy.body.setVelocity(0, 0);
+        enemy.health = 10; enemy.maxHealth = 10;
+        scene.supplyProofTarget = enemy;
+        const damage = scene.damageEnemy.bind(scene);
+        scene.supplyProofHits = [];
+        scene.damageEnemy = (candidate, amount, ...rest) => {
+            if (candidate === enemy) scene.supplyProofHits.push(amount);
+            return damage(candidate, amount, ...rest);
+        };
+        return { playerX: player.x, targetX: enemy.x, health: enemy.health };
+    })()`);
+    if (!target) throw new Error('No runtime enemy available for purchased shot proof');
+    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+        await clickTarget('scene.mobileControlTargets.ranged.zone', 'Fire purchased shot with touch');
+    } else {
+        await setKeyboardKey(session, 'keyDown', { key: 'm', code: 'KeyM', keyCode: 77 });
+        await setKeyboardKey(session, 'keyUp', { key: 'm', code: 'KeyM', keyCode: 77 });
+    }
+    const hit = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        if (!scene.supplyProofHits.length) return null;
+        return { hits: scene.supplyProofHits, health: scene.supplyProofTarget.health, charge: scene.nextRangedDamageMultiplier };
+    })()`), { message: 'Real purchased projectile collision', timeoutMs: 8000 });
+    if (hit.hits[0] !== 5 || hit.health !== 5 || hit.charge !== 1) throw new Error('Purchased shot did not change actual combat damage: ' + JSON.stringify(hit));
+    await captureGameplayStill(session, 'supplies-combat.png');
+    const beforeReload = await readInventory();
+    await reloadIntoScene(session, 'GameScene');
+    const restoredConsumption = await readInventory();
+    if (restoredConsumption.coins !== beforeReload.coins || restoredConsumption.items.find(item => item.id === 'power_shot')?.quantity !== 1 ||
+        restoredConsumption.items.find(item => item.id === 'crystal_shield')?.quantity !== 1) {
+        throw new Error('Expedition consumption changed after reload: ' + JSON.stringify(restoredConsumption));
+    }
+    let landscape = null;
+    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+        const catalog = Object.values(JSON.parse(fs.readFileSync(path.join(__dirname, '../src/config/bosses.json'), 'utf8')))
+            .map(boss => boss.rewards?.powerup).filter(Boolean);
+        await evaluate(session, `(() => {
+            for (const item of ${JSON.stringify(catalog)}) {
+                if (!window.InventoryManager.getAllItems().some(owned => owned.id === item.id)) window.InventoryManager.addItem(item);
+            }
+            return true;
+        })()`);
+        await startCampaignScene(session, { route: 'mythicalForest', sceneName: 'MythicalForestLevel', responsiveViewport: true });
+        await evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel').showPauseMenu()`);
+        await clickTarget(`scene.pauseMenuElements.find(item => item.text?.includes('POWER-UPS'))`, 'Full-bag power-ups');
+        await session.call('Emulation.setDeviceMetricsOverride', {
+            width: 844, height: 390, deviceScaleFactor: 1, mobile: true, screenWidth: 844, screenHeight: 390
+        });
+        await waitFor(() => evaluate(session, `window.mythicalGame.scale.width === 844 && window.mythicalGame.scale.height === 390 &&
+            window.mythicalGame.scene.getScene('MythicalForestLevel').cameras.main.width === 844`),
+            { message: 'Landscape power-up layout' });
+        const pages = [];
+        for (let page = 0; page < 3; page++) {
+            const state = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                const labels = scene.pauseMenuElements.filter(item => item.text?.includes(' x'));
+                const buttons = scene.pauseMenuElements.filter(item => item.input?.enabled);
+                return { page: scene.powerupPage, labels: labels.map(item => item.text),
+                    controls: buttons.map(item => (${sceneTextScreenPoint.toString()})(item)),
+                    next: Boolean(buttons.find(item => item.text === '→')), paused: scene.physics.world.isPaused };
+            })()`);
+            if (!state.paused || state.controls.some(button => !button || button.bounds.bottom - button.bounds.top < 44)) {
+                throw new Error('Landscape supply controls are clipped or too small: ' + JSON.stringify(state));
+            }
+            pages.push(state);
+            await captureGameplayStill(session, `supplies-landscape-${page + 1}.png`);
+            if (!state.next) break;
+            await touchInteractiveSceneText(session, '→');
+        }
+        if (pages.flatMap(page => page.labels).length !== catalog.length) throw new Error('Landscape did not expose every power-up: ' + JSON.stringify(pages));
+        landscape = { stagedFullCatalog: true, pages };
+        await touchInteractiveSceneText(session, '← BACK');
+        await clickTarget(`scene.pauseMenuElements.find(item => item.text?.includes('RESUME'))`, 'Resume after rotated supply menu');
+        await session.call('Emulation.setDeviceMetricsOverride', {
+            width: SMOKE_VIEWPORT_WIDTH, height: SMOKE_VIEWPORT_HEIGHT, deviceScaleFactor: 1, mobile: true,
+            screenWidth: SMOKE_VIEWPORT_WIDTH, screenHeight: SMOKE_VIEWPORT_HEIGHT
+        });
+        await waitFor(() => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return window.mythicalGame.scale.width === ${SMOKE_VIEWPORT_WIDTH} &&
+                window.mythicalGame.scale.height === ${SMOKE_VIEWPORT_HEIGHT} &&
+                scene.cameras.main.width === ${SMOKE_VIEWPORT_WIDTH} && scene.player?.body &&
+                !scene.physics.world.isPaused && !scene.pauseMenuActive;
+        })()`), { message: 'Playable portrait after rotated supply menu' });
+        landscape.restoredPortrait = true;
+    }
+    return { stagedCoins: 500, stagedExpeditionAndTarget: true, purchases, restoredPurchase, powerupControls,
+        activated, duplicateRejected: true, hit, beforeReload, restoredConsumption, landscape };
+}
+
 async function smokeFusionPodLifecycle(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/?reset=true`);
@@ -11229,6 +11424,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         if (!providerEnabled) {
             throw new Error('Live portrait provider is not enabled in this build');
         }
+        const fixtureReady = await evaluate(session,
+            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState, window.QuestManager)`);
+        if (!fixtureReady) throw new Error('The synthetic hatch could not be committed before revealing');
         const staged = await evaluate(session, `(() => {
             const game = window.mythicalGame;
             if (!game?.scene) return false;
@@ -11282,6 +11480,14 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             }
             await waitForScene(session, 'SoulRevealScene');
         }
+    }
+
+    // Direct scene previews skip the real hatch transaction; keep their fixture
+    // valid without relaxing the production living-form ownership checks.
+    if (!useLivePortraitProvider) {
+        const fixtureReady = await evaluate(session,
+            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState, window.QuestManager)`);
+        if (!fixtureReady) throw new Error('The synthetic hatch could not be committed before naming');
     }
 
     const naming = await waitFor(
@@ -11429,7 +11635,32 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             };
         })()`),
         { timeoutMs: 1200, message: 'visible pending living-form handoff' }
-    );
+    ).catch(async error => {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene?.('SoulRevealScene');
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const button = document.querySelector('[data-testid="living-form-mobile-continue"]');
+            const state = window.GameState;
+            const bounds = button?.getBoundingClientRect?.();
+            return {
+                activeScenes: window.mythicalGame?.scene?.getScenes?.(true)?.map(s => s.scene?.key),
+                rootPresent: Boolean(root), rootClass: root?.className,
+                portraitState: root?.dataset?.portraitState,
+                spinnerPresent: Boolean(root?.querySelector('.living-form-spinner')),
+                buttonBounds: bounds ? { width: bounds.width, height: bounds.height } : null,
+                hatched: state?.get?.('creature.hatched'), named: state?.get?.('creature.named'),
+                creatureIdentityPresent: Boolean(state?.get?.('creature.id')),
+                admission: state?.getSaveAdmission?.(),
+                namingPhase: scene?.namingAttempt?.phase,
+                namingRecoveryPresent: Boolean(scene?.namingSaveRecovery),
+                livingOwnerPresent: Boolean(scene?.livingFormOwner),
+                livingOwnerCurrent: scene?.livingFormOwner?.isCurrent?.(),
+                livingRecoveryPresent: Boolean(scene?.livingFormOwner?.recovery),
+                portraitErrorPresent: Boolean(scene?.portraitError)
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    });
     if (
         pendingReveal.action !== 'ENTER SANCTUARY NOW' ||
         !pendingReveal.detail.includes('anatomy') ||
@@ -11959,13 +12190,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             scene.sanctuaryReturnMomentScheduleTimer = null;
             scene.pendingSanctuaryReturnMoment = null;
         }
-        const accepted = await scene?.maybeShowLivingPortraitReadyNotice?.({
-            identityKey: 'late-arrival-smoke:baby:portrait',
-            stage: 'baby',
-            imageUrl: '/marketing/nova.webp',
-            assetRef: null,
-            storage: 'preview'
-        });
+        const portrait = (${stageFirstSanctuaryLatePortraitFixture.toString()})(window.GameState);
+        if (!portrait) throw new Error('The synthetic late portrait could not be staged for the active creature');
+        const accepted = await scene?.maybeShowLivingPortraitReadyNotice?.(portrait);
         return {
             accepted,
             blocked: scene?.isLivingPortraitNoticeBlocked?.(),
@@ -13867,7 +14094,7 @@ async function startCampaignScene(session, step) {
             entryPreview: true,
             forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600},
             platformerPreviewSize: ${JSON.stringify(
-                SMOKE_VIEWPORT_WIDTH <= 600 ? 'mobile' : null
+                step.responsiveViewport ? null : SMOKE_VIEWPORT_WIDTH <= 600 ? 'mobile' : null
             )}
         });
         return true;
@@ -13893,6 +14120,8 @@ async function startCampaignScene(session, step) {
 }
 
 async function prepareGuardianHandoffState(session, step) {
+    const profile = JSON.parse(fs.readFileSync(path.join(__dirname,
+        '../public/press/gameplay/real-creature-showcase/source-profiles.json'), 'utf8')).profiles[0];
     const stepIndex = CAMPAIGN_STATE_STEPS.findIndex(
         candidate => candidate.route === step.route
     );
@@ -13924,6 +14153,10 @@ async function prepareGuardianHandoffState(session, step) {
             }));
 
         state.set('creature.id', 'guardian_handoff_nova');
+        // The focused handoff skips hatching, but still needs a real saved identity
+        // so the rescue and Sanctuary render the same resident as normal play.
+        state.set('creature.genetics', ${JSON.stringify(profile.genes)});
+        state.set('creature.genes', ${JSON.stringify(profile.genes)});
         state.set('creature.name', 'Nova');
         state.set('creature.hatched', true);
         state.set('creature.named', true);
@@ -13981,6 +14214,9 @@ async function prepareGuardianHandoffState(session, step) {
         state.set('world.rescuedResidents', {});
         state.set('world.guardianResidents', {});
         state.save();
+        if (!(${stageGuardianHandoffServicesFixture.toString()})(state, window.ThoughtBubbleSystem, window.AchievementSystem)) {
+            throw Error('Guardian fixture services are not ready');
+        }
 
         return {
             priorParts,
@@ -14172,11 +14408,21 @@ async function startGuardianHandoffEncounter(session, step) {
     return { guardianEntry, combatReady };
 }
 
-async function waitForForestGuardianOpening(session) {
+function guardianHandoffOpening(scene, route) {
+    if (route === 'voidPeaks') return Boolean(
+        scene.bossCombatReady && scene.titanAttacksCompleted > 0 &&
+        scene.time.now + 250 < scene.titanRecoveryUntil && !scene.titanPhaseRecoveryTimer &&
+        scene.titanRecoveryDamage < 4 && scene.time.now - scene.titanLastHitAt >= 350
+    );
+    return Boolean(scene.bossEntranceComplete && scene.boss?.isRecovering &&
+        scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning);
+}
+
+async function waitForGuardianOpening(session, step) {
     const startedAt = Date.now();
     let snapshot;
     await evaluate(session, `(() => {
-        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
         scene.completionOpeningProbe = scene.time.addEvent({ delay: 12000 });
     })()`);
     try {
@@ -14185,14 +14431,14 @@ async function waitForForestGuardianOpening(session) {
         // wall deadline for stalled/software-rendered browsers.
         while (Date.now() - startedAt < 60000) {
             snapshot = await evaluate(session, `(() => {
-                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+                const ready = (${guardianHandoffOpening.toString()})(scene, ${JSON.stringify(step.route)});
                 return {
                     elapsed: scene.completionOpeningProbe.getElapsed(),
-                    ready: Boolean(scene.bossEntranceComplete && scene.boss?.isRecovering &&
-                        scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning),
+                    ready: Boolean(ready),
                     dead: scene.isPlayerDead === true,
                     active: scene.bossFightActive === true && scene.boss?.active === true,
-                    attacks: scene.bossPhaseAttackCount,
+                    attacks: scene.bossPhaseAttackCount || scene.titanAttacksCompleted,
                     fps: scene.game.loop.actualFps
                 };
             })()`);
@@ -14203,10 +14449,10 @@ async function waitForForestGuardianOpening(session) {
             }
             await delay(WAIT_STEP_MS);
         }
-        throw new Error(`Forest guardian earned recovery opening unavailable: ${JSON.stringify({ ...snapshot, wallMs: Date.now() - startedAt })}`);
+        throw new Error(`${step.sceneName} earned recovery opening unavailable: ${JSON.stringify({ ...snapshot, wallMs: Date.now() - startedAt })}`);
     } finally {
         await evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
             scene.completionOpeningProbe?.remove?.();
             delete scene.completionOpeningProbe;
         })()`);
@@ -14219,18 +14465,15 @@ async function smokeGuardianHandoff(session, step, exceptions) {
     await waitForScene(session, 'HatchingScene');
     const prepared = await prepareGuardianHandoffState(session, step);
     const interaction = await startGuardianHandoffEncounter(session, step);
-    if (step.route === 'mythicalForest') {
+    if (['mythicalForest', 'voidPeaks'].includes(step.route)) {
         // This is a staged final-hit proof, but must still respect the real
         // entrance and attack/recovery gate instead of bypassing immunity.
-        await waitForForestGuardianOpening(session);
+        await waitForGuardianOpening(session, step);
     }
     const finalHit = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
         const target = scene?.getBossCombatTarget?.();
         if (!scene?.player || !target || !scene?.bossFightActive) return null;
-        scene.bossRecoveryUntil = 0;
-        scene.titanRecoveryUntil = 0;
-        if (scene.boss && ${JSON.stringify(step.route)} !== 'mythicalForest') scene.boss.isRecovering = false;
         scene.crystalEnergy = Math.max(3, Number(scene.crystalEnergy) || 0);
         scene.freeSpecialAttackCharges = 0;
         scene.bossHealth = 3;
@@ -14306,6 +14549,23 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                     active: scene.scene.isActive(), timePaused: scene.time.paused,
                     restorationActive: scene.forestRestorationActive, victoryShown: scene.forestVictoryShown,
                     paused: scene.physics.world.isPaused, inputEnabled: scene.input.enabled,
+                    completionAttempt: scene.forestCompletionAttempt ? {
+                        phase: scene.forestCompletionAttempt.phase, failureCode: scene.forestCompletionAttempt.failureCode,
+                        preparationStage: scene.forestCompletionAttempt.preparationStage,
+                        busy: scene.forestCompletionAttempt.busy, closed: scene.forestCompletionAttempt.closed
+                    } : null,
+                    saveAdmission: window.GameState.getSaveAdmission().status,
+                    thoughtInitialized: window.ThoughtBubbleSystem?.isInitialized === true,
+                    inventorySource: window.InventoryManager?.captureRewardCalculationSource({ state: window.GameState })?.status,
+                    thoughtSource: window.ThoughtBubbleSystem?.captureCompletionContextSource({ state: window.GameState })?.status,
+                    achievementSource: window.AchievementSystem?.hasHatchProgressSource(window.GameState),
+                    questSourceLoaded: window.QuestManager?.initialized === true &&
+                        window.QuestManager.loadedGameState === window.GameState &&
+                        window.QuestManager.loadedAdmissionEpoch === window.GameState.getSaveAdmission().epoch,
+                    recoveryScreen: document.querySelector('[data-completion-save-recovery]')?.querySelector('h1')?.textContent || null,
+                    guardianId: scene.guardianEncounter?.id, levelId: scene.levelId,
+                    sourceActors: { playerActive: scene.player?.active, playerOwned: scene.player?.scene === scene,
+                        bodyOwned: scene.player?.body?.gameObject === scene.player, worldOwned: scene.player?.body?.world === scene.physics.world },
                     camera: { zoom: scene.cameras.main.zoom, x: scene.cameras.main.scrollX, y: scene.cameras.main.scrollY },
                     skipAction: ${JSON.stringify(skipAction)},
                     canvas: (() => { const r = window.mythicalGame.canvas.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })(),
@@ -14380,7 +14640,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
 
     const residentCta = await touchInteractiveSceneText(
         session,
-        'WELCOME ',
+        step.route === 'finalVoid' ? 'WELCOME ' : 'SEE YOUR REWARDS',
         {
             match: 'startsWith',
             timeoutMs: 8000,
@@ -14434,115 +14694,113 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         );
     }
 
-    let katanaCta = null;
-    if (step.katanaUpgradeId) {
-        katanaCta = await touchDomButton(
-            session,
-            '.katana-artifact-continue',
-            {
-                timeoutMs: 16000,
-                message: `${step.sceneName} visible katana continuation`,
-                waitForRemoval: true
-            }
-        );
+    const katanaCta = null; // Installed upgrades are now shown in the single receipt.
+    const returnLabel = '[ INSTALL AT WANDERER-77 ]';
+    if (step.route !== 'finalVoid') {
+        await waitFor(() => evaluate(session, `Boolean(document.querySelector('.expedition-debrief:not([hidden])'))`),
+            { timeoutMs: 10000, message: 'regional reward summary' });
+        await waitFor(() => evaluate(session, `(() => {
+            const image = document.querySelector('.victory-resident-image');
+            return Boolean(image?.complete && image.naturalWidth > 0);
+        })()`), { timeoutMs: 5000, message: 'actual rescued resident portrait loaded' }).catch(async error => {
+            const diagnostic = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+                const image = document.querySelector('.victory-resident-image');
+                const key = scene.residentReleaseTexture;
+                const texture = key && scene.textures.get(key);
+                return { key, textureExists: key && scene.textures.exists(key),
+                    image: image && { complete: image.complete, width: image.naturalWidth, sourcePrefix: image.src.slice(0,60) },
+                    root: document.querySelector('.expedition-debrief')?.className,
+                    newResident: scene.levelCompletionResult.rescuedResident?.newlyRescued,
+                    frame: texture && { render: texture.get().source.isRenderTexture, gl: texture.get().source.isGLTexture } };
+            })()`);
+            throw new Error(error.message + ': ' + JSON.stringify(diagnostic));
+        });
+        await delay(700); // Let the optional arrival fade finish before inspecting the still.
+        const summaryLayout = await evaluate(session, `(() => {
+            const panel = document.querySelector('.expedition-debrief');
+            const story = panel.querySelector('.expedition-debrief-story');
+            const button = panel.querySelector('.expedition-debrief-continue');
+            const bounds = node => { const r = node.getBoundingClientRect(); return { left:r.left, right:r.right, top:r.top, bottom:r.bottom }; };
+            const rows = [...panel.querySelectorAll('.expedition-debrief-reward')].map(bounds);
+            return {
+                button: bounds(button), story: bounds(story), rows,
+                viewport: { width: innerWidth, height: innerHeight },
+                scrollWidth: panel.scrollWidth, clientWidth: panel.clientWidth,
+                hasShip: Boolean(panel.querySelector('[data-reward-kind="ship"]')),
+                hasResident: Boolean(panel.querySelector('[data-reward-kind="resident"]')),
+                hasUpgrade: Boolean(panel.querySelector('[data-reward-kind="upgrade"]')),
+                visibleWordCount: panel.innerText.trim().split(/\\s+/).length,
+                dialogs: document.querySelectorAll('.expedition-debrief').length,
+                hasExtraUpgradePanel: Boolean(document.querySelector('.katana-artifact-continue'))
+            };
+        })()`);
+        const actionsInFrame = summaryLayout.button.left >= 0 && summaryLayout.button.top >= 0 &&
+            summaryLayout.button.right <= summaryLayout.viewport.width && summaryLayout.button.bottom <= summaryLayout.viewport.height;
+        const actionsOverlap = summaryLayout.story.bottom > summaryLayout.button.top;
+        const rowsOverlap = summaryLayout.rows.some((row,index,rows) => rows.slice(index + 1).some(other =>
+            row.left < other.right && row.right > other.left && row.top < other.bottom && row.bottom > other.top));
+        if (!actionsInFrame || actionsOverlap || rowsOverlap || summaryLayout.scrollWidth > summaryLayout.clientWidth ||
+            summaryLayout.visibleWordCount > 85 ||
+            summaryLayout.dialogs !== 1 || !summaryLayout.hasShip || !summaryLayout.hasResident ||
+            summaryLayout.hasExtraUpgradePanel || Boolean(step.katanaUpgradeId) !== summaryLayout.hasUpgrade) {
+            throw new Error('Regional summary layout failed: ' + JSON.stringify(summaryLayout));
+        }
+        if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, step.route + '-reward-summary.png');
+        console.log('[victory-layout]', JSON.stringify(summaryLayout));
+        await touchDomButton(session, '.victory-loot-item[data-reward-kind="powerup"]');
+        const rewardDetail = await evaluate(session, `(() => {
+            const detail = document.querySelector('.victory-reward-explanation');
+            const button = document.querySelector('.expedition-debrief-continue').getBoundingClientRect();
+            return { open: !detail.hidden, text: detail.textContent, footerVisible: button.top >= 0 && button.bottom <= innerHeight };
+        })()`);
+        if (!rewardDetail.open || !rewardDetail.text.includes('Power-ups') || !rewardDetail.footerVisible) {
+            throw new Error('Reward detail interaction failed: ' + JSON.stringify(rewardDetail));
+        }
+        await touchDomButton(session, '.victory-loot-item[data-reward-kind="powerup"]');
+        if (SMOKE_VIEWPORT_WIDTH <= 600 && step.route === 'mythicalForest') {
+            await session.call('Emulation.setDeviceMetricsOverride', {
+                width: 844, height: 390, deviceScaleFactor: 1, mobile: true, screenWidth: 844, screenHeight: 390
+            });
+            await waitFor(() => evaluate(session, `(() => {
+                const panel = document.querySelector('.expedition-debrief');
+                const button = panel?.querySelector('.expedition-debrief-continue');
+                if (!button || innerHeight !== 390) return false;
+                const r = button.getBoundingClientRect();
+                return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth &&
+                    panel.scrollWidth === panel.clientWidth;
+            })()`), { timeoutMs: 5000, message: 'landscape summary keeps exit visible' });
+            if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-reward-landscape.png');
+            await session.call('Emulation.setDeviceMetricsOverride', {
+                width: SMOKE_VIEWPORT_WIDTH, height: SMOKE_VIEWPORT_HEIGHT, deviceScaleFactor: 1, mobile: true,
+                screenWidth: SMOKE_VIEWPORT_WIDTH, screenHeight: SMOKE_VIEWPORT_HEIGHT
+            });
+            await waitFor(() => evaluate(session, `(() => {
+                const panel = document.querySelector('.expedition-debrief');
+                const button = panel?.querySelector('.expedition-debrief-continue');
+                if (!button || innerHeight !== ${SMOKE_VIEWPORT_HEIGHT}) return false;
+                const p = panel.getBoundingClientRect();
+                const r = button.getBoundingClientRect();
+                return p.width === ${SMOKE_VIEWPORT_WIDTH} && p.height === ${SMOKE_VIEWPORT_HEIGHT} &&
+                    r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
+            })()`), { timeoutMs: 5000, message: 'portrait viewport and controls restored' });
+        }
     }
-
-    const returnLabel = {
-        mythicalForest: '[ ENTER SANCTUARY ]',
-        crystalCaves: '[ RETURN TO HUB ]',
-        reef: '[ RETURN TO HUB ]',
-        voidPeaks: '[ RETURN TO HUB ]',
-        auroraDepths: '[ INSTALL AURORA REACTOR ]',
-        finalVoid: '[ INSTALL AT WANDERER-77 ]'
-    }[step.route];
     if (step.route === 'mythicalForest') {
-        const firstGuardianInvitation = await waitFor(
-            () => evaluate(session, `(() => {
-                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
-                const invite = scene?.children?.list?.find?.(item => (
-                    item?.visible !== false &&
-                    item?.text === '[ INVITE SOMEONE ]' &&
-                    item?.input?.enabled === true
-                ));
-                const returnAction = scene?.children?.list?.find?.(item => (
-                    item?.visible !== false &&
-                    item?.text === '[ ENTER SANCTUARY ]' &&
-                    item?.input?.enabled === true
-                ));
-                if (!invite || !returnAction) return null;
-                return {
-                    invite: {
-                        left: invite.getBounds().left,
-                        right: invite.getBounds().right,
-                        top: invite.getBounds().top,
-                        bottom: invite.getBounds().bottom
-                    },
-                    returnAction: {
-                        left: returnAction.getBounds().left,
-                        right: returnAction.getBounds().right,
-                        top: returnAction.getBounds().top,
-                        bottom: returnAction.getBounds().bottom
-                    },
-                    summary: scene.children.list
-                        .filter(item => item.name?.startsWith('forest-victory-'))
-                        .map(item => ({
-                            text: item.text,
-                            left: item.getBounds().left,
-                            right: item.getBounds().right,
-                            top: item.getBounds().top,
-                            bottom: item.getBounds().bottom
-                        })),
-                    viewport: {
-                        width: scene.cameras.main.width,
-                        height: scene.cameras.main.height
-                    }
-                };
-            })()`),
-            { timeoutMs: 8000, message: 'first Guardian invitation' }
-        );
-        const actionsOverlap = !(
-            firstGuardianInvitation.invite.bottom <=
-            firstGuardianInvitation.returnAction.top ||
-            firstGuardianInvitation.returnAction.bottom <=
-            firstGuardianInvitation.invite.top
-        );
-        const actionsInFrame = [
-            firstGuardianInvitation.invite,
-            firstGuardianInvitation.returnAction
-        ].every(bounds => (
-            bounds.left >= 0 &&
-            bounds.top >= 0 &&
-            bounds.right <= firstGuardianInvitation.viewport.width &&
-            bounds.bottom <= firstGuardianInvitation.viewport.height
-        ));
-        const summaryInFrame = firstGuardianInvitation.summary.length === 9 &&
-            firstGuardianInvitation.summary.every(bounds => (
-                bounds.left >= 0 && bounds.top >= 0 &&
-                bounds.right <= firstGuardianInvitation.viewport.width &&
-                bounds.bottom <= firstGuardianInvitation.viewport.height
-            ));
-        const summaryOverlaps = firstGuardianInvitation.summary.some((bounds, index, blocks) => (
-            index > 0 && bounds.top < blocks[index - 1].bottom + 3
-        ));
-        if (actionsOverlap || !actionsInFrame || !summaryInFrame || summaryOverlaps) {
-            throw new Error(
-                `First Guardian invitation layout failed: ${JSON.stringify({
-                    firstGuardianInvitation,
-                    actionsOverlap,
-                    actionsInFrame,
-                    summaryInFrame,
-                    summaryOverlaps
-                })}`
-            );
-        }
-        if (SMOKE_CAPTURE_DIR) {
-            await captureGameplayStill(
-                session,
-                SMOKE_VIEWPORT_WIDTH <= 600
-                    ? 'first-guardian-invitation-phone.png'
-                    : 'first-guardian-invitation-desktop.png'
-            );
-        }
+        const firstGuardianInvitation = await evaluate(session, `(() => {
+            const button = document.querySelector('[data-victory-action="invite"]');
+            button?.scrollIntoView({ block: 'nearest' });
+            const root = document.querySelector('.expedition-debrief');
+            const footer = root?.querySelector('.expedition-debrief-continue');
+            const rect = node => { const r = node?.getBoundingClientRect(); return r && {left:r.left,right:r.right,top:r.top,bottom:r.bottom}; };
+            return { invite: rect(button), returnAction: rect(footer), viewport: { width: innerWidth, height: innerHeight } };
+        })()`);
+        const actionsOverlap = firstGuardianInvitation.invite?.bottom > firstGuardianInvitation.returnAction?.top;
+        const actionsInFrame = [firstGuardianInvitation.invite, firstGuardianInvitation.returnAction].every(b =>
+            b && b.left >= 0 && b.top >= 0 && b.right <= firstGuardianInvitation.viewport.width && b.bottom <= firstGuardianInvitation.viewport.height);
+        if (actionsOverlap || !actionsInFrame) throw new Error('Optional invitation overlaps return: ' + JSON.stringify(firstGuardianInvitation));
+        if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'first-guardian-invitation-phone.png' : 'first-guardian-invitation-desktop.png');
         const readBirthdayReplayState = () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
             return {
@@ -14552,9 +14810,9 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             };
         })()`);
         const beforeBirthdayReplay = await readBirthdayReplayState();
-        await touchInteractiveSceneText(session, '[ SECRET MESSAGE ]');
+        await touchDomButton(session, '[data-victory-action="secret-message"]');
         await touchInteractiveSceneText(session, '[ CONTINUE WITHOUT MESSAGE ]');
-        await touchInteractiveSceneText(session, '[ SECRET MESSAGE ]');
+        await touchDomButton(session, '[data-victory-action="secret-message"]');
         const keypadLayout = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
             const texts = scene.birthdayCelebrationElements.filter(item => typeof item.text === 'string');
@@ -14607,8 +14865,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         }
         if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'birthday-celebration.png', { settleMs: 1200 });
         await touchInteractiveSceneText(session, '[ CONTINUE THE CELEBRATION ]');
-        await waitFor(() => evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel')
-            .children.list.some(item => item.text === '[ ENTER SANCTUARY ]' && item.visible)`),
+        await waitFor(() => evaluate(session, `Boolean(document.querySelector('.expedition-debrief:not([hidden])'))`),
         { timeoutMs: 5000, message: 'birthday replay returns to rewards' });
         const afterBirthdayReplay = await readBirthdayReplayState();
         if (JSON.stringify(beforeBirthdayReplay) !== JSON.stringify(afterBirthdayReplay)) {
@@ -14616,7 +14873,9 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         }
         console.log('[birthday-replay] skip, retry, 77, exact message, unchanged rewards: pass');
     }
-    const returnCta = await touchInteractiveSceneText(
+    const returnCta = step.route !== 'finalVoid'
+        ? await touchDomButton(session, '.expedition-debrief-continue', { waitForRemoval: true })
+        : await touchInteractiveSceneText(
         session,
         returnLabel,
         {
@@ -14625,21 +14884,15 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         }
     );
 
-    if (step.route === 'finalVoid') {
-        await waitForScene(session, 'GameScene', 12000);
-    } else {
-        await waitForScene(session, 'HubWorldScene', 12000);
-        const debriefCta = await touchDomButton(
-            session,
-            '[data-testid="expedition-debrief-continue"]',
-            {
-                timeoutMs: 12000,
-                message: `${step.sceneName} debrief installation action`,
-                waitForRemoval: true
-            }
-        );
-        await waitForScene(session, 'GameScene', 12000);
-        step.__debriefCta = debriefCta;
+    await waitForScene(session, 'GameScene', 12000);
+    if (step.route !== 'finalVoid') {
+        const remaining = await evaluate(session, `({
+            pending: window.GameState.get('story.projectBeacon.pendingDebriefs'),
+            dialogCount: document.querySelectorAll('.expedition-debrief').length
+        })`);
+        if (remaining.pending.length || remaining.dialogCount) {
+            throw new Error('Summary left a repeated blocking debrief: ' + JSON.stringify(remaining));
+        }
     }
 
     const installLabel = `INSTALL ${step.route === 'mythicalForest'
@@ -23556,7 +23809,7 @@ async function main() {
         const companionVideoRequests = [];
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
-        const isolatedCompletionProof = ['guardian-handoff', 'completion-recovery'].includes(SMOKE_MODE);
+        const isolatedCompletionProof = ['guardian-handoff', 'completion-recovery', 'supplies-loop'].includes(SMOKE_MODE);
         if (isolatedCompletionProof) {
             await session.call('Page.addScriptToEvaluateOnNewDocument', {
                 source: `(() => {
@@ -23813,6 +24066,9 @@ async function main() {
                 );
                 process.stdout.write(`PASS ${sceneName}\n`);
             }
+        } else if (SMOKE_MODE === 'supplies-loop') {
+            results.suppliesLoop = await smokeSuppliesLoop(session, exceptions);
+            process.stdout.write('PASS SuppliesLoop\n');
         } else if (SMOKE_MODE === 'fusion-pod-lifecycle') {
             results.fusionPodLifecycle = await smokeFusionPodLifecycle(
                 session,

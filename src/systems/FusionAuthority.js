@@ -274,6 +274,17 @@ class FusionAuthority {
         );
     }
 
+    captureCampaignGuard(cloudSave, options = {}) {
+        return options.isCurrentCampaign || cloudSave?.captureCampaignGuard?.() || (() => true);
+    }
+
+    assertCurrentCampaign(isCurrentCampaign) {
+        if (isCurrentCampaign()) return;
+        const error = new Error('Fusion operation belongs to an earlier game.');
+        error.code = 'cloud_campaign_changed';
+        throw error;
+    }
+
     async reserveOperation(request, options = {}) {
         if (!this.validateRequest(request)) {
             throw new Error('fusion_request_invalid');
@@ -281,6 +292,8 @@ class FusionAuthority {
 
         const cloudSave = options.cloudSave ||
             (typeof globalThis !== 'undefined' ? globalThis.CloudSave : null);
+        const isCurrentCampaign = this.captureCampaignGuard(cloudSave, options);
+        this.assertCurrentCampaign(isCurrentCampaign);
         const selected = this.selectOffspringIdentity(request);
         if (!cloudSave?.isEnabled?.()) {
             return {
@@ -308,9 +321,11 @@ class FusionAuthority {
 
         try {
             await cloudSave.ensureSession();
+            this.assertCurrentCampaign(isCurrentCampaign);
             const { data, error } = await client.rpc('reserve_fusion_operation', {
                 p_request: request
             });
+            this.assertCurrentCampaign(isCurrentCampaign);
             if (error) throw error;
             if (
                 data?.operationId !== request.operationId ||
@@ -338,6 +353,8 @@ class FusionAuthority {
                 reconciliationRequired: false
             };
         } catch (error) {
+            this.assertCurrentCampaign(isCurrentCampaign);
+            if (error?.code === 'cloud_campaign_changed') throw error;
             if (this.isReservationIntegrityError(error)) {
                 error.name = 'FusionAuthorityReservationError';
                 throw error;
@@ -388,6 +405,8 @@ class FusionAuthority {
 
         const cloudSave = options.cloudSave ||
             (typeof globalThis !== 'undefined' ? globalThis.CloudSave : null);
+        const isCurrentCampaign = this.captureCampaignGuard(cloudSave, options);
+        this.assertCurrentCampaign(isCurrentCampaign);
         const client = cloudSave?.client;
         if (
             !client?.functions?.invoke ||
@@ -399,6 +418,7 @@ class FusionAuthority {
         }
 
         await cloudSave.ensureSession();
+        this.assertCurrentCampaign(isCurrentCampaign);
         const { data, error } = await client.functions.invoke(
             'execute-fusion',
             {
@@ -407,6 +427,7 @@ class FusionAuthority {
                 }
             }
         );
+        this.assertCurrentCampaign(isCurrentCampaign);
         if (error) {
             const executionError = new Error(
                 error.message || 'fusion_execution_failed',
@@ -536,6 +557,8 @@ class FusionAuthority {
 
         const cloudSave = options.cloudSave ||
             (typeof globalThis !== 'undefined' ? globalThis.CloudSave : null);
+        const isCurrentCampaign = this.captureCampaignGuard(cloudSave, options);
+        this.assertCurrentCampaign(isCurrentCampaign);
         const client = cloudSave?.client;
         if (
             !client?.functions?.invoke ||
@@ -551,6 +574,7 @@ class FusionAuthority {
 
         return cloudSave.performServerMutation(async () => {
             await cloudSave.ensureSession();
+            this.assertCurrentCampaign(isCurrentCampaign);
             const { data, error } = await client.functions.invoke(
                 'finalize-fusion',
                 {
@@ -560,6 +584,7 @@ class FusionAuthority {
                     }
                 }
             );
+            this.assertCurrentCampaign(isCurrentCampaign);
             if (error) {
                 const finalizationError = new Error(
                     error.message || 'fusion_finalization_failed',
@@ -587,7 +612,8 @@ class FusionAuthority {
                 ...data,
                 names: normalizedNames
             };
-        });
+        }, { isCurrentCampaign, operationId: request.operationId,
+            wireRequest: { function: 'finalize-fusion', body: { operationId: request.operationId, names: normalizedNames } } });
     }
 
     createLocalReceipt(
@@ -693,11 +719,14 @@ class FusionAuthority {
         if (!cloudSave?.isEnabled?.()) {
             throw new Error('fusion_reconciliation_cloud_unavailable');
         }
+        const isCurrentCampaign = this.captureCampaignGuard(cloudSave, options);
+        this.assertCurrentCampaign(isCurrentCampaign);
 
         const reservation = await this.reserveOperation(
             normalized.request,
-            { cloudSave }
+            { cloudSave, isCurrentCampaign }
         );
+        this.assertCurrentCampaign(isCurrentCampaign);
         if (reservation.reservationMode !== 'server_reserved') {
             throw new Error('fusion_reconciliation_deferred');
         }
@@ -712,15 +741,17 @@ class FusionAuthority {
         const execution = await this.executeReservedOperation(
             normalized.request,
             reservation,
-            { cloudSave }
+            { cloudSave, isCurrentCampaign }
         );
+        this.assertCurrentCampaign(isCurrentCampaign);
         const finalization = await this.finalizeReservedOperation(
             normalized.request,
             reservation,
             execution.receipt,
             normalized.names,
-            { cloudSave }
+            { cloudSave, isCurrentCampaign }
         );
+        this.assertCurrentCampaign(isCurrentCampaign);
         return {
             operationId: normalized.operationId,
             reservation,

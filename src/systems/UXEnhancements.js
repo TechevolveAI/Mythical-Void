@@ -23,6 +23,7 @@ class UXEnhancements {
         this.eventScope = null;
         this.manualEvents = [];
         this.observers = [];
+        this.loadingOwner = null;
     }
 
     registerCleanup(task) {
@@ -483,10 +484,19 @@ class UXEnhancements {
      * Handle enhanced tab navigation
      */
     handleTabNavigation(e) {
+        // Phaser owns its advertised Care shortcut only in the gameplay surface.
+        // Forms, links and Shift+Tab keep ordinary accessible page navigation.
+        const game = window.mythicalGame;
+        const currentElement = document.activeElement;
+        if (!e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey &&
+            game?.scene?.isActive?.('GameScene') &&
+            (currentElement === document.body || currentElement === game.canvas ||
+                currentElement?.id === 'game')) {
+            return;
+        }
         const focusableElements = this.focusableElements;
         if (focusableElements.length === 0) return;
-        
-        const currentElement = document.activeElement;
+
         const currentIndex = focusableElements.indexOf(currentElement);
         
         if (e.shiftKey) {
@@ -857,11 +867,12 @@ class UXEnhancements {
     /**
      * Show loading state
      */
-    showLoading(message = 'Loading...') {
+    showLoading(message = 'Loading...', owner = null) {
         // Scene entry can outlive a DOM teardown or run before full UX setup.
         const overlay = this.setupLoadingStates();
         if (!overlay) return false;
         const text = overlay.querySelector('.loading-text');
+        this.loadingOwner = owner;
         
         text.textContent = message;
         overlay.classList.remove('hidden');
@@ -878,7 +889,11 @@ class UXEnhancements {
     /**
      * Hide loading state
      */
-    hideLoading() {
+    hideLoading(owner = null) {
+        // A retired scene must not dismiss a loading screen opened by its successor.
+        // Calls without an owner retain the existing global-dismiss behaviour.
+        if (owner !== null && owner !== this.loadingOwner) return;
+        this.loadingOwner = null;
         const overlay = document.getElementById('loading-overlay');
         if (!overlay || overlay.classList.contains('hidden')) return;
         overlay.classList.add('hidden');
@@ -1143,6 +1158,7 @@ class UXEnhancements {
      * Clean up
      */
     destroy() {
+        this.loadingOwner = null;
         if (this.eventScope && typeof this.eventScope.cleanup === 'function') {
             this.eventScope.cleanup();
             this.eventScope = null;

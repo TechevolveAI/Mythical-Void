@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectReefCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const levelPath = path.join(__dirname, '../scenes/levels/ReefLevel.js');
 
@@ -179,13 +180,11 @@ describe('third expedition rescue loop', () => {
             /defeatBoss\(\)\s*\{([\s\S]*?)\n    \}\n\n    showVictoryScreen/
         )?.[1] || '';
 
-        expect(defeat).toContain('this.bossBody.body.enable = false');
-        expect(defeat).toContain('this.bossMinions.forEach');
+        expect(defeat).toContain('victory.body.enable = false');
+        expect(defeat).toContain('for (const minion of [...(this.bossMinions || [])])');
         expect(defeat).toContain('PASSAGE GUARDIAN STABLE');
         expect(source).toContain('STELLAR PASSAGE RESTORED');
-        expect(source).toContain(
-            'this.getGuardianSanctuaryArrivalCopy({ compact: true })'
-        );
+        expectReefCompletionConnection();
         expect(source).not.toContain("Nyx'voral's Trust: Returned");
         expect(source).not.toContain("`Nyx'voral Defeated: ✓`");
     });
@@ -220,7 +219,7 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('dimensionalTear: 2200');
         expect(source).toContain('summonMinions: 3400');
         expect(source).toContain('this.bossAttackLocked = true');
-        expect(source).toContain('this.time.delayedCall(\n            attackWindow');
+        expect(source).toContain("control.after('unlock', attackWindow, () => { this.bossAttackLocked = false; });");
     });
 
     test('supports deterministic mobile previews for each Reef hazard', () => {

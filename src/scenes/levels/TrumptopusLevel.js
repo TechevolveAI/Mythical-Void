@@ -13,6 +13,7 @@ export function withCampaignRuntime(Base) {
         }
 
         create() {
+            if (this.finaleEntryRetired || this.completion?.closed) return;
             super.create();
             this.sessionMenu = null;
             this.finaleResizePending = false;
@@ -80,25 +81,44 @@ export function withCampaignRuntime(Base) {
             this.pauseMenuActive = true;
             this.hidePlatformerMobileControls();
             this.sessionMenu?.close();
-            this.sessionMenu = new TrumptopusSessionMenu({
+            let menu;
+            const current = () => this.sessionMenu === menu && !menu.closed &&
+                this.pauseMenuActive && !this.levelCompletionActive;
+            const closeAcceptedMenu = () => {
+                if (this.sessionMenu !== menu) return;
+                menu.close();
+                this.sessionMenu = null;
+            };
+            menu = new TrumptopusSessionMenu({
                 defeated,
-                onResume: () => this.hidePauseMenu(),
+                onResume: () => current() ? this.hidePauseMenu() : false,
                 onRetry: () => {
+                    if (!current()) return false;
                     this.completion.saveProgress();
-                    this.sessionMenu?.close();
-                    this.scene.restart();
+                    if (!current() || this.scene.restart() === false) return false;
+                    closeAcceptedMenu();
+                    return true;
                 },
                 onPowerups: () => {
-                    this.sessionMenu?.close();
-                    this.sessionMenu = null;
-                    this.showPowerupMenu();
+                    if (!current()) return false;
+                    try { this.showPowerupMenu(); }
+                    catch (error) {
+                        if (current()) this.clearPauseMenuElements();
+                        throw error;
+                    }
+                    if (!current()) return false;
+                    closeAcceptedMenu();
+                    return true;
                 },
                 onExit: () => {
+                    if (!current()) return false;
                     this.completion.saveProgress();
-                    this.sessionMenu?.close();
-                    this.returnToHub();
+                    if (!current() || this.returnToHub(current) === false) return false;
+                    closeAcceptedMenu();
+                    return true;
                 }
             });
+            this.sessionMenu = menu;
         }
 
         hidePauseMenu() {
@@ -130,10 +150,12 @@ export function withCampaignRuntime(Base) {
             return super.enterLevelCompletionState();
         }
 
-        returnToHub() {
+        returnToHub(canContinue = () => true) {
             this.completion.saveProgress();
+            if (!canContinue()) return false;
             this.clearInput();
-            this.scene.start('HubWorldScene');
+            if (!canContinue()) return false;
+            return this.scene.start('HubWorldScene') !== false;
         }
     };
 }
@@ -149,6 +171,7 @@ export default class TrumptopusLevel extends withCampaignRuntime(Approach) {
     }
 
     create() {
+        if (this.finaleEntryRetired || this.completion?.closed) return;
         if (!this.game.scene.keys.TrumptopusArena) {
             this.game.scene.add('TrumptopusArena', TrumptopusArenaLevel, false);
         }
