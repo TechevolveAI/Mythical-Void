@@ -63,6 +63,8 @@ class CompanionMediaService {
         this.videoUnavailableUntil = 0;
         this.campaignOwner = null;
         this.campaignStory = null;
+        this.campaignAuthClient = null;
+        this.authSubscription = null;
         this.campaignEpoch = 0;
         this.unsubscribeCampaignReset = null;
         this.timeouts = {
@@ -74,21 +76,37 @@ class CompanionMediaService {
     captureCampaignGuard() {
         const owner = window.GameState;
         const story = owner?.get?.('story');
+        const cloud = window.CloudSave;
+        const client = window.CreatureMediaClient || cloud?.client;
         const ownerChanged = owner !== this.campaignOwner;
+        const clientChanged = client !== this.campaignAuthClient;
         if (ownerChanged) {
             this.unsubscribeCampaignReset?.();
             this.campaignOwner = owner;
             this.unsubscribeCampaignReset = owner?.on?.('reset', () => this.invalidateCampaignWork());
         }
-        if (ownerChanged || story !== this.campaignStory) {
+        if (clientChanged) {
+            this.authSubscription?.unsubscribe?.();
+            this.authSubscription = null;
+            this.campaignAuthClient = client;
+        }
+        if (ownerChanged || clientChanged || story !== this.campaignStory) {
             this.campaignStory = story;
             this.invalidateCampaignWork();
         }
         const epoch = this.campaignEpoch;
         const admissionEpoch = owner?.getSaveAdmission?.().epoch;
-        const cloud = window.CloudSave, cloudUser = cloud?.currentUser?.id;
+        const cloudUser = cloud?.currentUser?.id;
+        if (clientChanged) {
+            const subscription = client?.auth?.onAuthStateChange?.(event => {
+                if (event === 'SIGNED_OUT' && this.campaignAuthClient === client) this.invalidateCampaignWork();
+            })?.data?.subscription;
+            if (this.campaignAuthClient === client) this.authSubscription = subscription || null;
+            else subscription?.unsubscribe?.();
+        }
         const ownsOwner = () => window.GameState === owner && this.campaignEpoch === epoch &&
-            window.CloudSave === cloud && cloud?.currentUser?.id === cloudUser;
+            window.CloudSave === cloud && cloud?.currentUser?.id === cloudUser &&
+            (window.CreatureMediaClient || cloud?.client) === client;
         const ownsCampaign = () => ownsOwner() && owner?.get?.('story') === story;
         const current = () => ownsCampaign() && owner?.getSaveAdmission?.().epoch === admissionEpoch;
         current.ownsCampaign = ownsCampaign;

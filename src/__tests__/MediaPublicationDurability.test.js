@@ -1,4 +1,5 @@
 const GameStateManager = require('../systems/GameState.js');
+const CloudSaveManager = require('../systems/CloudSaveManager.js');
 const loadMediaService = require('./support/loadMediaService.cjs');
 
 describe('verified story-media publication', () => {
@@ -18,8 +19,10 @@ describe('verified story-media publication', () => {
         service = new CompanionMediaService();
     });
     afterEach(() => {
-        state.stopAutoSave(); service.unsubscribeCampaignReset?.(); jest.restoreAllMocks(); localStorage.clear();
-        for (const key of ['GameState', 'CloudSave', 'CompanionMediaService', 'APIConfig', 'LivingPortraitService']) delete window[key];
+        state.stopAutoSave(); service.unsubscribeCampaignReset?.(); service.authSubscription?.unsubscribe?.();
+        window.LivingPortraitService?.retireCampaignWork?.(); window.CloudSave?.destroy?.();
+        jest.restoreAllMocks(); localStorage.clear();
+        for (const key of ['GameState', 'CloudSave', 'CompanionMediaService', 'APIConfig', 'LivingPortraitService', 'CreatureMediaClient']) delete window[key];
     });
     const bytes = () => localStorage.getItem(state.saveKey);
     const durableMedia = () => JSON.parse(bytes()).story.companionMedia;
@@ -135,6 +138,52 @@ describe('verified story-media publication', () => {
         const isCurrentCampaign = kind === 'full guard' ? guard : guard.forVerifiedStoryWrite;
         expect(state.saveCompanionMedia(next, { isCurrentCampaign })).toBe(false);
         expect(state.state).toBe(replacement); expect(JSON.stringify(state.state)).toBe(before); expect(bytes()).toBe(raw);
+    });
+
+    test('explicit sign-out discards an in-flight video while initial cloud notification is still pending', async () => {
+        const listeners = new Set(), user = { id: 'synthetic-initial-video-owner' };
+        const client = { auth: { onAuthStateChange: listener => {
+            listeners.add(listener); return { data: { subscription: { unsubscribe: () => listeners.delete(listener) } } };
+        }, getSession: async () => ({ data: { session: { access_token: 'synthetic-video-token', user } }, error: null }) } };
+        window.CreatureMediaClient = client;
+        window.CloudSave = new CloudSaveManager({ gameState: state, client, storage: localStorage });
+        const { LivingPortraitService } = loadMediaService('LivingPortraitService', () => {
+            throw Error('SYNTHETIC_PORTRAIT_NETWORK_DENIED');
+        }, window);
+        window.LivingPortraitService = new LivingPortraitService();
+        let complete;
+        service.requestVideoJson = jest.fn(() => new Promise(resolve => { complete = resolve; }));
+        const pending = service.startGeneratedVideo({ momentId: 'first_forest_arrival', portraitRecord: portrait });
+        for (let index = 0; index < 20; index++) await Promise.resolve();
+        expect(service.requestVideoJson).toHaveBeenCalledTimes(1); expect(window.CloudSave.currentUser).toBeNull();
+        for (const listener of [...listeners]) listener('SIGNED_OUT', null);
+        const before = JSON.stringify(state.state), raw = bytes(), emit = jest.spyOn(state, 'emit');
+        complete({ response: { ok: true }, result: film });
+        await expect(pending).resolves.toBeNull();
+        expect(JSON.stringify(state.state)).toBe(before); expect(bytes()).toBe(raw);
+        expect(service.volatileVideos.size).toBe(0);
+        expect(emit).not.toHaveBeenCalledWith('companionVideoStatus', expect.anything());
+    });
+
+    test('replacing the auth client unsubscribes the old observer and ignores its delayed sign-out', () => {
+        const callbacks = [], unsubscribes = [];
+        const client = () => ({ auth: { onAuthStateChange: callback => {
+            callbacks.push(callback); const unsubscribe = jest.fn(); unsubscribes.push(unsubscribe);
+            return { data: { subscription: { unsubscribe } } };
+        } } });
+        window.CreatureMediaClient = client(); const old = service.captureCampaignGuard();
+        window.CreatureMediaClient = client(); const current = service.captureCampaignGuard();
+        expect(unsubscribes[0]).toHaveBeenCalledTimes(1); expect(old()).toBe(false);
+        callbacks[0]('SIGNED_OUT', null); expect(current()).toBe(true);
+        callbacks[1]('SIGNED_OUT', null); expect(current()).toBe(false);
+    });
+
+    test.each(['INITIAL_SESSION', 'SIGNED_OUT'])('a synchronous %s auth notification is handled during guard creation', event => {
+        window.CreatureMediaClient = { auth: { onAuthStateChange: callback => {
+            callback(event, null); return { data: { subscription: { unsubscribe: jest.fn() } } };
+        } } };
+        const guard = service.captureCampaignGuard();
+        expect(guard()).toBe(event === 'INITIAL_SESSION');
     });
 
     test.each(['held', 'memory', 'cloud write'])('%s generation performs neither authentication nor a video request', async mode => {
