@@ -4554,14 +4554,27 @@ class GameStateManager {
         return Object.assign(new Error(message), { code });
     }
 
+    getCloudRecoveryJournal() {
+        const Journal = (typeof window !== 'undefined' && window.CloudRecoveryJournal) ||
+            (typeof module !== 'undefined' && module.exports && typeof require === 'function'
+                ? require('./CloudRecoveryJournal.js') : null);
+        if (!Journal) throw this.cloudRecoveryError('Cloud recovery is unavailable.', 'cloud_recovery_unavailable');
+        if (!(this.cloudRecoveryJournal instanceof Journal) ||
+            this.cloudRecoveryJournal.prefix !== `${this.saveKey}-cloud-journal-v1:` ||
+            this.cloudRecoveryJournal.storage !== localStorage) this.cloudRecoveryJournal = new Journal(localStorage, this.saveKey);
+        return this.cloudRecoveryJournal;
+    }
+
     // Inspect envelopes as well as the index: a crash can leave an unindexed reservation.
     // Missing/corrupt evidence is not permission to start a replacement journal.
     inspectCloudRecovery() {
         const entries = this.readLocalSaveBackupIndex();
         const keys = [];
+        let hasJournal = false;
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key?.startsWith(this.saveBackupKeyPrefix) && key !== this.saveBackupIndexKey) keys.push(key);
+            if (key?.startsWith(`${this.saveKey}-cloud-journal-v1:`)) hasJournal = true;
         }
         if (keys.length !== entries.length) {
             throw this.cloudRecoveryError('Recovery copies and index differ.', 'cloud_recovery_damaged');
@@ -4587,7 +4600,17 @@ class GameStateManager {
                 pending.push({ ...entry, payload: envelope.payload });
             }
         }
-        return { entries, pending };
+        const journal = hasJournal ? this.getCloudRecoveryJournal().inspect() : { control: null };
+        if (journal.control?.phase === 'pending') {
+            const request = journal.envelopes.request, id = journal.control.id;
+            const existing = pending.find(entry => entry.id === id);
+            if (existing && existing.payload !== request.payload) throw this.cloudRecoveryError(
+                'Cloud recovery copies differ.', 'cloud_recovery_damaged');
+            if (!existing) pending.push({ id, reason: `cloud_write_pending_${journal.control.context.kind}`,
+                createdAt: journal.control.createdAt, sourceVersion: null, sourceSavedAt: null, payload: request.payload });
+        }
+        return { entries, pending, evidenceLimited: Boolean(journal.control?.phase === 'pending' &&
+            journal.control.evidenceLimited) };
     }
 
     assertCloudRecoveryClear({ allowOwned = false } = {}) {
@@ -4606,15 +4629,15 @@ class GameStateManager {
 
     getCloudRecoveryStatus() {
         try {
-            const { pending } = this.inspectCloudRecovery();
+            const { pending, evidenceLimited } = this.inspectCloudRecovery();
             return { pending: this.cloudRecoveryRequired || pending.length > 0, damaged: false,
-                evidenceLimited: this.cloudRecoveryEvidenceLimited };
+                evidenceLimited: Boolean(this.cloudRecoveryEvidenceLimited || evidenceLimited) };
         } catch (error) {
             return { pending: true, damaged: true, evidenceLimited: true };
         }
     }
 
-    beginCloudWrite(kind, snapshot, isCurrentCampaign = null) {
+    beginCloudWrite(kind, snapshot, isCurrentCampaign = null, operationContext = {}) {
         this.assertSaveAdmission();
         this.assertCloudRecoveryClear();
         if (this.storageMode === 'memory' || !['upload', 'mutation'].includes(kind)) {
@@ -4631,13 +4654,22 @@ class GameStateManager {
         const backup = this.createLocalSaveBackup(payload, `cloud_write_pending_${kind}`, { recovery: true });
         if (!backup) throw this.cloudRecoveryError('The cloud recovery reservation could not be saved.', 'cloud_recovery_unavailable');
         try {
+            const journal = this.getCloudRecoveryJournal(), hash = journal.constructor.hash;
+            const wireRequest = operationContext.wireRequest ? JSON.stringify(operationContext.wireRequest) : '';
+            const context = Object.freeze({ kind, saveSlot: String(operationContext.saveSlot || 'primary').slice(0, 64),
+                ownerDigest: hash(String(operationContext.ownerId || 'unassigned-local-owner')),
+                operationDigest: hash(String(operationContext.operationId || 'unassigned-operation')),
+                wireDigest: hash(wireRequest),
+                expectedRevision: operationContext.expectedRevision || 0 });
+            const requestDigest = journal.begin(backup.id, payload, context, wireRequest);
             const { pending } = this.inspectCloudRecovery();
             if (pending.length !== 1 || pending[0].id !== backup.id || pending[0].payload !== payload ||
                 localStorage.getItem(this.saveKey) !== activeRaw) {
                 throw this.cloudRecoveryError('The cloud recovery reservation could not be verified.', 'cloud_recovery_damaged');
             }
             this.cloudWriteLease = Object.freeze({ id: backup.id, activeRaw,
-                kind, admissionEpoch: this.saveAdmission.epoch, snapshot: payload, isCurrentCampaign });
+                kind, admissionEpoch: this.saveAdmission.epoch, snapshot: payload, isCurrentCampaign,
+                context, requestDigest, wireRequest });
             this.cloudRecoveryRequired = true;
             return this.cloudWriteLease;
         } catch (error) {
@@ -4649,6 +4681,8 @@ class GameStateManager {
     finishCloudWrite(lease) {
         if (!lease || lease !== this.cloudWriteLease) throw this.cloudRecoveryError('Cloud recovery ownership changed.');
         try {
+            const journal = this.getCloudRecoveryJournal();
+            journal.assertLease(lease);
             const { entries, pending } = this.inspectCloudRecovery();
             if (pending.length !== 1 || pending[0].id !== lease.id) throw this.cloudRecoveryError('Cloud recovery evidence changed.');
             const key = `${this.saveBackupKeyPrefix}${lease.id}`;
@@ -4662,6 +4696,7 @@ class GameStateManager {
             const next = entries.map(entry => entry.id === lease.id
                 ? { ...entry, reason: 'cloud_write_confirmed' } : entry);
             localStorage.setItem(this.saveBackupIndexKey, JSON.stringify(next));
+            journal.confirm(lease, localStorage.getItem(this.saveKey));
             if (this.inspectCloudRecovery().pending.length) throw this.cloudRecoveryError('Recovery confirmation is incomplete.');
             this.cloudWriteLease = null;
             this.cloudRecoveryRequired = false;
@@ -4671,6 +4706,13 @@ class GameStateManager {
             this.holdSaveAdmission(error, 'cloud_recovery');
             throw error;
         }
+    }
+
+    recordCloudWriteOutcome(lease, { outcome, revision }) {
+        if (!lease || lease !== this.cloudWriteLease || !['accepted', 'rejected'].includes(outcome) ||
+            !Number.isSafeInteger(revision) || revision < 0) throw this.cloudRecoveryError('Cloud outcome is unavailable.');
+        this.getCloudRecoveryJournal().append(lease, 'outcome', JSON.stringify({ outcome, revision,
+            expectedRevision: lease.context.expectedRevision, operationDigest: lease.context.operationDigest }));
     }
 
     cloudWriteIsCurrent(lease, expectedRaw = lease?.activeRaw) {
@@ -4683,14 +4725,22 @@ class GameStateManager {
         // A late full-state result is evidence, not permission to replace newer progress.
         try {
             if (lease && lease === this.cloudWriteLease) {
+                const journal = this.getCloudRecoveryJournal();
                 const snapshot = JSON.stringify(this.createSaveSnapshot());
                 if (snapshot !== localStorage.getItem(this.saveKey)) {
+                    journal.append(lease, 'local', snapshot);
                     if (!this.createLocalSaveBackup(snapshot, 'cloud_write_local', { recovery: true })) {
                         this.cloudRecoveryEvidenceLimited = true;
                     }
                 }
-                if (result && !this.createLocalSaveBackup(result, 'cloud_write_result', { recovery: true })) {
-                    this.cloudRecoveryEvidenceLimited = true;
+                if (result) {
+                    journal.append(lease, 'result', typeof result === 'string' ? result : JSON.stringify(result));
+                    if (!this.createLocalSaveBackup(result, 'cloud_write_result', { recovery: true })) {
+                        this.cloudRecoveryEvidenceLimited = true;
+                    }
+                }
+                if (result || snapshot !== localStorage.getItem(this.saveKey)) {
+                    journal.markEvidence(lease, this.cloudRecoveryEvidenceLimited);
                 }
             }
         } catch (error) {
@@ -5074,6 +5124,7 @@ class GameStateManager {
         if (!lease || lease !== this.cloudWriteLease) {
             throw this.cloudRecoveryError('Cloud result ownership is unavailable.');
         }
+        this.getCloudRecoveryJournal().append(lease, 'result', typeof saveData === 'string' ? saveData : JSON.stringify(saveData));
         const prepared = this.prepareSaveCandidate(saveData);
         this.commitPreparedSave(prepared, {
             source: 'cloud_server_mutation', persist: true,

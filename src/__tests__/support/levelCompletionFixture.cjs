@@ -7,6 +7,7 @@ const GameObject = require('phaser/src/gameobjects/GameObject');
 const Rectangle = require('phaser/src/geom/rectangle/Rectangle');
 const Contains = require('phaser/src/geom/rectangle/Contains');
 const { compiledTestEntrySource, compiledModuleSource } = require('./compiledInventorySource.cjs');
+const CloudRecoveryJournal = require('../../systems/CloudRecoveryJournal.js');
 const epoch = 1700000000777, clone = value => JSON.parse(JSON.stringify(value));
 const baseline = readPinnedSource('dfc31af7:src/scenes/PlatformerLevelScene.js');
 const nodes = parse(baseline, { sourceType: 'module' }).program.body, cls = nodes.find(node => node.type === 'ClassDeclaration');
@@ -201,7 +202,7 @@ function fixture({ level = 0, mode = 'installed', seed = () => {}, beforeService
         clearTimeout() {}, clearInterval: id => intervals.delete(id),
         fetch: denied('fetch'), Audio: denied('Audio'), XMLHttpRequest: denied('XMLHttpRequest'), WebSocket: denied('WebSocket') });
     vm.runInContext(entry, context); const api = context.module.exports, state = new api.GameStateManager();
-    const selected = { GameState: state }; context.window = selected;
+    const selected = { GameState: state, CloudRecoveryJournal }; context.window = selected;
     state.state.creature.genes = { id: 'synthetic-genes', rarity: 'rare', species: 'nebulaSprite', traits: {
         colorGenome: { primary: 0xB672E8, secondary: 0xEDCE4C, accent: 0x89E3D7 }, features: { specialFeatures: [] } } };
     state.state.creature.id = 'synthetic-creature'; state.state.creature.hatched = true;

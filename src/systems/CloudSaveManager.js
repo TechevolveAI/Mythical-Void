@@ -546,7 +546,10 @@ class CloudSaveManager {
             this.assertCurrentCampaign(isCurrentCampaign);
             if (this.activeCloudWrite) throw new Error('A cloud change is already in progress.');
             const snapshot = this.createLocalSnapshot();
-            const lease = this.reserveCloudWrite('mutation', snapshot, isCurrentCampaign);
+            const lease = this.reserveCloudWrite('mutation', snapshot, isCurrentCampaign, {
+                operationId: options.operationId || this.getUnresolvedServerFusionOperationId(snapshot),
+                wireRequest: options.wireRequest || null
+            });
             let result = null;
 
             try {
@@ -584,6 +587,7 @@ class CloudSaveManager {
                     throw new Error('Progress changed during cloud result delivery.');
                 }
 
+                this.gameState.recordCloudWriteOutcome?.(lease, { outcome: 'accepted', revision });
                 this.gameState.finishCloudWrite(lease);
                 this.activeCloudWrite = null;
                 this.pendingSave = null;
@@ -606,7 +610,7 @@ class CloudSaveManager {
         });
     }
 
-    reserveCloudWrite(kind, snapshot, isCurrentCampaign) {
+    reserveCloudWrite(kind, snapshot, isCurrentCampaign, context = {}) {
         if (this.activeCloudWrite || typeof this.gameState?.beginCloudWrite !== 'function' ||
             typeof this.gameState?.finishCloudWrite !== 'function' ||
             typeof this.gameState?.protectCloudWrite !== 'function' ||
@@ -614,7 +618,10 @@ class CloudSaveManager {
             typeof this.gameState?.applyCloudWriteResult !== 'function') {
             throw new Error('Durable cloud recovery is unavailable. No request was sent.');
         }
-        const lease = this.gameState.beginCloudWrite(kind, snapshot, isCurrentCampaign);
+        const lease = this.gameState.beginCloudWrite(kind, snapshot, isCurrentCampaign, {
+            ownerId: this.currentUser?.id, saveSlot: this.saveSlot,
+            expectedRevision: this.remoteRevision, ...context
+        });
         this.activeCloudWrite = lease;
         this.status = 'syncing';
         this.lastSyncedAt = null;
@@ -778,20 +785,23 @@ class CloudSaveManager {
         }
 
         const expectedRevision = Math.max(0, Number(currentRevision) || 0);
-        const lease = this.reserveCloudWrite('upload', saveData, isCurrentCampaign);
+        const request = {
+            p_save_slot: this.saveSlot,
+            p_save_version: snapshot.version || this.gameState.gameVersion || '1.0.0',
+            p_game_state: snapshot,
+            p_client_saved_at: clientSavedAt,
+            p_expected_revision: expectedRevision
+        };
+        const lease = this.reserveCloudWrite('upload', saveData, isCurrentCampaign, {
+            expectedRevision, wireRequest: { rpc: 'save_game_state', arguments: request }
+        });
         let response;
         try {
             this.assertCurrentCampaign(isCurrentCampaign);
             if (!this.snapshotIsCurrent(saveData) || !this.gameState.cloudWriteIsCurrent(lease)) {
                 throw new Error('Progress changed before cloud dispatch. No upload was sent.');
             }
-            response = await this.client.rpc('save_game_state', {
-                p_save_slot: this.saveSlot,
-                p_save_version: snapshot.version || this.gameState.gameVersion || '1.0.0',
-                p_game_state: snapshot,
-                p_client_saved_at: clientSavedAt,
-                p_expected_revision: expectedRevision
-            });
+            response = await this.client.rpc('save_game_state', request);
             const { data, error } = response || {};
             if (!isCurrentCampaign()) {
                 this.protectCloudWrite(lease, isCurrentCampaign);
@@ -801,6 +811,8 @@ class CloudSaveManager {
                 // The existing CAS conflict is an authoritative transaction rejection,
                 // unlike a lost reply or an unclassified service error.
                 if (data === null && this.isConfirmedUploadRejection(error, expectedRevision)) {
+                    this.gameState.recordCloudWriteOutcome?.(lease, { outcome: 'rejected',
+                        revision: this.normalizeRevisionConflict(error).currentRevision });
                     this.gameState.finishCloudWrite(lease);
                     this.activeCloudWrite = null;
                     this.remoteWriteUncertain = false;
@@ -814,6 +826,7 @@ class CloudSaveManager {
             if (!this.gameState.cloudWriteIsCurrent(lease) && this.snapshotIsCurrent(snapshot)) {
                 throw new Error('Durable local progress changed outside this cloud request.');
             }
+            this.gameState.recordCloudWriteOutcome?.(lease, { outcome: 'accepted', revision });
             this.gameState.finishCloudWrite(lease);
             this.activeCloudWrite = null;
             this.remoteRevision = revision;

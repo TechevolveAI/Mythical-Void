@@ -612,7 +612,8 @@ class FusionAuthority {
                 ...data,
                 names: normalizedNames
             };
-        }, { isCurrentCampaign });
+        }, { isCurrentCampaign, operationId: request.operationId,
+            wireRequest: { function: 'finalize-fusion', body: { operationId: request.operationId, names: normalizedNames } } });
     }
 
     createLocalReceipt(

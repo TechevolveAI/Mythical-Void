@@ -77,6 +77,7 @@ import './systems/CompanionIdentityArchive.js';
 // ============================================
 // GAME STATE & MANAGERS
 // ============================================
+import './systems/CloudRecoveryJournalBoot.js';
 import './systems/GameState.js';
 import './systems/EconomyManager.js';
 import './systems/EnemyManager.js';

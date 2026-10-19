@@ -224,6 +224,7 @@
     "test:baseline:isolated": "node scripts/review/test-release-baseline-isolated.cjs"
   },
   "dependencies": {
+    "@noble/hashes": "1.8.0",
     "@google/genai": "^2.16.0",
     "@supabase/supabase-js": "^2.110.8",
     "phaser": "^3.90.0",
