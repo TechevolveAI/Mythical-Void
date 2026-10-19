@@ -36,6 +36,7 @@ test('committed candidate preserves the synthetic roster and reports the retaine
     const compiled = await compile(git(['rev-parse', 'HEAD']).trim());
     assert(compiled.sources['src/systems/GameState.js']);
     assert(compiled.sources['src/systems/ProtectedReturnProtocol.js']);
+    assert.deepEqual(compiled.deferredRecoveryImports, ['@noble/hashes/sha256', 'node:buffer']);
     const fixture = id => readPinnedSource(`358e3f1e313e859b71198c5a817e7a4ae51cb874:src/__tests__/fixtures/save-compatibility/${id}.json`);
     const roster = inspectSave(compiled, fixture('progressed-roster'));
     assert.equal(roster.status, 'preserved');

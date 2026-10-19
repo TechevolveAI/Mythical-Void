@@ -60,6 +60,7 @@ function expectedMigration({ path: location, before, after }) {
 
 async function compile(commit) {
     const sources = {};
+    const deferredRecoveryImports = new Set();
     const result = await build({
         stdin: { contents: `import GameStateManager from './src/systems/GameState.js';
             import * as FusionConsent from './src/systems/FusionConsent.js';
@@ -71,6 +72,13 @@ async function compile(commit) {
         platform: 'node', format: 'cjs', bundle: true, write: false, logLevel: 'silent',
         plugins: [{ name: 'committed-source-only', setup(api) {
             api.onResolve({ filter: /.*/ }, args => {
+                // Compile the optional recovery leaf without executing either
+                // dependency. The save VM still denies every require call.
+                if (args.importer === 'src/systems/CloudRecoveryJournal.js' && args.kind === 'require-call' &&
+                    ['@noble/hashes/sha256', 'node:buffer'].includes(args.path)) {
+                    deferredRecoveryImports.add(args.path);
+                    return { path: args.path, external: true };
+                }
                 if (!args.path.startsWith('.')) throw new Error('SAVE_REVIEW_EXTERNAL_IMPORT_DENIED');
                 const file = path.posix.normalize(path.posix.join(path.posix.dirname(args.importer || 'entry.js'), args.path));
                 if (!/^src\/(systems|config)\//.test(file) || !/\.(js|json)$/.test(file)) throw new Error('SAVE_REVIEW_IMPORT_DENIED');
@@ -85,7 +93,7 @@ async function compile(commit) {
             });
         } }]
     });
-    return { code: result.outputFiles[0].text, sources };
+    return { code: result.outputFiles[0].text, sources, deferredRecoveryImports: [...deferredRecoveryImports].sort() };
 }
 
 function inspectSave(compiled, raw) {
