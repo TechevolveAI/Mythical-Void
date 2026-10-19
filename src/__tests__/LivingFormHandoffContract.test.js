@@ -42,7 +42,7 @@ describe('living form milestone handoff', () => {
 
     test('keeps generation optional and never bypasses the reveal', () => {
         expect(soulSource).toContain(
-            'this.showLivingPortraitHandoff(finalName);'
+            'this.showLivingPortraitHandoff(attempt.name);'
         );
         expect(soulSource).not.toContain(
             'if (this.portraitPromise) {\n            this.showLivingPortraitHandoff'
@@ -153,10 +153,10 @@ describe('living form milestone handoff', () => {
 
     test('records the portrait as seen only after its artwork is visibly loaded', () => {
         expect(soulSource).toContain('onPortraitShown: record => {');
-        expect(soulSource).toContain(
-            "window.GameState?.set('tutorial.livingFormSeen', true);"
-        );
-        const transitionStart = soulSource.indexOf('    transitionToGame() {');
+        expect(soulSource).toContain("this.saveLivingFormProgress(owner, 'portrait')");
+        expect(fs.readFileSync(path.join(__dirname, '../systems/GameState.js'), 'utf8'))
+            .toContain("draft.set('tutorial.livingFormSeen', true);");
+        const transitionStart = soulSource.indexOf('    transitionToGame(');
         const transitionEnd = soulSource.indexOf(
             '    showLivingPortraitHandoff(finalName) {',
             transitionStart

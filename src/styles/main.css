@@ -2515,6 +2515,30 @@ body.game-mode {
   overflow-y: auto;
 }
 
+/* Let the full planner scroll as one page instead of squeezing its controls
+   beneath fixed summaries. Guided and single-plot sheets keep their layouts. */
+.village-command-modal:not(.is-guided):not(.is-contextual) .village-command-shell {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.village-command-modal:not(.is-guided):not(.is-contextual) .village-command-shell > * {
+  flex-shrink: 0;
+}
+
+.village-command-modal:not(.is-guided):not(.is-contextual) .village-command-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.village-command-modal:not(.is-guided):not(.is-contextual) .village-command-body,
+.village-command-modal:not(.is-guided):not(.is-contextual) .village-building-catalog,
+.village-command-modal:not(.is-guided):not(.is-contextual) .village-site-plan {
+  overflow: visible;
+}
+
 .village-building-catalog {
   background: #0d1519;
   border-right: 1px solid rgba(244, 244, 244, 0.12);
@@ -6276,3 +6300,33 @@ body.game-mode {
     font-size: 17px;
   }
 }
+/* Recovery must remain usable before the game canvas exists, including short screens. */
+.save-recovery-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #071012;
+    color: #eef7f2;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    font: 16px/1.5 system-ui, sans-serif;
+}
+.save-recovery-gate section { max-width: 480px; margin: 5vh auto; }
+.save-recovery-gate h1 { font-size: 24px; line-height: 1.25; }
+.save-recovery-gate button, .save-recovery-gate select {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    margin: 12px 0;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    border: 1px solid #8bcbc0;
+    border-radius: 6px;
+    background: #133b39;
+    color: #ffffff;
+    font: inherit;
+    white-space: normal;
+}
+.save-recovery-gate :focus-visible { outline: 3px solid #ffd476; outline-offset: 3px; }

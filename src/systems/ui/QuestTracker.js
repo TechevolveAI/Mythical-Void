@@ -504,11 +504,22 @@ export default class QuestTracker {
      * Show notification when quest is completed
      */
     showQuestCompleteNotification(quest) {
+        if (this.scene.sanctuaryNotices) {
+            this.scene.sanctuaryNotices.enqueue(this, `quest:${quest.id}`, finish =>
+                this.createQuestCompleteNotification(quest, finish));
+            return;
+        }
+        this.createQuestCompleteNotification(quest);
+    }
+
+    createQuestCompleteNotification(quest, finish = null) {
         const { width } = this.scene.scale;
         const isMobile = width < 600;
+        let holdTimer = null;
+        let disposed = false;
 
         // Flash the minimized button
-        this.scene.tweens.add({
+        const buttonTween = this.scene.tweens.add({
             targets: this.minimizedBtn,
             alpha: { from: 1, to: 0.5 },
             duration: 200,
@@ -536,22 +547,40 @@ export default class QuestTracker {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(14520).setAlpha(0);
 
+        const cleanup = () => {
+            if (disposed) return;
+            disposed = true;
+            holdTimer?.remove?.();
+            buttonTween?.stop?.();
+            this.minimizedBtn?.setAlpha?.(1);
+            this.scene.tweens.killTweensOf?.(notification);
+            notification.destroy();
+        };
+
         this.scene.tweens.add({
             targets: notification,
             alpha: 1,
             y: startY + 20,
             duration: 300,
             onComplete: () => {
-                this.scene.time.delayedCall(2500, () => {
+                if (disposed) return;
+                holdTimer = this.scene.time.delayedCall(2500, () => {
+                    if (disposed) return;
                     this.scene.tweens.add({
                         targets: notification,
                         alpha: 0,
                         duration: 300,
-                        onComplete: () => notification.destroy()
+                        onComplete: () => {
+                            if (!disposed) {
+                                if (finish) finish();
+                                else cleanup();
+                            }
+                        }
                     });
                 });
             }
         });
+        return cleanup;
     }
 
     /**
@@ -721,7 +750,10 @@ export default class QuestTracker {
 
     isBlockingStoryMomentActive() {
         return Boolean(
-            this.scene?.isFieldKitModalOpen
+            window.OnboardingManager?.isProcessing
+            || this.scene?.sanctuaryOnboardingPending
+            || this.scene?.sanctuaryNotices?.active
+            || this.scene?.isFieldKitModalOpen
             || this.scene?.controlsTutorial?.isVisible
             || this.scene?.storyModalElements?.length
             || this.scene?.greetingElements?.length
@@ -754,6 +786,7 @@ export default class QuestTracker {
      * Cleanup
      */
     destroy() {
+        this.scene.sanctuaryNotices?.cancel(this);
         this.clearScheduledStoryMissionBriefing();
         this.clearStoryMissionBriefing();
 

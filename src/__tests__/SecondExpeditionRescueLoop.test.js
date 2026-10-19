@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { expectCrystalCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const levelPath = path.join(__dirname, '../scenes/levels/CrystalCavesLevel.js');
 
@@ -10,6 +11,12 @@ function readLevel() {
 
 function loadLevelClass() {
     const transformed = readLevel()
+        // This fixture tests traversal/rescue only. Actual completion is tested
+        // with the native Clock, real writer and DOM in CrystalCompletionTransaction.
+        .replace("import { createCrystalCompletionHandler } from '../controllers/CrystalCompletionTransaction.js';",
+            'const createCrystalCompletionHandler = () => { const denied = () => { throw Error("COMPLETION_BOUNDARY_NOT_EXERCISED"); }; denied.present = denied; return denied; };')
+        .replace("import CrystalVictorySequence from '../controllers/CrystalVictorySequence.js';",
+            'const CrystalVictorySequence = class { constructor() { throw Error("COMPLETION_BOUNDARY_NOT_EXERCISED"); } };')
         .replace(
             "import PlatformerLevelScene from '../PlatformerLevelScene.js';",
             'const PlatformerLevelScene = class { constructor(config) { this.sceneConfig = config; } };'
@@ -140,10 +147,11 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain('`CORRUPTION -${finalAmount}`');
         expect(source).toContain('CORRUPTION DEFEATED');
         expect(source).toContain('GUARDIAN FREED');
-        expect(source).toContain('this.boss?.clearTint?.();');
+        const sequence = fs.readFileSync(path.join(__dirname, '../scenes/controllers/CrystalVictorySequence.js'), 'utf8');
+        expect(sequence).toContain('() => boss.clearTint?.()');
+        expect(sequence).not.toContain('boss.destroy(');
         expect(source).not.toContain('if (this.boss) this.boss.destroy();');
-        expect(source).toContain('Guardian Gifts: Crystal Core');
-        expect(source).toContain("katanaUpgradeId: 'crystal_edge'");
+        expectCrystalCompletionConnection();
         expect(source).not.toContain('💎 CRYSTAL GOLEM DEFEATED 💎');
     });
 
@@ -208,7 +216,7 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain('Reach the living fracture with your creature.');
         expect(source).toContain("? 'TEND THE FRACTURED GROVE'");
         expect(source).toContain('Guardian awakening');
-        expect(source).toContain("{ text: 'Beacon Route Aligned', done: this.caveRouteAligned }");
+        expect(source).toContain('this.caveRouteAligned');
 
         expect(scene.canActivateCrystalCore()).toBe(false);
         expect(scene.getCrystalCoreHintText()).toBe('Follow the 3 pulses');

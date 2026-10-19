@@ -412,7 +412,7 @@ export function queueProjectBeaconDebrief(gameState, {
     return queuedDebrief;
 }
 
-export function unlockProjectBeaconMilestone(gameState, levelIdOrCompletionNumber) {
+export function unlockProjectBeaconMilestone(gameState, levelIdOrCompletionNumber, { unlockedAt } = {}) {
     const levelId = typeof levelIdOrCompletionNumber === 'string'
         ? levelIdOrCompletionNumber
         : null;
@@ -456,7 +456,7 @@ export function unlockProjectBeaconMilestone(gameState, levelIdOrCompletionNumbe
             label: nextGate.label,
             levelId,
             completionNumber,
-            unlockedAt: new Date().toISOString()
+            unlockedAt: unlockedAt === undefined ? new Date().toISOString() : unlockedAt
         });
     }
 

@@ -106,6 +106,7 @@ describe('New Game+ campaign progression', () => {
             },
             story: {
                 projectBeacon: {
+                    trumptopus: {schemaVersion:1,status:'won',sequence:1,receipt:{outcome:'banished'}},
                     missionLogSeen: true,
                     currentMission: 'field_sequence_complete',
                     fieldKit,
@@ -267,6 +268,7 @@ describe('New Game+ campaign progression', () => {
         scene.startNewGamePlus();
 
         expect(gameState.get('game.newGamePlusCount')).toBe(2);
+        expect(gameState.get('story.projectBeacon.trumptopus')).toBeNull();
         expect(gameState.get('stats.levelsCompleted')).toBe(0);
         expect(gameState.get('combat.bossesDefeated')).toBe(0);
         expect(gameState.get('hubWorld.shipParts.collected')).toEqual([]);

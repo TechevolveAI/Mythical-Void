@@ -9,8 +9,13 @@ const pointFn = ast.program.body.find(node => node.type === 'FunctionDeclaration
 const pointSource = source.slice(pointFn.start, pointFn.end);
 const sceneTextScreenPoint = vm.runInNewContext(`(${pointSource})`);
 
-describe('Forest completion opening clock', () => {
-    const fn = ast.program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'waitForForestGuardianOpening');
+describe.each([
+    { sceneName: 'MythicalForestLevel', route: 'mythicalForest' },
+    { sceneName: 'VoidPeaksLevel', route: 'voidPeaks' }
+])('$sceneName completion opening clock', step => {
+    const fn = ast.program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'waitForGuardianOpening');
+    const openingFn = ast.program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'guardianHandoffOpening');
+    const guardianHandoffOpening = vm.runInNewContext(`(${source.slice(openingFn.start, openingFn.end)})`);
     function fixture(states) {
         let wall = 0;
         let reads = 0;
@@ -18,7 +23,7 @@ describe('Forest completion opening clock', () => {
             if (expression.includes('return {')) return states[Math.min(reads++, states.length - 1)];
         });
         const run = vm.runInNewContext(`(${source.slice(fn.start, fn.end)})`, {
-            evaluate, Date: { now: () => wall }, WAIT_STEP_MS: 100,
+            evaluate, guardianHandoffOpening, Date: { now: () => wall }, WAIT_STEP_MS: 100,
             delay: async () => { wall += 15000; }, console: { log: jest.fn() }
         });
         return { run, evaluate };
@@ -27,8 +32,10 @@ describe('Forest completion opening clock', () => {
 
     test('slow rendering must still earn a real opening within the simulation budget', async () => {
         const f = fixture([waiting, { ...waiting, elapsed: 4300, ready: true, attacks: 1 }]);
-        await expect(f.run({})).resolves.toMatchObject({ ready: true, elapsed: 4300 });
+        await expect(f.run({}, step)).resolves.toMatchObject({ ready: true, elapsed: 4300 });
         expect(f.evaluate.mock.calls[0][1]).toContain('addEvent({ delay: 12000 })');
+        expect(f.evaluate.mock.calls[0][1]).toContain(JSON.stringify(step.sceneName));
+        expect(f.evaluate.mock.calls[1][1]).toContain(JSON.stringify(step.route));
         expect(f.evaluate.mock.calls.at(-1)[1]).toContain('delete scene.completionOpeningProbe');
         expect(f.evaluate.mock.calls.some(([, text]) => /isRecovering\s*=/.test(text))).toBe(false);
     });
@@ -40,7 +47,7 @@ describe('Forest completion opening clock', () => {
         ['clock stalled', waiting]
     ])('fails and cleans up when %s', async (_name, state) => {
         const f = fixture([state]);
-        await expect(f.run({})).rejects.toThrow('earned recovery opening unavailable');
+        await expect(f.run({}, step)).rejects.toThrow('earned recovery opening unavailable');
         expect(f.evaluate.mock.calls.at(-1)[1]).toContain('completionOpeningProbe?.remove?.()');
     });
 });

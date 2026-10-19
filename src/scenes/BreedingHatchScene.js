@@ -12,6 +12,7 @@
  */
 
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import { createFusionOffspringDraft } from '../systems/FusionOffspringDraft.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
 class BreedingHatchScene extends Phaser.Scene {
@@ -1435,6 +1436,7 @@ class BreedingHatchScene extends Phaser.Scene {
      */
     async completeTwinBreeding() {
         if (this.completionSubmitted) return;
+        const operationId = this.fusionTransaction?.operationId;
         this.completionSubmitted = true;
         this.twin1Name = this.sanitizeCreatureName(this.twin1Name, 'First Twin');
         this.twin2Name = this.sanitizeCreatureName(this.twin2Name, 'Second Twin');
@@ -1449,38 +1451,18 @@ class BreedingHatchScene extends Phaser.Scene {
         const twinIds = creatureData.map(twin => twin.data?.offspringData?.creatureId);
         const committedTwinData = creatureData.map(twin => {
             const now = Date.now();
-            return {
-                id: twin.data?.offspringData?.creatureId,
+            return createFusionOffspringDraft({
                 name: twin.name,
                 genes: twin.data?.offspringGenes,
-                dna: twin.data?.offspringGenes,
-                personality: null,
-                personalityState: null,
-                stats: { happiness: 100, energy: 100, health: 100 },
-                level: 1,
-                experience: 0,
-                textureName: twin.textureName || null,
-                hatchTime: now,
-                lifecycle: {
-                    birthDate: now,
-                    stage: 'baby',
-                    lastStageChange: now,
-                    evolutionHistory: []
-                },
-                cosmicAffinity: twin.data?.offspringGenes?.cosmicAffinity,
-                rarity: twin.data?.offspringData?.rarity || 'common',
-                addedAt: now,
-                isOffspring: true,
-                isTwin: true,
-                twinIndex: twin.index,
-                twinSiblingId: twin.index === 1 ? twinIds[1] : twinIds[0],
-                twinSiblingName: twin.index === 1 ? this.twin2Name : this.twin1Name,
-                generation: twin.data?.offspringData?.generation || 2,
-                parentIds: twin.data?.offspringData?.parentIds || [],
-                offspringBonus: twin.data?.offspringData?.offspringBonus || null,
-                birthEvents: twin.data?.offspringData?.birthEvents || [],
-                secretAbilities: twin.data?.offspringData?.secretAbilities || []
-            };
+                offspringData: twin.data?.offspringData,
+                textureName: twin.textureName,
+                now,
+                twin: {
+                    index: twin.index,
+                    siblingId: twin.index === 1 ? twinIds[1] : twinIds[0],
+                    siblingName: twin.index === 1 ? this.twin2Name : this.twin1Name
+                }
+            });
         });
         const commitStatus = this.add.text(
             width / 2,
@@ -1495,6 +1477,7 @@ class BreedingHatchScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(300);
         const result = await this.commitFusionCreatures(committedTwinData);
         commitStatus.destroy();
+        if (result.cancelled || this.cleanupComplete || this.fusionTransaction?.operationId !== operationId) return;
         const addedCreatures = result.success
             ? (result.offspring || committedTwinData)
             : [];
@@ -1775,6 +1758,7 @@ class BreedingHatchScene extends Phaser.Scene {
 
     async completeBreeding() {
         if (this.completionSubmitted) return;
+        const operationId = this.fusionTransaction?.operationId;
         this.completionSubmitted = true;
         this.offspringName = this.sanitizeCreatureName(this.offspringName, 'New Creature');
         this.clearNamingControls();
@@ -1782,38 +1766,13 @@ class BreedingHatchScene extends Phaser.Scene {
 
         // Create creature data for collection
         const now = Date.now();
-        const creatureData = {
-            id: this.offspringData?.creatureId,
+        const creatureData = createFusionOffspringDraft({
             name: this.offspringName,
             genes: this.offspringGenes,
-            dna: this.offspringGenes,
-            personality: null,
-            personalityState: null,
-            stats: { happiness: 100, energy: 100, health: 100 },
-            level: 1,
-            experience: 0,
-            textureName: this.offspringTextureName || null, // Store rendered texture
-            hatchTime: now,
-            lifecycle: {
-                birthDate: now,
-                stage: 'baby',
-                lastStageChange: now,
-                evolutionHistory: []
-            },
-            cosmicAffinity: this.offspringGenes?.cosmicAffinity,
-            rarity: this.offspringData?.rarity || 'common',
-            addedAt: now,
-            isOffspring: true,
-            generation: this.offspringData?.generation || 2,
-            parentIds: this.offspringData?.parentIds || [],
-            offspringBonus: this.offspringData?.offspringBonus || null,
-            // Birth events and special abilities
-            birthEvents: this.offspringData?.birthEvents || [],
-            secretAbilities: this.offspringData?.secretAbilities || [],
-            isShiny: this.offspringData?.isShiny || false,
-            hasDualAffinity: this.offspringData?.hasDualAffinity || false,
-            dualAffinity: this.offspringData?.dualAffinity || null
-        };
+            offspringData: this.offspringData,
+            textureName: this.offspringTextureName,
+            now
+        });
 
         const { width, height } = this.scale;
         const commitStatus = this.add.text(
@@ -1829,6 +1788,7 @@ class BreedingHatchScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(300);
         const result = await this.commitFusionCreatures([creatureData]);
         commitStatus.destroy();
+        if (result.cancelled || this.cleanupComplete || this.fusionTransaction?.operationId !== operationId) return;
         const isSuccess = result.success;
         const failureReason = result?.reason || 'unknown';
 

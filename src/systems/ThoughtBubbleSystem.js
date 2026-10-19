@@ -1,3 +1,6 @@
+import { THOUGHT_CONTEXT_METHOD_NAMES, applyThoughtSuccess, applyThoughtFailure, beginThoughtContextLoad, finishThoughtContextLoad,
+    beginThoughtContextTransition, finishThoughtContextTransition, captureThoughtCompletionSource, captureThoughtCompletionPublication } from './ThoughtContextProgress.js';
+
 /**
  * ThoughtBubbleSystem - Displays contextual creature thoughts
  *
@@ -52,21 +55,25 @@ class ThoughtBubbleSystem {
      * Load context from GameState if available
      */
     loadContextFromGameState() {
+        const source = beginThoughtContextLoad(this, THOUGHT_CONTEXT_BLUEPRINT);
         if (window.GameState) {
             const stored = window.GameState.get('thoughtContext');
             if (stored) {
                 this.context = { ...this.context, ...stored };
             }
         }
+        finishThoughtContextLoad(source);
     }
 
     /**
      * Save context to GameState
      */
     saveContext() {
+        const source = beginThoughtContextTransition(this, 'save');
         if (window.GameState) {
             window.GameState.set('thoughtContext', this.context);
         }
+        finishThoughtContextTransition(source);
     }
 
     /**
@@ -75,23 +82,10 @@ class ThoughtBubbleSystem {
      */
     recordFailure(levelId) {
         const now = Date.now();
-
-        this.context.recentFailures++;
-        this.context.lastFailureTime = now;
-        this.context.totalAttempts++;
-
-        // Track consecutive failures on same level
-        if (levelId === this.context.lastLevelId) {
-            this.context.consecutiveFailures++;
-        } else {
-            this.context.consecutiveFailures = 1;
-            this.context.lastLevelId = levelId;
-        }
-
-        // Mark as struggling if 3+ consecutive failures
-        this.context.playerStruggling = this.context.consecutiveFailures >= 3;
-
+        const source = beginThoughtContextTransition(this, 'failure', levelId, now);
+        applyThoughtFailure(this.context, levelId, now);
         this.saveContext();
+        finishThoughtContextTransition(source);
 
         console.log('[ThoughtBubbleSystem] Failure recorded:', {
             levelId,
@@ -106,16 +100,10 @@ class ThoughtBubbleSystem {
      */
     recordSuccess(levelId) {
         const now = Date.now();
-
-        this.context.lastSuccessTime = now;
-        this.context.consecutiveFailures = 0;
-        this.context.playerStruggling = false;
-        this.context.lastLevelId = levelId;
-
-        // Decay recent failures slowly
-        this.context.recentFailures = Math.max(0, this.context.recentFailures - 2);
-
+        const source = beginThoughtContextTransition(this, 'success', levelId, now);
+        applyThoughtSuccess(this.context, levelId, now);
         this.saveContext();
+        finishThoughtContextTransition(source);
 
         console.log('[ThoughtBubbleSystem] Success recorded:', { levelId });
     }
@@ -125,7 +113,17 @@ class ThoughtBubbleSystem {
      * @param {string} biome - Current biome name
      */
     setBiome(biome) {
+        const source = beginThoughtContextTransition(this, 'biome', biome);
         this.context.currentBiome = biome;
+        finishThoughtContextTransition(source);
+    }
+
+    captureCompletionContextSource({ state = window.GameState, reader = null } = {}) {
+        return captureThoughtCompletionSource(this, state, reader);
+    }
+
+    captureCompletionContextPublication(state = window.GameState) {
+        return captureThoughtCompletionPublication(this, state);
     }
 
     /**
@@ -795,6 +793,9 @@ class ThoughtBubbleSystem {
         this.isInitialized = false;
     }
 }
+
+const THOUGHT_CONTEXT_BLUEPRINT = Object.freeze({ prototype: ThoughtBubbleSystem.prototype,
+    methods: Object.freeze(Object.fromEntries(THOUGHT_CONTEXT_METHOD_NAMES.map(name => [name, ThoughtBubbleSystem.prototype[name]]))) });
 
 // Create singleton
 const thoughtBubbleSystem = new ThoughtBubbleSystem();

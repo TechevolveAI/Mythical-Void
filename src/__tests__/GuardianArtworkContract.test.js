@@ -172,6 +172,12 @@ describe('mid-campaign guardian artwork', () => {
         expect(source).toContain('this.boss.setPosition(this.bossBody.x, this.bossBody.y)');
         expect(source).toContain('this.boss.setTint(0xD88AB4)');
         expect(source).toContain('this.boss.setTint(0xD86478)');
-        expect(source).toContain('this.bossTargetScale * 0.9');
+        expect(source).toContain('victory.fade();');
+        const victory = fs.readFileSync(
+            path.join(__dirname, '../scenes/controllers/ReefVictorySequence.js'), 'utf8'
+        );
+        expect(victory).toContain('scale = this.scene.bossTargetScale * 0.9');
+        expect(victory).toContain('boss.scaleX = start.scaleX + (scale - start.scaleX) * proxy.progress');
+        expect(victory).toContain('boss.scaleY = start.scaleY + (scale - start.scaleY) * proxy.progress');
     });
 });

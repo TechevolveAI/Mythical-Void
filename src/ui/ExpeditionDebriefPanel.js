@@ -1,3 +1,5 @@
+import { renderRegionalVictory } from './RegionalVictoryView.js';
+
 function element(tag, className, text) {
     const node = document.createElement(tag);
     node.className = className;
@@ -8,8 +10,9 @@ function element(tag, className, text) {
 // This blocking handoff uses browser layout and input, not camera coordinates.
 // The story may scroll; the only action never scrolls out of reach.
 export default class ExpeditionDebriefPanel {
-    constructor({ onContinue }) {
+    constructor({ onContinue, onVisibilityChange = () => {} }) {
         this.onContinue = onContinue;
+        this.onVisibilityChange = onVisibilityChange;
         this.root = null;
         this.busy = false;
         this.updateViewport = () => {
@@ -23,14 +26,15 @@ export default class ExpeditionDebriefPanel {
             });
         };
         this.onKeyDown = event => {
-            if (!this.root) return;
+            if (!this.root || this.root.hidden) return;
             // Do not let Phaser's hub shortcuts select a gate behind the dialog.
-            event.stopPropagation();
+            event.stopImmediatePropagation();
             if (event.key === 'Escape') {
                 event.preventDefault();
                 this.continue();
             } else if (event.key === 'Tab') {
-                const targets = [...this.root.querySelectorAll('summary, button:not(:disabled), [tabindex="0"]')];
+                const targets = [...this.root.querySelectorAll('summary, button:not(:disabled), [tabindex="0"]')]
+                    .filter(node => !node.closest('details:not([open])') || node.tagName === 'SUMMARY');
                 const current = targets.indexOf(document.activeElement);
                 const next = event.shiftKey ? current - 1 : current + 1;
                 event.preventDefault();
@@ -39,11 +43,15 @@ export default class ExpeditionDebriefPanel {
         };
     }
 
-    show({ title, context, finding, creatureMoment, fieldNote, nextStep, actionLabel, color }) {
+    show({ title, context, finding, creatureMoment, fieldNote, nextStep, actionLabel, color,
+        rewards = [], secondaryActions = [], detailsLabel = 'Field note',
+        presentation, eyebrow, portraitUrl, portraitName }) {
         if (this.root) return false;
         this.previousFocus = document.activeElement;
         this.busy = false;
         const root = element('div', 'expedition-debrief');
+        const visualVictory = presentation === 'victory';
+        if (visualVictory) root.classList.add('expedition-debrief--victory');
         root.dataset.testid = 'expedition-debrief';
         root.setAttribute('role', 'dialog');
         root.setAttribute('aria-modal', 'true');
@@ -53,22 +61,45 @@ export default class ExpeditionDebriefPanel {
         const shell = element('section', 'expedition-debrief-shell');
         const header = element('header', 'expedition-debrief-header');
         header.append(
-            element('p', 'expedition-debrief-eyebrow', 'EXPEDITION COMPLETE'),
+            element('p', 'expedition-debrief-eyebrow', eyebrow || 'EXPEDITION COMPLETE'),
             element('h2', 'expedition-debrief-title', title),
             element('p', 'expedition-debrief-context', context)
         );
         const story = element('div', 'expedition-debrief-story');
         story.tabIndex = 0;
         story.setAttribute('aria-label', 'Expedition discoveries');
-        story.append(
+        if (finding) story.append(
             element('h3', 'expedition-debrief-eyebrow', 'WHAT CHANGED'),
             element('p', '', finding)
         );
         if (creatureMoment) story.append(element('p', 'expedition-debrief-creature', creatureMoment));
+        if (visualVictory) renderRegionalVictory(story, { rewards, portraitUrl, portraitName });
+        else if (rewards.length) {
+            const list = element('dl', 'expedition-debrief-rewards');
+            for (const reward of rewards) {
+                const row = element('div', 'expedition-debrief-reward');
+                row.dataset.rewardKind = reward.kind;
+                row.append(element('dt', '', reward.label), element('dd', '', reward.text));
+                if (reward.detail) row.append(element('dd', 'expedition-debrief-reward-detail', reward.detail));
+                list.append(row);
+            }
+            story.append(list);
+        }
         if (fieldNote) {
             const details = element('details', 'expedition-debrief-details');
-            details.append(element('summary', '', 'Field note'), element('p', '', fieldNote));
+            details.append(element('summary', '', detailsLabel), element('p', '', fieldNote));
             story.append(details);
+        }
+        if (secondaryActions.length) {
+            const actions = element('div', 'expedition-debrief-actions');
+            for (const action of secondaryActions) {
+                const button = element('button', '', action.label);
+                button.type = 'button';
+                if (action.id) button.dataset.victoryAction = action.id;
+                button.addEventListener('click', () => action.run(this, button));
+                actions.append(button);
+            }
+            story.append(actions);
         }
         const footer = element('footer', 'expedition-debrief-footer');
         footer.append(element('p', 'expedition-debrief-next', nextStep));
@@ -83,14 +114,29 @@ export default class ExpeditionDebriefPanel {
         shell.append(header, story, footer);
         root.append(shell);
         this.root = root;
-        document.body.append(root);
-        this.updateViewport();
-        window.addEventListener('resize', this.updateViewport);
-        window.visualViewport?.addEventListener('resize', this.updateViewport);
-        window.visualViewport?.addEventListener('scroll', this.updateViewport);
-        window.addEventListener('keydown', this.onKeyDown, true);
-        this.button.focus({ preventScroll: true });
-        return true;
+        try {
+            document.body.append(root);
+            this.onVisibilityChange(true);
+            if (this.root !== root) return false;
+            this.updateViewport();
+            window.addEventListener('resize', this.updateViewport);
+            window.visualViewport?.addEventListener('resize', this.updateViewport);
+            window.visualViewport?.addEventListener('scroll', this.updateViewport);
+            window.addEventListener('keydown', this.onKeyDown, true);
+            this.button.focus({ preventScroll: true });
+            return this.root === root;
+        } catch (error) {
+            try { this.destroy(); }
+            catch { /* Keep the setup error when an application cleanup callback also fails. */ }
+            throw error;
+        }
+    }
+
+    setVisible(visible) {
+        if (!this.root) return;
+        this.root.hidden = !visible;
+        this.onVisibilityChange(visible);
+        if (visible) this.button?.focus({ preventScroll: true });
     }
 
     continue() {
@@ -112,6 +158,7 @@ export default class ExpeditionDebriefPanel {
                 this.error.hidden = false;
                 this.button.disabled = false;
                 this.busy = false;
+                if (!this.root.hidden) this.button.focus({ preventScroll: true });
             }
             return false;
         }
@@ -126,6 +173,7 @@ export default class ExpeditionDebriefPanel {
         const ownedFocus = this.root.contains(document.activeElement);
         this.root.remove();
         this.root = null;
+        this.onVisibilityChange(false);
         if (ownedFocus && this.previousFocus?.isConnected) this.previousFocus.focus?.({ preventScroll: true });
     }
 }

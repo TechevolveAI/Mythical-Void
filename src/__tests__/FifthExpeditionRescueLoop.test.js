@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const levelPath = path.join(__dirname, '../scenes/levels/AuroraDepthsLevel.js');
 
@@ -197,10 +198,11 @@ describe('fifth expedition rescue loop', () => {
 
         expect(source).toContain('if (!this.boss?.active || this.bossDefeated) return;');
         expect(source).toContain('if (this.bossDefeated)');
-        expect(defeat).toContain('this.boss.body.enable = false');
-        expect(defeat).toContain('this.bossBody.body.enable = false');
+        const sequence = fs.readFileSync(path.join(__dirname, '../scenes/controllers/AuroraVictorySequence.js'), 'utf8');
+        expect(sequence).toContain('this.artBody.enable = false');
+        expect(sequence).toContain('this.body.enable = false');
         expect(defeat).toContain('this.bossAITimer?.remove?.()');
-        expect(defeat).toContain('PHOENIX ROUTE STABLE');
+        expect(sequence).toContain('PHOENIX ROUTE STABLE');
     });
 
     test('uses a dedicated Phoenix combat body independent of transparent artwork', () => {
@@ -241,12 +243,10 @@ describe('fifth expedition rescue loop', () => {
     test('restores the guardian and awards the canonical fifth ship system', () => {
         const source = readLevel();
 
-        expect(source).toContain('AURORA PHOENIX RESTORED');
+        const sequence = fs.readFileSync(path.join(__dirname, '../scenes/controllers/AuroraVictorySequence.js'), 'utf8');
+        expect(sequence).toContain('AURORA PHOENIX RESTORED');
         expect(source).toContain('PHOENIX FREED');
-        expect(source).toContain('Phoenix Gift: Aurora Reactor');
-        expect(source).toContain('Earth Contact: Possible, not transmitted');
-        expect(source).toContain("achievementLevelId: 'auroraDepths'");
-        expect(source).toContain("shipPartId: 'aurora_reactor'");
+        expectAuroraCompletionConnection();
         expect(source).not.toContain('SHADOW PHOENIX EXTINGUISHED');
     });
 

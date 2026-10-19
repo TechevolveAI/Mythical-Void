@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { parse } = require('@babel/parser');
+const { checkpointHelpers, checkpointFixture } = require('./support/expeditionCheckpointFixtures.cjs');
 
 // Execute the real pure dependencies without importing unrelated scene/provider code.
 function loadHelpers(fileName, exportedNames, bindings = {}, selectedNames = null) {
@@ -29,7 +30,7 @@ const legacy = loadHelpers('CampaignLegacy.js', ['CAMPAIGN_INTENTS'], {}, ['CAMP
 const guide = loadHelpers('CampaignJourneyGuide.js', [
     'CAMPAIGN_ROUTE', 'getCampaignJourneyStep', 'getCampaignPrerequisiteState',
     'getCampaignRoute', 'getCampaignFinaleRecovery'
-], { ...reconstruction, ...legacy });
+], { ...reconstruction, ...legacy, ...checkpointHelpers });
 
 function createState({ completed = [], unlocked = [], checkpoint = null, values: extraValues = {} } = {}) {
     const values = {
@@ -51,6 +52,15 @@ function createState({ completed = [], unlocked = [], checkpoint = null, values:
     });
     Object.assign(values, extraValues);
     return { values, get: jest.fn(key => values[key]), set: jest.fn(), save: jest.fn(), emit: jest.fn() };
+}
+
+function cavesCheckpoint(overrides = {}) {
+    return {
+        version: 2, sceneKey: 'CrystalCavesLevel', levelId: 'crystal_caves_1',
+        checkpointId: 'caves_anchor_2', checkpointIndex: 1,
+        x: 2800, y: 500, routeSignalMask: 3, savedAt: 1000,
+        ...overrides
+    };
 }
 
 describe('campaign journey guide', () => {
@@ -117,10 +127,7 @@ describe('campaign journey guide', () => {
         const state = createState({
             completed: ['mythicalForest'],
             unlocked: ['mythical_forest', 'crystal_caves'],
-            checkpoint: {
-                sceneKey: 'CrystalCavesLevel',
-                label: 'Living Chamber'
-            }
+            checkpoint: cavesCheckpoint()
         });
         expect(getCampaignJourneyStep(state)).toEqual(expect.objectContaining({
             gateId: 'crystal_caves',
@@ -129,14 +136,53 @@ describe('campaign journey guide', () => {
         }));
     });
 
+    test('does not send a returning player back to a completed expedition', () => {
+        const state = createState({
+            completed: ['mythicalForest', 'crystalCaves'],
+            unlocked: ['crystal_caves', 'stellar_reef'],
+            checkpoint: cavesCheckpoint()
+        });
+        const before = JSON.stringify(state.values);
+        expect(getCampaignJourneyStep(state)).toMatchObject({ gateId: 'stellar_reef', status: 'ready' });
+        expect(JSON.stringify(state.values)).toBe(before);
+        expect(state.set).not.toHaveBeenCalled();
+        expect(state.save).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        ['future version', { version: 3 }],
+        ['wrong runtime level', { levelId: 'reef_1' }],
+        ['unknown place', { checkpointId: 'unknown' }],
+        ['invalid coordinates', { x: -1 }],
+        ['missing coordinates', { y: undefined }],
+        ['missing current mask', { routeSignalMask: undefined }],
+        ['mask excludes this place', { routeSignalMask: 1 }],
+        ['mask outside route', { routeSignalMask: 15 }]
+    ])('does not advertise an unusable resume: %s', (_, overrides) => {
+        const state = createState({
+            completed: ['mythicalForest'], unlocked: ['crystal_caves'],
+            checkpoint: cavesCheckpoint(overrides)
+        });
+        const before = JSON.stringify(state.values);
+        expect(getCampaignJourneyStep(state)).toMatchObject({ gateId: 'crystal_caves', status: 'ready' });
+        expect(JSON.stringify(state.values)).toBe(before);
+        expect(state.set).not.toHaveBeenCalled();
+        expect(state.save).not.toHaveBeenCalled();
+    });
+
+    test('uses the real place name rather than arbitrary saved display text', () => {
+        const state = createState({
+            completed: ['mythicalForest'], unlocked: ['crystal_caves'],
+            checkpoint: cavesCheckpoint({ label: 'A different place' })
+        });
+        expect(getCampaignJourneyStep(state).action).toBe('Rejoin at Living Chamber.');
+    });
+
     test('ignores a stale checkpoint that skips canonical prerequisites', () => {
         const state = createState({
             completed: ['mythicalForest'],
             unlocked: ['mythical_forest', 'aurora_depths'],
-            checkpoint: {
-                sceneKey: 'AuroraDepthsLevel',
-                label: 'Aurora Prism'
-            }
+            checkpoint: checkpointFixture('aurora_depths')
         });
 
         expect(getCampaignJourneyStep(state)).toEqual(expect.objectContaining({

@@ -61,7 +61,7 @@ describe('Platformer failure and mobile input recovery', () => {
 
     test('resumes the recovery clock before leaving for either hub', () => {
         const returnToHub = source.slice(
-            source.indexOf('    returnToHub() {'),
+            source.indexOf('    returnToHub('),
             source.indexOf('    returnToSanctuary() {')
         );
         const returnToSanctuary = source.slice(

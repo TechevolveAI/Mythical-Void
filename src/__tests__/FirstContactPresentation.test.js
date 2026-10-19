@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 describe('first-contact hatch presentation', () => {
     const sceneSource = fs.readFileSync(
@@ -9,14 +10,90 @@ describe('first-contact hatch presentation', () => {
     const evolutionConfig = require('../config/evolution.json');
     const rarityConfig = require('../config/rarity-config.json');
 
-    test('frames maturity as a projection instead of a guaranteed destiny', () => {
-        const reveal = evolutionConfig.hatching.visionReveal;
+    function createScene() {
+        const context = {
+            module: { exports: {} },
+            Phaser: { Scene: class {}, Input: { Keyboard: { JustDown: () => true } } },
+            MobileHelpers: { vibrate: jest.fn() },
+            evolutionConfig,
+            window: { UXEnhancements: { showLoading: jest.fn(), hideLoading: jest.fn() } },
+            console: { log: jest.fn(), error: jest.fn() }
+        };
+        vm.runInNewContext(sceneSource.slice(sceneSource.indexOf('class HatchingScene extends'))
+            .replace('export default HatchingScene;', 'module.exports = HatchingScene;'), context);
+        return new context.module.exports();
+    }
 
-        expect(reveal.visionMessage).toBe('PROJECTED MATURITY // GROWTH POTENTIAL');
-        expect(reveal.transitionMessage).toContain('One possible future');
-        expect(reveal.babyRevealMessage).toBe('FIRST CONTACT // PRESENT FORM');
-        expect(sceneSource).not.toContain('magnificent destiny');
-        expect(sceneSource).not.toContain('incredible form');
+    test('keeps adult appearance for growth rather than previewing it at hatch', () => {
+        const reveal = evolutionConfig.hatching.visionReveal;
+        expect(reveal.enabled).toBe(false);
+        expect(reveal.showAdultFirst).toBe(false);
+    });
+
+    test.each([false, true])('reveals the existing baby identity once (inventory egg: %s)', isEggHatch => {
+        const scene = createScene();
+        scene.isEggHatch = isEggHatch;
+        scene.creatureGenetics = { id: 'fixed-hatch', rarity: 'epic' };
+        scene.creatureDNA = { id: 'fixed-dna', bodyArchetype: 'crystal' };
+        const identity = JSON.stringify([scene.creatureGenetics, scene.creatureDNA]);
+        scene.time = { delayedCall: (_, callback) => callback() };
+        const result = { textureName: 'fixed-baby' };
+        scene.createUniqueCreature = jest.fn(() => result);
+        scene.completeCreatureDisplay = jest.fn();
+        scene.generateCreatureGenetics = jest.fn();
+        scene.showAdultVision = jest.fn();
+        scene.showCriticalError = jest.fn();
+
+        scene.showCreature();
+
+        expect(scene.createUniqueCreature.mock.calls).toEqual([['baby']]);
+        expect(scene.completeCreatureDisplay).toHaveBeenCalledWith(result);
+        expect(scene.showAdultVision).not.toHaveBeenCalled();
+        expect(scene.generateCreatureGenetics).not.toHaveBeenCalled();
+        expect(scene.showCriticalError).not.toHaveBeenCalled();
+        expect(JSON.stringify([scene.creatureGenetics, scene.creatureDNA])).toBe(identity);
+    });
+
+    test('Space uses the same guarded hatch as touch, without a second cinematic or auto-confirmation', () => {
+        const scene = createScene();
+        scene.sys = { isActive: () => true };
+        scene.egg = { active: true };
+        scene.eggHatchReadyAt = 0;
+        scene.spaceKey = {};
+        scene.startHatching = jest.fn(() => { scene.hatchingStarted = true; });
+        scene.startCinematicHatch = jest.fn();
+        scene.transitionToPersonality = jest.fn();
+
+        scene.update(1000);
+        scene.update(1016);
+        expect(scene.startHatching).toHaveBeenCalledTimes(1);
+        expect(scene.startCinematicHatch).not.toHaveBeenCalled();
+        expect(scene.transitionToPersonality).not.toHaveBeenCalled();
+    });
+
+    test('omitting the hatch render stage still creates a baby from the same DNA', () => {
+        const scene = createScene();
+        const result = { textureName: 'fixed-baby' };
+        scene.creatureDNA = { id: 'fixed-dna' };
+        scene.creatureGenetics = { id: 'fixed-hatch' };
+        scene.graphicsEngine = { createCreatureFromDNA: jest.fn(() => result) };
+        expect(scene.createUniqueCreature()).toBe(result);
+        expect(scene.graphicsEngine.createCreatureFromDNA).toHaveBeenCalledWith(
+            scene.creatureDNA, 0, 'baby', scene.creatureGenetics
+        );
+    });
+
+    test('does not place a second rarity banner over the baby reveal', () => {
+        const scene = createScene();
+        scene.stopThemeMusic = jest.fn();
+        scene.hatchingTimer = { destroy: jest.fn() };
+        scene.progressText = { setVisible: jest.fn() };
+        scene.tweens = { killTweensOf: jest.fn(), add: jest.fn() };
+        scene.createFlashEffect = jest.fn();
+        scene.showCelebrationBanner = jest.fn();
+        scene.completeHatching();
+        expect(scene.showCelebrationBanner).not.toHaveBeenCalled();
+        expect(sceneSource).toContain('this.showRarityReveal();');
     });
 
     test('treats the result as a field reading and the alternative as a rescan', () => {

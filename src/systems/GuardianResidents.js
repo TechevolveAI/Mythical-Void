@@ -1034,10 +1034,11 @@ export function recordGuardianExpedition(gameState, {
     noDamage = false,
     interventionCount = 0,
     completedAt = new Date().toISOString(),
+    calculationNow,
     save = true
 } = {}) {
     if (!gameState?.get || !gameState?.set) return null;
-    const snapshot = getGuardianResidentsSnapshot(gameState);
+    const snapshot = calculationNow === undefined ? getGuardianResidentsSnapshot(gameState) : getGuardianResidentsSnapshot(gameState, { now: calculationNow });
     const resident = snapshot.activeTeamResident;
     const normalizedLevelId = typeof levelId === 'string'
         ? levelId.trim().slice(0, 40)
@@ -1073,7 +1074,7 @@ export function recordGuardianExpedition(gameState, {
     gameState.set('world.guardianResidents', state);
     if (save) gameState.save?.();
     gameState.emit?.('guardianExpeditionRecorded', entry);
-    const nextSnapshot = getGuardianResidentsSnapshot(gameState);
+    const nextSnapshot = calculationNow === undefined ? getGuardianResidentsSnapshot(gameState) : getGuardianResidentsSnapshot(gameState, { now: calculationNow });
     return {
         changed: true,
         reason: 'guardian_expedition_recorded',

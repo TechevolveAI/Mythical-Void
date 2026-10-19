@@ -14,45 +14,46 @@ describe('interruption-safe hatching', () => {
         path.join(__dirname, '../systems/InventoryManager.js'),
         'utf8'
     );
+    const gameStateSource = fs.readFileSync(path.join(__dirname, '../systems/GameState.js'), 'utf8');
 
     test('commits the hatched flag only after genetics are stored', () => {
         const animationComplete = hatchingSource.slice(
             hatchingSource.indexOf('completeHatching() {'),
             hatchingSource.indexOf('showCelebrationBanner(')
         );
-        const identityCommit = hatchingSource.slice(
-            hatchingSource.indexOf('saveCreatureGenetics() {'),
-            hatchingSource.indexOf('generateCreatureName() {')
-        );
+        const identityCommit = gameStateSource.slice(gameStateSource.indexOf('commitCreatureHatch(profile,'),
+            gameStateSource.indexOf('\n    completeHatching() {'));
 
         expect(animationComplete).not.toContain('getGameState().completeHatching()');
-        expect(identityCommit.indexOf("state.set('creature.genes'"))
-            .toBeLessThan(identityCommit.indexOf('state.completeHatching()'));
-        expect(identityCommit.indexOf('state.completeHatching()'))
-            .toBeLessThan(identityCommit.indexOf('state.save()'));
+        expect(identityCommit.indexOf("draft.set('creature.genes'"))
+            .toBeLessThan(identityCommit.indexOf('draft.completeHatching()'));
+        expect(identityCommit.indexOf('draft.completeHatching()'))
+            .toBeLessThan(identityCommit.indexOf('this.commitHatchSaveDraft(draft.state'));
+        expect(identityCommit).not.toContain('this.state.creature =');
     });
 
-    test('repairs an old partial hatch before choosing the boot route', () => {
-        expect(hatchingSource).toContain(
-            'Repairing interrupted hatch with no durable creature identity'
-        );
-        expect(hatchingSource).toContain("GameState.set('creature.hatched', false)");
-        expect(hatchingSource).toContain('creatureHatched = false;');
+    test('protects uncertain partial hatches instead of silently resetting their identity', () => {
+        const entry = hatchingSource.slice(hatchingSource.indexOf('    continueHatchEntry() {'),
+            hatchingSource.indexOf('\n    showHomeScreen() {'));
+        expect(entry).toContain('if (!this.canCommitHatch())');
+        expect(entry).toContain('reader.assertCurrent();');
+        expect(entry).not.toContain("GameState.set('creature.hatched', false)");
+        expect(entry).not.toContain('GameState.save()');
+        expect(entry).not.toContain('captureHatchSaveOwner(');
+        expect(gameStateSource).toContain('assertHatchIdentityReadable(parsed);');
+        expect(gameStateSource).toContain('assertHatchIdentityReadable(this.state);');
     });
 
     test('persists and resumes an inventory egg reservation', () => {
         expect(inventoryManagerSource).toContain('reserveEggForHatching(');
-        expect(inventoryManagerSource).toContain("status: 'reserved'");
-        expect(inventoryManagerSource).toContain(
-            "window.GameState?.set('creature.hatchTransaction'"
-        );
+        expect(gameStateSource).toContain("schemaVersion: 1, status: 'reserved'");
+        expect(inventoryManagerSource).toContain('reserveInventoryEggForHatching?.(');
+        expect(gameStateSource).toContain('staged.creature.hatchTransaction = transaction;');
         expect(inventorySource).toContain('reserveEggForHatching?.(');
         expect(hatchingSource).toContain("pendingHatch?.status === 'reserved'");
-        expect(hatchingSource).toContain("state.set('creature.hatchTransaction', null)");
-        expect(hatchingSource).toContain(
-            'const freshCreature = GameState.createInitialState().creature;'
-        );
-        expect(hatchingSource).toContain("GameState.set('creature', freshCreature)");
+        expect(gameStateSource).toContain("draft.set('creature.hatchTransaction', null)");
+        expect(gameStateSource).toContain('draft.state.creature = this.createInitialState().creature;');
+        expect(hatchingSource).not.toContain("GameState.set('creature', freshCreature)");
         expect(inventorySource).toContain(
             'const hatchLaunchTimeout = setTimeout(launchReservedHatch, 3000);'
         );

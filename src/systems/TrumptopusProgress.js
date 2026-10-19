@@ -43,81 +43,114 @@ export function getTrumptopusRun(gameState) {
     return clone(run);
 }
 
-function commit(gameState, state) {
+function assertOperation(operation) {
+    if (operation && operation.isCurrent() !== true) {
+        throw Object.assign(new Error('The finale operation was retired.'), { code: 'save_context_changed' });
+    }
+}
+
+function operationResult(result, operation, run) {
+    assertOperation(operation);
+    if (!operation) return result;
+    const freeze = value => {
+        if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); }
+        return value;
+    };
+    return Object.freeze({ ...freeze(result), run: run ? freeze(clone(run)) : null, validity: operation });
+}
+
+function commit(gameState, state, operation = null) {
+    assertOperation(operation);
     // Use the existing atomic save/backup boundary. No inventory manager can
     // persist a half-applied reward while this detached state is being built.
     const snapshot = gameState.createSaveSnapshot({ state, updatePlayTime: true });
     gameState.validateSaveDataStructure(snapshot, { requireCoreState: true });
     const prepared = { state, snapshot, serialized: JSON.stringify(snapshot) };
+    operation?.bindPrepared(prepared);
     let persisted = gameState.storageMode !== 'memory';
     try {
-        gameState.commitPreparedSave(prepared, { source: 'trumptopus', persist: persisted });
+        gameState.commitPreparedSave(prepared, { source: 'trumptopus', persist: persisted, ...(operation ? { continuation: operation } : {}) });
     } catch (error) {
+        // Retirement is not storage denial. Never reinstall another game's old draft.
+        if (error?.code === 'save_context_changed' || error?.code === 'unsupported_save_operation') throw error;
+        assertOperation(operation);
         // Storage denial must not throw away the win or block this session.
-        gameState.commitPreparedSave(prepared, { source: 'trumptopus', persist: false });
+        gameState.commitPreparedSave(prepared, { source: 'trumptopus', persist: false, ...(operation ? { continuation: operation } : {}) });
         persisted = false;
+    }
+    assertOperation(operation);
+    if (operation && !operation.getTransition()) {
+        throw Object.assign(new Error('The writer did not issue the original finale transition.'), { code: 'save_context_changed' });
     }
     durability.set(gameState, persisted);
     gameState.emit?.('trumptopusProgressChanged', { sequence: read(state, RUN_PATH).sequence, persisted });
+    assertOperation(operation);
     return persisted;
 }
 
-export function beginTrumptopusRun(gameState, { newExpedition = false, withApproach = false } = {}) {
+export function beginTrumptopusRun(gameState, { newExpedition = false, withApproach = false, operation = null } = {}) {
+    assertOperation(operation);
     const previous = getTrumptopusRun(gameState);
-    if (previous && (previous.status === 'fighting' || !newExpedition)) return {
+    // Older New Game+ saves reset levels but retained the previous winning run.
+    // A real interrupted victory sets both records atomically and still resumes.
+    const resetCampaign = previous?.status === 'won' && gameState.get('levels.finalVoid.completed') === false;
+    if (previous && !resetCampaign && (previous.status === 'fighting' || !newExpedition)) return operationResult({
         changed: false, run: previous,
         persisted: gameState.storageMode === 'memory' ? false : (durability.get(gameState) ?? null)
-    };
+    }, operation, previous);
     const sequence = validCount((previous?.sequence || 0) + 1, 'expedition sequence');
     const state = clone(gameState.state);
     const run = { schemaVersion: 1, encounterId: 'trumptopus', sequence, phaseIndex: 0,
         elapsedMs: 0, damageTaken: 0, status: 'fighting', receipt: null };
     if (withApproach) run.approach = {schemaVersion:1,clearedGrips:0,arrived:false};
     write(state, RUN_PATH, run);
-    return { changed: true, persisted: commit(gameState, state), run: clone(run) };
+    return operationResult({ changed: true, persisted: commit(gameState, state, operation), run: clone(run) }, operation, run);
 }
 
-export function checkpointTrumptopusRun(gameState, sequence, phaseIndex, progress = {}) {
+export function checkpointTrumptopusRun(gameState, sequence, phaseIndex, progress = {}, operation = null) {
+    assertOperation(operation);
     validCount(phaseIndex, 'phase', 2);
     const run = getTrumptopusRun(gameState);
-    if (!run || run.sequence !== sequence || run.status !== 'fighting' || phaseIndex < run.phaseIndex) return false;
+    if (!run || run.sequence !== sequence || run.status !== 'fighting' || phaseIndex < run.phaseIndex) return operation ? operationResult({ changed: false }, operation, null) : false;
     if (phaseIndex > run.phaseIndex + 1) throw new Error('Cannot skip a finale phase checkpoint');
     if (phaseIndex > 0 && run.approach && !run.approach.arrived) throw new Error('Complete the approach before the fight');
     const elapsedMs = validCount(progress.elapsedMs ?? run.elapsedMs ?? 0, 'active time');
     const damageTaken = validCount(progress.damageTaken ?? run.damageTaken ?? 0, 'damage');
     if (elapsedMs < (run.elapsedMs || 0) || damageTaken < (run.damageTaken || 0)) throw new Error('Cannot rewind finale progress');
-    if (phaseIndex === run.phaseIndex && elapsedMs === (run.elapsedMs || 0) && damageTaken === (run.damageTaken || 0)) return false;
+    if (phaseIndex === run.phaseIndex && elapsedMs === (run.elapsedMs || 0) && damageTaken === (run.damageTaken || 0)) return operation ? operationResult({ changed: false }, operation, run) : false;
     const state = clone(gameState.state);
     write(state, RUN_PATH, { ...run, phaseIndex, elapsedMs, damageTaken });
-    commit(gameState, state);
-    return true;
+    const persisted = commit(gameState, state, operation);
+    return operation ? operationResult({ changed: true, persisted }, operation, read(state, RUN_PATH)) : true;
 }
 
-export function checkpointTrumptopusApproach(gameState, sequence, approach, progress = {}) {
+export function checkpointTrumptopusApproach(gameState, sequence, approach, progress = {}, operation = null) {
+    assertOperation(operation);
     if (!validApproachCheckpoint(approach)) throw new Error('Invalid approach checkpoint');
     const run = getTrumptopusRun(gameState);
-    if (!run || run.sequence !== sequence || run.status !== 'fighting' || !run.approach || run.phaseIndex !== 0) return false;
+    if (!run || run.sequence !== sequence || run.status !== 'fighting' || !run.approach || run.phaseIndex !== 0) return operation ? operationResult({ changed: false }, operation, null) : false;
     if (approach.clearedGrips < run.approach.clearedGrips || (run.approach.arrived && !approach.arrived)) throw new Error('Cannot rewind the approach');
     if (approach.clearedGrips > run.approach.clearedGrips + 1) throw new Error('Cannot skip an approach checkpoint');
     const elapsedMs = validCount(progress.elapsedMs ?? run.elapsedMs ?? 0,'active time');
     const damageTaken = validCount(progress.damageTaken ?? run.damageTaken ?? 0,'damage');
     if (elapsedMs < (run.elapsedMs || 0) || damageTaken < (run.damageTaken || 0)) throw new Error('Cannot rewind finale progress');
-    if (JSON.stringify(approach) === JSON.stringify(run.approach) && elapsedMs === run.elapsedMs && damageTaken === run.damageTaken) return false;
+    if (JSON.stringify(approach) === JSON.stringify(run.approach) && elapsedMs === run.elapsedMs && damageTaken === run.damageTaken) return operation ? operationResult({ changed: false }, operation, run) : false;
     const state = clone(gameState.state);
     write(state,RUN_PATH,{...run,approach:clone(approach),elapsedMs,damageTaken});
-    commit(gameState,state);
-    return true;
+    const persisted = commit(gameState,state,operation);
+    return operation ? operationResult({ changed: true, persisted }, operation, read(state, RUN_PATH)) : true;
 }
 
 export function recordTrumptopusVictory(gameState, {
     sequence, completedAt = Date.now(), completionMs = 0, damageTaken = 0,
-    bonusCoins = 0, inventorySlots = 30
+    bonusCoins = 0, inventorySlots = 30, operation = null
 } = {}) {
+    assertOperation(operation);
     const run = getTrumptopusRun(gameState);
-    if (!run || run.sequence !== sequence) return { changed: false, reason: 'stale_expedition' };
-    if (run.status === 'won') return { changed: false, receipt: run.receipt,
-        persisted: gameState.storageMode === 'memory' ? false : (durability.get(gameState) ?? null) };
-    if (run.phaseIndex !== 2) return { changed: false, reason: 'final_phase_required' };
+    if (!run || run.sequence !== sequence) return operationResult({ changed: false, reason: 'stale_expedition' }, operation, null);
+    if (run.status === 'won') return operationResult({ changed: false, receipt: run.receipt,
+        persisted: gameState.storageMode === 'memory' ? false : (durability.get(gameState) ?? null) }, operation, run);
+    if (run.phaseIndex !== 2) return operationResult({ changed: false, reason: 'final_phase_required' }, operation, run);
     validCount(completedAt, 'completion time'); validCount(completionMs, 'duration');
     validCount(damageTaken, 'damage'); validCount(bonusCoins, 'support coins', 10000);
     validCount(inventorySlots, 'inventory capacity', 1000);
@@ -187,5 +220,5 @@ export function recordTrumptopusVictory(gameState, {
         regionRestored: restoration.changed, firstCompletion: !wasCompleted
     };
     access.set(RUN_PATH, { ...run, elapsedMs: completionMs, damageTaken, status: 'won', receipt });
-    return { changed: true, persisted: commit(gameState, state), receipt: clone(receipt) };
+    return operationResult({ changed: true, persisted: commit(gameState, state, operation), receipt: clone(receipt) }, operation, read(state, RUN_PATH));
 }

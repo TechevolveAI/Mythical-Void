@@ -65,6 +65,15 @@ function loadReefLevel(sceneWindow = {}) {
             "import PlatformerLevelScene from '../PlatformerLevelScene.js';",
             'const PlatformerLevelScene = class { constructor(config) { this.sceneConfig = config; } };'
         )
+        .replace(/^import ReefGuardianControl from .*;$/m, () =>
+            fs.readFileSync(path.join(__dirname, '../scenes/controllers/ReefGuardianControl.js'), 'utf8')
+                .replace('export default class ', 'class '))
+        .replace(/^import ReefVictorySequence from .*;$/m, () =>
+            'const ReefVictorySequence = class { constructor() { throw Error("COMPLETION_BOUNDARY_NOT_EXERCISED"); } };')
+        // This fixture executes melee only. The real completion import/writer
+        // runs in ReefVictoryLifecycle, not a permissive victory stub here.
+        .replace(/^import \{ createReefCompletionHandler \} from .*;$/m,
+            'const createReefCompletionHandler = () => { const denied = () => { throw Error("COMPLETION_BOUNDARY_NOT_EXERCISED"); }; denied.present = denied; return denied; };')
         .replace('export default ReefLevel;', 'module.exports = ReefLevel;');
     const sandbox = {
         module: { exports: {} },
@@ -104,6 +113,71 @@ function createGraphics() {
 }
 
 describe('creature-tech katana combat progression', () => {
+    function contactScene() {
+        const PlatformerLevelScene = loadPlatformerLevelScene({});
+        const scene = new PlatformerLevelScene({ key: 'MythicalForestLevel' });
+        scene.player = { x: 100, y: 100, body: {}, facingRight: true,
+            setVelocity: jest.fn(), setTint: jest.fn(), clearTint: jest.fn() };
+        scene.health = 4;
+        scene.time = { now: 100, delayedCall: jest.fn() };
+        scene.classifyEnemyContact = () => 'contact';
+        scene.updateKatanaUpgradeDisplay = jest.fn();
+        scene.updateHealthDisplay = jest.fn();
+        scene.showFloatingText = jest.fn();
+        scene.pulseGuardianTeamSupportEcho = jest.fn();
+        scene.startInvincibilityFlash = jest.fn();
+        scene.armCenteringStance = jest.fn();
+        return scene;
+    }
+
+    test.each(['optionalRouteGuardCharges', 'powerupShieldHits', 'guardianGuardCharges',
+        'communityGuardCharges', 'auroraGuardCharges'])(
+        '%s blocks one collision episode, not just one physics frame', field => {
+            const scene = contactScene();
+            const enemy = { x: 120, y: 100, body: {}, damage: 1 };
+            scene[field] = 2;
+            expect(scene.resolveEnemyContact(scene.player, enemy)).toBe('contact');
+            expect(scene[field]).toBe(1);
+            expect(scene.health).toBe(4);
+            for (let frame = 0; frame < 20; frame++) {
+                scene.time.now += 16;
+                expect(scene.resolveEnemyContact(scene.player, enemy)).toBe('ignored');
+            }
+            expect(scene[field]).toBe(1);
+            expect(scene.health).toBe(4);
+            scene.time.now = 100 + scene.invincibilityDuration;
+            expect(scene.resolveEnemyContact(scene.player, enemy)).toBe('contact');
+            expect(scene[field]).toBe(0);
+            expect(scene.health).toBe(4);
+            scene.time.now += scene.invincibilityDuration;
+            scene.resolveEnemyContact(scene.player, enemy);
+            expect(scene.health).toBe(3);
+        }
+    );
+
+    test('guard recovery also rejects repeated direct attacks but not pit damage', () => {
+        const scene = contactScene();
+        scene.auroraGuardCharges = 2;
+        scene.takeDamage(1);
+        scene.takeDamage(1);
+        expect(scene.auroraGuardCharges).toBe(1);
+        expect(scene.health).toBe(4);
+        scene.takeDamage(1, true);
+        expect(scene.auroraGuardCharges).toBe(1);
+        expect(scene.health).toBe(3);
+    });
+
+    test.each(['isInvincible', 'isPlayerDead', 'levelCompletionActive'])(
+        '%s cannot consume installed guard charges', flag => {
+            const scene = contactScene();
+            scene.auroraGuardCharges = 1;
+            scene[flag] = true;
+            scene.takeDamage(1);
+            expect(scene.auroraGuardCharges).toBe(1);
+            expect(scene.health).toBe(4);
+        }
+    );
+
     test('Resonant Edge increases melee damage and effective reach', () => {
         const sceneWindow = {
             AudioManager: {

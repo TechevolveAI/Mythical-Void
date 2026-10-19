@@ -762,7 +762,8 @@ describe('background living portrait generation', () => {
         expect(soulSource.indexOf('this.beginLivingPortraitPrewarm();')).toBeLessThan(
             soulSource.indexOf('    finalizeName() {')
         );
-        expect(soulSource).toContain('this.showLivingPortraitHandoff(finalName)');
+        expect(soulSource).toContain('this.showLivingPortraitHandoff(attempt.name)');
+        expect(soulSource).toContain('attempt.isDurableCurrent()');
         expect(soulSource).toContain('sprite: this.creature');
         expect(soulSource).not.toContain(
             'if (this.portraitPromise) {\n            this.showLivingPortraitHandoff'

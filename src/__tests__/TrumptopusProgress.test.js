@@ -3,12 +3,12 @@ const path = require('path');
 const { parse } = require('@babel/parser');
 const GameStateManager = require('../systems/GameState.js');
 const {EventEmitter} = require('events');
+const { compiledInventorySource } = require('./support/compiledInventorySource.cjs');
 
 function inventoryFor(state) {
-    const source=fs.readFileSync(path.join(__dirname,'../systems/InventoryManager.js'),'utf8')
-        .replace('export default inventoryManager;','');
-    const Manager=new Function('window','Phaser',`${source}\nreturn InventoryManager;`)(
-        {GameState:state},{Events:{EventEmitter}});
+    const source = compiledInventorySource('both');
+    const Manager=new Function('window','Phaser','module',`${source}\nreturn module.exports.InventoryManager;`)(
+        {GameState:state},{Events:{EventEmitter}},{exports:{}});
     const manager=new Manager();manager.initialize();return manager;
 }
 
@@ -107,6 +107,24 @@ describe('private finale durable victory boundary', () => {
         expect(JSON.stringify(state.get('creature.genes'))).toBe(beforeGenes);
         expect(state.get('creature.lifecycle.stage')).toBe('adult');
         expect(state.get('creature.dna.id')).toBe('existing-dna');
+    });
+
+    test('a legacy campaign reset cannot replay the old victory or skip the new approach', () => {
+        const sequence = ready(); win(state, {sequence});
+        state.set('levels.finalVoid.completed', false);
+        state.set('game.newGamePlusCount', 1);
+        state.set('hubWorld.shipParts.collected', []);
+        state.save();
+        const next = restored();
+        const result = begin(next, {withApproach:true});
+        expect(result.changed).toBe(true);
+        expect(result.run).toMatchObject({sequence:sequence+1,status:'fighting',phaseIndex:0,receipt:null,
+            approach:{schemaVersion:1,clearedGrips:0,arrived:false}});
+        expect(next.get('levels.finalVoid.completed')).toBe(false);
+        expect(next.get('hubWorld.shipParts.collected')).toEqual([]);
+        expect(win(next,{sequence})).toMatchObject({changed:false,reason:'stale_expedition'});
+        expect(win(next,{sequence:result.run.sequence})).toMatchObject({changed:false,reason:'final_phase_required'});
+        expect(begin(restored(),{withApproach:true}).run).toEqual(result.run);
     });
 
     test('refreshing after victory cannot duplicate rewards, even before any presentation', () => {

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection, expectPeaksCompletionConnection, expectCrystalCompletionConnection, expectReefCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const levelFiles = [
     'CrystalCavesLevel.js',
@@ -35,8 +36,19 @@ const bossConfig = JSON.parse(fs.readFileSync(
 describe('guardian restoration campaign contract', () => {
     test.each(levelSources)(
         '$fileName records a guardian restoration',
-        ({ source }) => {
-            expect(source).toContain("recordEvent('guardian_restored'");
+        ({ source, fileName }) => {
+            if (['MythicalForestLevel.js', 'VoidPeaksLevel.js', 'CrystalCavesLevel.js', 'ReefLevel.js', 'AuroraDepthsLevel.js'].includes(fileName)) {
+                const calculator = fs.readFileSync(path.join(__dirname, '../dev/LevelCompletionDraft.js'), 'utf8');
+                if (fileName === 'MythicalForestLevel.js') expectForestCompletionConnection();
+                else if (fileName === 'VoidPeaksLevel.js') expectPeaksCompletionConnection();
+                else if (fileName === 'CrystalCavesLevel.js') expectCrystalCompletionConnection();
+                else if (fileName === 'ReefLevel.js') expectReefCompletionConnection();
+                else expectAuroraCompletionConnection();
+                expect(calculator).toContain(['CrystalCavesLevel.js', 'ReefLevel.js'].includes(fileName)
+                    ? 'calculateCompletionGuardianPrefix(participants.achievements, target.state, f.guardianRestoredAt ?? f.now)'
+                    : 'continueCompletionGuardianDraft(participants.achievements, achievementPlan, target.state, f.now)');
+                expect(source).not.toMatch(/recordEvent(?:\?\.)?\('guardian_restored'/);
+            } else expect(source).toMatch(/recordEvent(?:\?\.)?\('guardian_restored'/);
             expect(source).not.toContain("recordEvent('boss_defeated'");
         }
     );

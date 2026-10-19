@@ -1,20 +1,51 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { parse } = require('@babel/parser');
+const { loadModule } = require('../test-support/endingRigFixture.cjs');
 
 const source = fs.readFileSync(path.join(__dirname, '../systems/GraphicsEngine.js'), 'utf8');
+const executable = parse(source, { sourceType: 'module' }).program.body
+    .filter(node => node.type !== 'ImportDeclaration').map(node => source.slice(node.start, node.end)).join('\n');
+const appearance = loadModule('../systems/BreedingAppearance.js', 'resolveBreedingAppearance, drawBreedingAppendages');
+const contact = loadModule('../systems/CreatureContactGeometry.js', 'measureDrawnBodyContact');
 const fixtures = require('../../public/press/gameplay/real-creature-showcase/source-profiles.json').profiles;
 const evolution = require('../config/evolution.json');
 
 function engineWithTextures() {
     const textures = new Map();
     const window = { CreatureLifecycle: { getStageVisualConfig: stage => evolution.stages[stage].visual } };
-    vm.runInNewContext(source, { window, console: { log() {}, warn() {}, error() {} } });
+    vm.runInNewContext(executable, { ...appearance, ...contact, window, console: { log() {}, warn() {}, error() {} } });
     const scene = { textures: { exists: key => textures.has(key), get: key => textures.get(key) } };
     return { engine: new window.GraphicsEngine(scene), textures };
 }
 
 describe('baked creature visibility', () => {
+    test('redraw replaces contact metadata or clears stale contact without erasing other texture metadata', () => {
+        const { engine, textures } = engineWithTextures();
+        const texture = { customData: { other: 'retained', creatureBodyContact: { old: true } } };
+        textures.set('existing', texture);
+        const graphics = () => ({ generateTexture: jest.fn(), destroy: jest.fn() });
+        const contact = { version: 1, bounds: { contactY: 25 } };
+        engine.finalizeTexture(graphics(), 'existing', 80, 90, contact);
+        expect(texture.customData).toEqual({ other: 'retained', creatureBodyContact: contact });
+        engine.finalizeTexture(graphics(), 'existing', 80, 90, null);
+        expect(texture.customData).toEqual({ other: 'retained' });
+    });
+
+    test('a legacy Fusion profile in the DNA slot uses the same renderer after a texture rebuild', () => {
+        const { engine } = engineWithTextures();
+        const genes = { id: 'synthetic-fused-child', traits: { colorGenome: {}, bodyShape: {}, features: {},
+            breedingVisuals: { eyeColor: 0x123456 } } };
+        const before = JSON.stringify(genes), expected = { textureName: 'same-fusion-identity' };
+        engine.createRandomizedSpaceMythicCreature = jest.fn(() => expected);
+        engine.createScratchGraphics = jest.fn(() => { throw Error('wrong anatomy renderer'); });
+        expect(engine.createCreatureFromDNA(genes, 2, 'juvenile', genes)).toBe(expected);
+        expect(engine.createRandomizedSpaceMythicCreature).toHaveBeenCalledWith(genes, 2, 'juvenile');
+        expect(engine.createScratchGraphics).not.toHaveBeenCalled();
+        expect(JSON.stringify(genes)).toBe(before);
+    });
+
     test('both aura helpers explicitly set translucent Canvas-supported fills', () => {
         const { engine } = engineWithTextures();
         let fill;
@@ -67,6 +98,7 @@ describe('baked creature visibility', () => {
         const order = [];
         const graphics = { destroy: jest.fn() };
         engine.createScratchGraphics = jest.fn(() => graphics);
+        engine.createRandomizedSpaceMythicCreature = jest.fn(() => { throw Error('ordinary DNA must keep its anatomy'); });
         engine.adjustColorSaturation = color => color;
         const methods = ['addElementalAuraToGraphics', 'addRarityEnhancements', 'addStageAura',
             'addRarityAura', 'addCosmicAffinityEffects', 'renderBodyArchetype', 'renderHeadArchetype',
@@ -98,5 +130,37 @@ describe('baked creature visibility', () => {
         engine.createCreatureFromDNA(p.dna, 0, 'adult', changedGenes);
         expect(engine.finalizeTexture).toHaveBeenCalledTimes(3);
         expect(JSON.stringify(p)).toBe(before);
+        expect(engine.createRandomizedSpaceMythicCreature).not.toHaveBeenCalled();
+    });
+
+    test('stage-aware anatomy receives inherited proportions and one tail without generic duplicate horns or buds', () => {
+        const { engine } = engineWithTextures();
+        for (const name of ['renderBodyByType', 'renderHead', 'renderHornNubs', 'renderTailBud', 'renderHorns']) engine[name] = jest.fn();
+        const input = { breedingAppearance: { scaleX: 1.2, scaleY: 0.9, tailLength: 1, horns: { type: 'none', size: 0 } },
+            eyes: { color: 0 }, resolvedBodyType: 'quadruped' };
+        const before = JSON.stringify(input);
+        engine.renderStageAwareCreatureBody({}, { x: 50, y: 50 }, { width: 50, height: 65 },
+            { body: 0x123456, head: 0x234567 }, 0, input, { scale: 0.8 },
+            { features: { showFeatureBuds: true, horns: { type: 'full' }, tail: {} } });
+        const call = engine.renderBodyByType.mock.calls[0];
+        expect(call[3].x).toBeCloseTo(0.96);
+        expect(call[3].y).toBeCloseTo(0.72);
+        expect(call[3].inheritedTailScale).toBeCloseTo(1 / 0.7);
+        expect(call[5]).toBe('quadruped');
+        expect(engine.renderHead.mock.calls[0][4]).toEqual({ color: 0 });
+        expect(engine.renderHornNubs).not.toHaveBeenCalled();
+        expect(engine.renderTailBud).not.toHaveBeenCalled();
+        expect(engine.renderHorns).not.toHaveBeenCalled();
+        expect(JSON.stringify(input)).toBe(before);
+    });
+
+    test('the actual head renderer preserves inherited black eyes instead of substituting purple', () => {
+        const { engine } = engineWithTextures();
+        engine.renderMoodEyes = jest.fn();
+        engine.renderMoodExtras = jest.fn();
+        engine.lightenColor = colour => colour;
+        const graphics = { fillStyle: jest.fn(), fillCircle: jest.fn() };
+        engine.renderHead(graphics, { x: 50, y: 50 }, 1, 0x123456, { color: 0 });
+        expect(engine.renderMoodEyes.mock.calls[0][5]).toBe(0);
     });
 });

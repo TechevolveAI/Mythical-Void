@@ -51,7 +51,7 @@ function createClient(options = {}) {
         rpc: jest.fn(async (name, args) => {
             calls.rpcs.push({ name, args });
             return {
-                data: {
+                data: options.uploadError ? null : {
                     revision: options.uploadRevision ?? (Number(args.p_expected_revision) + 1),
                     updated_at: '2026-07-26T00:00:00Z'
                 },
@@ -65,12 +65,15 @@ function createClient(options = {}) {
 }
 
 function createGameState(savedAt = 1000, persisted = true) {
+    // These are contract stubs only. CloudRecoverySafeguard runs the real journal/storage.
+    let held = false;
+    let serverSnapshot = null;
     return {
         gameVersion: '1.1.0',
         on: jest.fn(() => jest.fn()),
         get: jest.fn(() => ({ version: '1.1.0', savedAt })),
         hasPersistedSave: jest.fn(() => persisted),
-        createSaveSnapshot: jest.fn(() => ({
+        createSaveSnapshot: jest.fn(() => serverSnapshot || ({
             version: '1.1.0',
             savedAt,
             creature: { name: 'Nova' },
@@ -83,7 +86,18 @@ function createGameState(savedAt = 1000, persisted = true) {
             },
             session: { currentScene: 'GameScene' }
         })),
-        applyExternalSave: jest.fn(() => true)
+        applyExternalSave: jest.fn(() => true),
+        applyCloudWriteResult: jest.fn((_lease, save) => {
+            serverSnapshot = save;
+            return { snapshot: save, serialized: JSON.stringify(save) };
+        }),
+        getSaveAdmission: jest.fn(() => ({ status: held ? 'held' : 'ready', epoch: 0 })),
+        canPersistSave: jest.fn(() => !held),
+        getCloudRecoveryStatus: jest.fn(() => ({ pending: held, damaged: false })),
+        beginCloudWrite: jest.fn(() => Object.freeze({ id: 'fictional-lease' })),
+        finishCloudWrite: jest.fn(),
+        cloudWriteIsCurrent: jest.fn(() => true),
+        protectCloudWrite: jest.fn(() => { held = true; })
     };
 }
 
@@ -483,13 +497,11 @@ describe('CloudSaveManager', () => {
         }));
 
         expect(result.revision).toBe(5);
-        expect(gameState.applyExternalSave).toHaveBeenCalledWith(
-            authoritativeState,
-            {
-                source: 'cloud_server_mutation',
-                persist: true
-            }
+        expect(gameState.applyCloudWriteResult).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'fictional-lease' }),
+            authoritativeState
         );
+        expect(gameState.applyExternalSave).not.toHaveBeenCalled();
         expect(manager.pendingSave).toBeNull();
         expect(manager.remoteRevision).toBe(5);
         expect(manager.getStatus()).toEqual(expect.objectContaining({
@@ -516,10 +528,10 @@ describe('CloudSaveManager', () => {
             throw failure;
         })).rejects.toBe(failure);
 
-        expect(manager.pendingSave).toBe(queued);
+        expect(manager.pendingSave).toEqual(manager.gameState.createSaveSnapshot());
         expect(manager.syncTimer).toBeNull();
         expect(manager.getStatus()).toEqual(expect.objectContaining({
-            status: 'error',
+            status: 'save_protected',
             hasError: true
         }));
     });
@@ -607,6 +619,7 @@ describe('CloudSaveManager', () => {
             }
         };
         manager.pendingSave = pendingFusionSave;
+        gameState.createSaveSnapshot.mockReturnValue(pendingFusionSave);
 
         await manager.synchronizeSnapshot(pendingFusionSave);
 
@@ -678,7 +691,7 @@ describe('CloudSaveManager', () => {
 
         expect(reconcileOfflineReceipt).toHaveBeenCalledWith(
             record,
-            { cloudSave: manager }
+            { cloudSave: manager, isCurrentCampaign: expect.any(Function) }
         );
         expect(result).toEqual(expect.objectContaining({
             operationId: record.operationId
@@ -796,7 +809,7 @@ describe('CloudSaveManager', () => {
         expect(manager.currentUser).toBeNull();
     });
 
-    test('keeps local saving available when cloud upload fails and can retry', async () => {
+    test('a lost cloud upload result stays protected rather than retrying on a new read', async () => {
         const storage = createStorage();
         const { client } = createClient({
             uploadError: new Error('network unavailable')
@@ -810,8 +823,8 @@ describe('CloudSaveManager', () => {
         const failedStatus = await manager.enable({ consentConfirmed: true });
 
         expect(failedStatus.enabled).toBe(true);
-        expect(failedStatus.status).toBe('error');
-        expect(failedStatus.hasError).toBe(true);
+        expect(failedStatus.status).toBe('save_protected');
+        expect(failedStatus.remoteWriteUncertain).toBe(true);
 
         client.rpc.mockResolvedValue({
             data: { revision: 1, updated_at: '2026-07-26T00:00:00Z' },
@@ -820,8 +833,10 @@ describe('CloudSaveManager', () => {
 
         const recoveredStatus = await manager.synchronize();
 
-        expect(recoveredStatus.status).toBe('synced');
-        expect(recoveredStatus.hasError).toBe(false);
+        expect(recoveredStatus.status).toBe('save_protected');
+        expect(recoveredStatus.remoteWriteUncertain).toBe(true);
+        expect(client.rpc).toHaveBeenCalledTimes(1);
+        expect(client.from).toHaveBeenCalledTimes(1); // Only the original pre-dispatch read.
     });
 
     test('turning cloud save off clears consent and cancels deferred uploads', async () => {

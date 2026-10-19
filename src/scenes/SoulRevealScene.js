@@ -35,9 +35,19 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.viewportResizeHandler = null;
         this.compactNamingScrim = null;
         this.compactNamingPrompt = null;
+        this.namingLifetime = {};
+        this.namingAttempt = null;
+        this.namingRetired = false;
+        this.livingFormOwner = null;
     }
 
     init(data) {
+        this.retireLivingFormHandoff();
+        this.namingRetired = true;
+        this.clearNamingSaveRecovery();
+        this.namingLifetime = {};
+        this.namingAttempt = null;
+        this.namingRetired = false;
         // Phaser reuses scene instances. Reset every per-creature field here so
         // a second hatch cannot inherit the previous name or portrait job.
         this.nameInput = '';
@@ -120,19 +130,38 @@ export default class SoulRevealScene extends Phaser.Scene {
     }
 
     resumeLivingFormHandoff(width, height) {
+        const owner = this.captureLivingFormHandoffOwner();
+        if (!owner?.isCurrent()) return;
         const stage = this.portraitCreatureData?.stage || 'baby';
-        const existingPortrait = window.GameState?.getCreaturePortrait?.(stage);
+        const existingPortrait = owner.state.getCreaturePortrait?.(stage);
+        if (!owner.isCurrent()) return;
         if (existingPortrait?.imageUrl) {
             this.portraitPromise = Promise.resolve(existingPortrait);
         } else if (existingPortrait?.assetRef) {
-            this.portraitPromise = window.LivingPortraitService
-                ?.resolve?.(existingPortrait) || null;
-            this.portraitPromise?.catch?.(error => {
+            try {
+                const job = window.LivingPortraitService?.resolve?.(existingPortrait);
+                if (!owner.isCurrent()) {
+                    try { Promise.prototype.then.call(job, undefined, () => {}); } catch (error) { /* Observe native rejection only. */ }
+                    return;
+                }
+                if (job) {
+                    const observed = Promise.resolve(job);
+                    observed.catch(error => {
+                        if (!owner.isCurrent() || this.portraitPromise !== observed) return;
+                        this.portraitError = error;
+                    });
+                    if (!owner.isCurrent()) return;
+                    this.portraitPromise = observed;
+                }
+            } catch (error) {
+                if (!owner.isCurrent()) return;
                 this.portraitError = error;
-            });
+                devLog('[SoulRevealScene] Optional saved portrait unavailable');
+            }
         }
 
         const textureName = this.creatureData.textureName;
+        if (!owner.isCurrent()) return;
         if (textureName && this.textures.exists(textureName)) {
             this.creature = this.add.sprite(width / 2, height / 2, textureName)
                 .setVisible(false);
@@ -140,8 +169,10 @@ export default class SoulRevealScene extends Phaser.Scene {
             this.beginLivingPortraitPrewarm();
         }
 
-        const creatureName = window.GameState?.get('creature.name') || 'Creature';
+        if (!owner.isCurrent()) return;
+        const creatureName = owner.state.get('creature.name') || 'Creature';
         this.time.delayedCall(50, () => {
+            if (!owner.isCurrent()) return;
             this.showLivingPortraitHandoff(creatureName);
         });
     }
@@ -543,10 +574,15 @@ export default class SoulRevealScene extends Phaser.Scene {
             return;
         }
 
-        this.portraitReferenceImage ||= (
-            window.LivingPortraitService?.captureReference?.(this.creature)
-            || null
-        );
+        try {
+            this.portraitReferenceImage ||= (
+                window.LivingPortraitService?.captureReference?.(this.creature)
+                || null
+            );
+        } catch (error) {
+            this.portraitError = error;
+            devLog('[SoulRevealScene] Optional local portrait capture unavailable');
+        }
         // The local capture is also the guaranteed first-contact visual when
         // remote portrait generation is unavailable. Capture it before any
         // remote eligibility or identity checks.
@@ -556,22 +592,26 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (!this.portraitCreatureData?.genes) {
             return;
         }
-        const job = window.LivingPortraitService?.prewarm?.({
-            creatureData: this.portraitCreatureData,
-            sprite: this.creature,
-            referenceImage: this.portraitReferenceImage,
-            style: 'cinematic',
-            source: 'post_hatch'
-        });
-        if (!job) {
-            return;
-        }
-
-        this.portraitPromise = job;
-        job.catch(error => {
+        try {
+            const job = window.LivingPortraitService?.prewarm?.({
+                creatureData: this.portraitCreatureData,
+                sprite: this.creature,
+                referenceImage: this.portraitReferenceImage,
+                style: 'cinematic',
+                source: 'post_hatch'
+            });
+            if (!job) return;
+            const observed = Promise.resolve(job);
+            this.portraitPromise = observed;
+            observed.catch(error => {
+                if (this.portraitPromise !== observed) return;
+                this.portraitError = error;
+                devLog('[SoulRevealScene] Optional portrait prewarm unavailable');
+            });
+        } catch (error) {
             this.portraitError = error;
-            devLog('[SoulRevealScene] Portrait prewarm unavailable:', error.message);
-        });
+            devLog('[SoulRevealScene] Optional portrait prewarm unavailable');
+        }
     }
 
     /**
@@ -1242,7 +1282,11 @@ export default class SoulRevealScene extends Phaser.Scene {
             }
             if (this.canProceed) {
                 submitting = true;
-                this.finalizeName();
+                try {
+                    this.finalizeName();
+                } finally {
+                    submitting = !this.canProceed;
+                }
             }
         };
         button.addEventListener('pointerup', submitName);
@@ -1321,103 +1365,414 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Finalize name and transition to game
      */
     finalizeName() {
+        if (this.namingAttempt) return this.retryNamingSave(this.namingAttempt);
         if (!this.canProceed) return;
         if (!this.nameInput || this.nameInput.trim().length === 0) {
             this.htmlInput?.focus();
             return;
         }
 
-        this.canProceed = false;
-        this.inputActive = false;
-
-        const finalName = this.nameInput.trim();
-        devLog('[SoulRevealScene] Finalizing name:', finalName);
-
-        // Save to GameState
-        window.GameState?.set('creature.name', finalName);
-        window.GameState?.set('creature.named', true);
-        window.GameState?.set('tutorial.livingFormPending', true);
-        window.GameState?.recordOpeningMilestone?.('creature_named');
-        window.GameState?.recordOpeningPortraitStatus?.('pending');
-
-        // CRITICAL: Add creature to collection for multi-creature support
-        const collectionStatus = window.GameState?.getCollectionStatus?.() || { hasSpace: true };
-        if (collectionStatus.hasSpace) {
-            const added = window.GameState?.addCreatureToCollection();
-            if (added) {
-                devLog('[SoulRevealScene] Creature added to collection successfully');
-            } else {
-                devLog('[SoulRevealScene] Failed to add creature to collection');
+        // Admission may synchronously retire this reader. Do not consume the
+        // naming action or mutate protected progress before it is verified.
+        let state, reader, attempt;
+        const sourceAchievements = window.AchievementSystem, sourceQuests = window.QuestManager;
+        try {
+            state = window.GameState;
+            reader = state?.captureSaveAdmissionOwner();
+            if (!reader || !state.canCommitHatchSave() || !reader.isCurrent()) return;
+            reader.observeRaw(localStorage.getItem(state.saveKey));
+            if (!reader.isCurrent()) return;
+            // Retaining a legacy capsule is not proof that current care consumers can use it.
+            const care = state.get('creature.care');
+            const mood = state.get('creature.mood');
+            if (!care || typeof care !== 'object' || Array.isArray(care) ||
+                !mood || typeof mood !== 'object' || Array.isArray(mood)) {
+                reader.hold({ code: 'save_unreadable' }, 'local');
+                return;
             }
-        } else {
-            devLog('[SoulRevealScene] Collection full, creature not added');
-        }
-
-        const genetics = window.GameState?.get('creature.genes');
-        window.AchievementSystem?.recordEvent?.('creature_hatched', {
-            hatchId: genetics?.id || `primary:${window.GameState?.get('creature.hatchTime')}`,
-            rarity: genetics?.rarity || 'common',
-            species: genetics?.species || 'unknown'
-        });
-
-        // Save soul data for profile page access
-        this.saveSoulDataForProfile();
-
-        // Handle Ancient Lineage
-        if (this.hasAncientLineage && window.BirthEventSystem) {
-            try {
-                const lineageData = window.BirthEventSystem.applyAncientLineage?.();
-                if (lineageData) {
-                    devLog('[SoulRevealScene] Ancient Lineage applied:', lineageData);
-                }
-            } catch (e) {
-                devLog('[SoulRevealScene] Ancient Lineage error:', e);
+            const name = this.nameInput.trim(), achievements = sourceAchievements;
+            const birth = window.BirthEventSystem;
+            if (!state.canPrepareCreatureNaming(name) ||
+                (this.hasAncientLineage && typeof birth?.applyAncientLineage === 'function')) {
+                reader.hold({ code: 'save_unreadable' }, 'local');
+                return;
             }
+            if (window.AchievementSystem !== sourceAchievements || window.QuestManager !== sourceQuests || !reader.isCurrent()) return;
+            // Cold first contact occurs before GameScene's usual service readiness call.
+            if (achievements && !achievements.initialized) {
+                if (!reader.isCurrent()) return;
+                achievements.initialize();
+                if (window.AchievementSystem !== achievements || window.QuestManager !== sourceQuests || !reader.isCurrent()) return;
+            }
+            if (achievements) {
+                if (!reader.isCurrent()) return;
+                achievements.ensureHatchProgressSource(state);
+                if (window.AchievementSystem !== achievements || window.QuestManager !== sourceQuests || !reader.isCurrent()) return;
+            }
+            const publication = achievements ? achievements.captureHatchProgressPublication() : null;
+            const quests = sourceQuests;
+            if (quests?.initialized && quests.loadedGameState === state &&
+                quests.loadedAdmissionEpoch !== state.getSaveAdmission().epoch) {
+                if (window.QuestManager !== quests || window.AchievementSystem !== achievements || !reader.isCurrent()) return;
+                quests.loadQuestState();
+                if (window.QuestManager !== quests || window.AchievementSystem !== achievements || !reader.isCurrent()) return;
+            }
+            const questPublication = quests ? quests.captureNamingProgressPublication(state) : null;
+            const cloud = window.CloudSave, cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+            const epoch = state.getSaveAdmission().epoch, lifetime = this.namingLifetime || (this.namingLifetime = {});
+            const soulData = this.buildSoulDataForProfile();
+            const controls = Object.fromEntries(['nameSubmitButton', 'nameDomElement', 'htmlInput', 'nameSubmitDomElement',
+                'compactNamingScrim', 'compactNamingPrompt'].map(key => [key, this[key]]));
+            attempt = { state, reader, name, publication, achievements, achievementEvents: achievements?.events, quests, questPublication,
+                phase: 'preparing', saving: false, lifetime, controls,
+                isCurrent: () => this.namingAttempt === attempt && !this.namingRetired && this.namingLifetime === lifetime &&
+                    window.GameState === state && window.CloudSave === cloud && window.AchievementSystem === achievements &&
+                    state.getSaveAdmission().epoch === epoch && cloud?.campaignEpoch === cloudEpoch &&
+                    cloud?.currentUser?.id === cloudUser && (!publication || publication.isCurrent()) &&
+                    window.QuestManager === quests && (!questPublication || questPublication.isCurrent()) &&
+                    Object.entries(controls).every(([key, value]) => this[key] === value),
+                ownsUpload: lease => window.CloudSave === cloud && cloud?.gameState === state &&
+                    cloud?.activeCloudWrite === lease && cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser };
+            this.namingAttempt = attempt;
+            if (!attempt.isCurrent()) return;
+            if (!reader.isCurrent()) { attempt.phase = 'protected'; reader.hold({ code: 'commit_failed' }, 'local'); return; }
+            attempt.prepared = state.prepareCreatureNamingDraft(name, soulData, achievements, quests);
+            publication?.prepare(attempt.prepared.achievements);
+            questPublication?.prepare(attempt.prepared.state);
+            if (!attempt.isCurrent()) return;
+            if (!reader.isCurrent()) { attempt.phase = 'protected'; reader.hold({ code: 'commit_failed' }, 'local'); return; }
+            attempt.phase = 'prepared';
+        } catch (error) {
+            if (attempt) {
+                attempt.phase = 'protected';
+                if (attempt.isCurrent()) reader?.hold({ code: 'save_unreadable' }, 'local');
+            } else this.showNamingServiceRecovery(state, reader, sourceAchievements, sourceQuests);
+            return;
         }
-
-        // Save state
-        window.GameState?.save();
-
-        // Play transition sound
-        if (window.AudioManager) {
-            window.AudioManager.playLevelUp?.();
-        }
-
-        // Remove HTML input
-        this.nameSubmitButton?.remove?.();
-        this.nameSubmitButton = null;
-        this.nameSubmitDomElement = null;
-        this.compactNamingScrim = null;
-        this.compactNamingPrompt = null;
-        this.nameDomElement?.destroy?.();
-        this.nameDomElement = null;
-        this.htmlInput = null;
-
-        this.showLivingPortraitHandoff(finalName);
+        return this.retryNamingSave(attempt);
     }
 
-    transitionToGame() {
-        this.livingFormHandoff?.beginTransition?.();
-        window.GameState?.set('tutorial.livingFormPending', false);
-        window.GameState?.recordOpeningMilestone?.('sanctuary_entered');
-        window.GameState?.save?.();
-        this.cameras.main.fadeOut(360, 0, 0, 0);
+    retryNamingSave(attempt = this.namingAttempt) {
+        if (!attempt || attempt !== this.namingAttempt || attempt.saving || !attempt.isCurrent() ||
+            !['prepared', 'committed'].includes(attempt.phase)) return false;
+        attempt.saving = true;
+        try {
+            if (attempt.phase === 'prepared') {
+                if (!attempt.reader.isCurrent()) {
+                    attempt.reader.hold({ code: 'commit_failed' }, 'local');
+                    attempt.phase = 'protected'; return false;
+                }
+                if (!attempt.state.canCommitHatchSave()) { this.showNamingSaveRecovery(attempt); return false; }
+                this.canProceed = false; this.inputActive = false;
+                if (this.htmlInput) this.htmlInput.readOnly = true;
+                const prepared = attempt.prepared;
+                const result = attempt.state.commitHatchSaveDraft(prepared.state, {
+                    isCurrentCampaign: attempt.isCurrent, isCurrentUpload: attempt.ownsUpload,
+                    isCurrentResult: (live, durable, serialized) => live === prepared.state &&
+                        JSON.stringify(attempt.state.createSaveSnapshot({ state: live })) === serialized &&
+                        JSON.stringify(durable) === serialized && live.creature.id === prepared.creatureId &&
+                        live.activeCreatureIndex === prepared.index,
+                    onPublished: () => { attempt.questPublication?.publish(); attempt.publication?.publish(); },
+                    notifications: prepared.notifications,
+                    onNotification: packet => {
+                        if (packet.kind === 'state') attempt.state.emit(packet.event, packet.data);
+                        else if (packet.kind === 'achievement') attempt.achievementEvents?.emit(packet.event, packet.data);
+                        else attempt.quests.emit(packet.event, packet.data);
+                    }
+                });
+                if (!result.success) {
+                    // Only exact unchanged source bytes/memory permit a write retry. Adoption is never replayed.
+                    if (attempt.isCurrent() && attempt.reader.isCurrent()) {
+                        this.canProceed = true;
+                        this.showNamingSaveRecovery(attempt);
+                    } else attempt.phase = 'protected';
+                    return false;
+                }
+                attempt.phase = 'committed'; attempt.isDurableCurrent = result.isCurrent;
+            }
+            if (!attempt.isCurrent() || !attempt.isDurableCurrent() ||
+                (attempt.publication && !attempt.publication.isPublished()) ||
+                (attempt.questPublication && !attempt.questPublication.isPublished())) return false;
+            return this.finishNamingPresentation(attempt);
+        } catch (error) {
+            if (attempt.phase === 'committed') this.showNamingSaveRecovery(attempt);
+            else if (attempt.isCurrent() && attempt.reader.isCurrent()) {
+                attempt.phase = 'protected'; attempt.reader.hold({ code: 'commit_failed' }, 'local');
+            }
+            return false;
+        } finally { attempt.saving = false; }
+    }
 
-        this.time.delayedCall(360, () => {
-            this.livingFormHandoff?.destroy?.();
-            this.livingFormHandoff = null;
-            this.restoreDomContainerStyles();
-            this.scene.start('GameScene', { fromSoulReveal: true });
+    finishNamingPresentation(attempt) {
+        const current = () => attempt === this.namingAttempt && attempt.isCurrent() && attempt.isDurableCurrent() &&
+            (!attempt.publication || attempt.publication.isPublished()) &&
+            (!attempt.questPublication || attempt.questPublication.isPublished());
+        if (!current()) return false;
+        if (attempt.presentationComplete) return true;
+        this.clearNamingSaveRecovery();
+        if (!current()) return false;
+        if (!attempt.audioAttempted) {
+            attempt.audioAttempted = true;
+            try { window.AudioManager?.playLevelUp?.(); } catch (error) { /* Optional sound cannot block the saved result. */ }
+        }
+        for (const [key, method] of [['nameSubmitButton', 'remove'], ['nameDomElement', 'destroy']]) {
+            if (!current()) return false;
+            attempt.pendingControls = attempt.pendingControls || {};
+            const element = attempt.pendingControls[key] || this[key];
+            attempt.pendingControls[key] = element;
+            attempt.controls[key] = null; this[key] = null;
+            element?.[method]?.();
+            delete attempt.pendingControls[key];
+        }
+        if (!current()) return false;
+        for (const key of ['nameSubmitDomElement', 'compactNamingScrim', 'compactNamingPrompt', 'htmlInput']) {
+            attempt.controls[key] = null; this[key] = null;
+        }
+        this.showLivingPortraitHandoff(attempt.name);
+        attempt.presentationComplete = true;
+        return true;
+    }
+
+    clearNamingSaveRecovery() {
+        const owned = this.namingSaveRecovery;
+        this.namingSaveRecovery = null;
+        try { owned?.remove(); }
+        catch (error) { owned?.parentNode?.removeChild(owned); }
+    }
+
+    showNamingServiceRecovery(state, reader, achievements, quests) {
+        const lifetime = this.namingLifetime || (this.namingLifetime = {}), control = this.nameSubmitButton;
+        const current = () => !this.namingRetired && this.namingLifetime === lifetime && this.nameSubmitButton === control &&
+            window.GameState === state && window.AchievementSystem === achievements && window.QuestManager === quests && reader?.isCurrent();
+        if (!current()) return;
+        this.clearNamingSaveRecovery();
+        if (!current()) return;
+        const overlay = document.createElement('div'); overlay.className = 'save-recovery-gate';
+        overlay.dataset.mythicalNamingReady = 'true'; overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Creature paused');
+        const panel = document.createElement('section'), title = document.createElement('h1'); title.textContent = 'Your creature is still here';
+        const text = document.createElement('p'); text.textContent = 'We could not get the next step ready. Keep this page open and try again.';
+        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+            if (this.namingSaveRecovery !== overlay || !current()) return;
+            this.clearNamingSaveRecovery(); if (current()) this.finalizeName();
         });
+        overlay.addEventListener('keydown', event => { if (event.key === 'Tab') { event.preventDefault(); retry.focus(); } });
+        panel.append(title, text, retry); overlay.append(panel);
+        this.namingSaveRecovery = overlay; document.body.append(overlay); retry.focus();
+    }
+
+    showNamingSaveRecovery(attempt) {
+        if (attempt !== this.namingAttempt || !attempt.isCurrent()) return;
+        const ready = attempt.phase === 'prepared' ? attempt.reader.isCurrent() :
+            attempt.phase === 'committed' && attempt.isDurableCurrent?.() &&
+                (!attempt.publication || attempt.publication.isPublished()) &&
+                (!attempt.questPublication || attempt.questPublication.isPublished());
+        if (!ready) return;
+        this.clearNamingSaveRecovery();
+        if (!attempt.isCurrent()) return;
+        const overlay = document.createElement('div'); overlay.className = 'save-recovery-gate';
+        overlay.dataset.mythicalNamingSave = 'true'; overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Creature paused');
+        const panel = document.createElement('section'), title = document.createElement('h1');
+        title.textContent = attempt.phase === 'prepared' ? 'Keep your creature here' : 'Your creature is saved';
+        const message = document.createElement('p');
+        message.textContent = attempt.phase === 'prepared'
+            ? 'We could not save yet. Keep this page open and try again.'
+            : 'The reveal could not open. Try it again without hatching another creature.';
+        const retry = document.createElement('button'); retry.type = 'button';
+        retry.textContent = attempt.phase === 'prepared' ? 'Try saving again' : 'Open the reveal';
+        retry.addEventListener('click', () => {
+            if (this.namingSaveRecovery === overlay) this.retryNamingSave(attempt);
+        });
+        overlay.addEventListener('keydown', event => { if (event.key === 'Tab') { event.preventDefault(); retry.focus(); } });
+        panel.append(title, message, retry); overlay.append(panel);
+        this.namingSaveRecovery = overlay; document.body.append(overlay); retry.focus();
+    }
+
+    captureLivingFormHandoffOwner(handoff = null) {
+        const state = window.GameState, cloud = window.CloudSave;
+        const lifetime = this.namingLifetime || (this.namingLifetime = {});
+        const plugin = this.scene, clock = this.time, camera = this.cameras?.main;
+        try {
+            const id = state?.get('creature.id'), identity = state?.getHatchActiveIdentity();
+            const epoch = state?.getSaveAdmission().epoch, key = state?.saveKey, mode = state?.storageMode;
+            const cloudEpoch = cloud?.campaignEpoch, user = cloud?.currentUser?.id;
+            if (!id || state.get('creature.named') !== true || state.get('creature.hatched') !== true) return null;
+            const owner = { state, handoff, lifetime, detached: false, retired: false,
+                isCurrent: () => { try { return !owner.retired && !this.namingRetired && this.namingLifetime === lifetime &&
+                    this.livingFormOwner === owner && this.livingFormHandoff === (owner.detached ? null : handoff) &&
+                    this.scene === plugin && this.time === clock && this.cameras?.main === camera &&
+                    window.GameState === state && state.saveKey === key && state.storageMode === mode &&
+                    state.getSaveAdmission().epoch === epoch && state.get('creature.id') === id &&
+                    state.get('creature.named') === true && state.getHatchActiveIdentity() === identity &&
+                    window.CloudSave === cloud && cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === user;
+                } catch (error) { return false; } },
+                ownsUpload: lease => window.CloudSave === cloud && cloud?.gameState === state &&
+                    cloud?.activeCloudWrite === lease && cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === user };
+            this.livingFormOwner = owner;
+            return owner;
+        } catch (error) { return null; }
+    }
+
+    retireLivingFormHandoff() {
+        const owner = this.livingFormOwner;
+        if (!owner) return;
+        owner.retired = true;
+        this.livingFormOwner = null;
+        try { owner.recovery?.remove(); }
+        catch (error) { try { owner.recovery?.parentNode?.removeChild(owner.recovery); } catch (ignored) { /* Continue retirement. */ } }
+        try { owner.timer?.remove(false); } catch (error) { /* Captured callbacks also reject this owner. */ }
+    }
+
+    saveLivingFormProgress(owner, action) {
+        if (!owner?.isCurrent() || owner.saving) return false;
+        owner.saving = true;
+        try {
+            let attempt = owner.pendingProgress;
+            if (attempt && (attempt.action !== action || attempt.phase !== 'prepared')) return false;
+            if (!attempt) {
+                const state = owner.state, reader = state.captureSaveAdmissionOwner();
+                if (!state.canCommitHatchSave() || !owner.isCurrent() || !reader.isCurrent()) return false;
+                reader.observeRaw(localStorage.getItem(state.saveKey));
+                if (!owner.isCurrent() || !reader.isCurrent()) return false;
+                attempt = { action, reader, prepared: state.prepareLivingFormProgressDraft(action), phase: 'prepared' };
+                owner.pendingProgress = attempt;
+            }
+            if (!owner.isCurrent() || !attempt.reader.isCurrent()) {
+                attempt.phase = 'protected'; return false;
+            }
+            const prepared = attempt.prepared, state = owner.state;
+            const result = state.commitHatchSaveDraft(prepared.state, {
+                isCurrentCampaign: owner.isCurrent, isCurrentUpload: owner.ownsUpload,
+                isCurrentResult: (live, durable, serialized) => live === prepared.state &&
+                    JSON.stringify(state.createSaveSnapshot({ state: live })) === serialized && JSON.stringify(durable) === serialized,
+                // Use the existing post-adoption observer fence; no volatile services change here.
+                onPublished: () => {}, notifications: prepared.notifications
+            });
+            if (!result.success || !result.isCurrent()) {
+                if (!owner.isCurrent() || !attempt.reader.isCurrent()) attempt.phase = 'protected';
+                return false;
+            }
+            owner.pendingProgress = null;
+            if (action === 'portrait') owner.portraitCommitted = true;
+            return true;
+        } catch (error) {
+            const attempt = owner.pendingProgress;
+            if (attempt && (!owner.isCurrent() || !attempt.reader.isCurrent())) attempt.phase = 'protected';
+            return false;
+        } finally { owner.saving = false; }
+    }
+
+    canPresentLivingForm(owner) {
+        if (!owner?.isCurrent() || owner.pendingProgress) return false;
+        const state = owner.state;
+        try {
+            const reader = state.captureSaveAdmissionOwner();
+            state.assertSaveAdmission(reader);
+            if (!owner.isCurrent() || !reader.isCurrent()) return false;
+            const raw = localStorage.getItem(state.saveKey);
+            reader.observeRaw(raw);
+            if (!owner.isCurrent() || !reader.isCurrent()) return false;
+            if (raw !== JSON.stringify(state.createSaveSnapshot())) {
+                if (owner.isCurrent()) reader.hold({ code: 'commit_failed' }, 'local');
+                return false;
+            }
+            const lease = state.cloudWriteLease;
+            if (lease) {
+                const { pending } = state.inspectCloudRecovery();
+                if (lease.kind !== 'upload' || !owner.ownsUpload(lease) ||
+                    lease.admissionEpoch !== state.getSaveAdmission().epoch || !lease.isCurrentCampaign?.() ||
+                    pending.length !== 1 || pending[0].id !== lease.id || pending[0].payload !== lease.snapshot ||
+                    lease.snapshot !== raw) return false;
+            }
+            return owner.isCurrent() && reader.isCurrent();
+        } catch (error) { return false; }
+    }
+
+    showLivingFormRecovery(owner) {
+        if (!owner?.isCurrent() || owner.startRequested || owner.recovery) return;
+        owner.handoff?.offerContinueRetry?.();
+        if (!owner.isCurrent() || owner.handoff?.isVisible) return;
+        const overlay = document.createElement('div'); overlay.className = 'save-recovery-gate';
+        overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
+        const panel = document.createElement('section'); panel.className = 'save-recovery-panel';
+        const title = document.createElement('h2'); title.textContent = 'Your creature is still here';
+        const message = document.createElement('p');
+        message.textContent = 'We could not open the Sanctuary yet. Keep this page open and try again.';
+        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Try again';
+        retry.addEventListener('click', () => {
+            if (owner.recovery !== overlay || !owner.isCurrent()) return;
+            this.transitionToGame(owner);
+        });
+        overlay.addEventListener('keydown', event => { if (event.key === 'Tab') { event.preventDefault(); retry.focus(); } });
+        panel.append(title, message, retry); overlay.append(panel);
+        owner.recovery = overlay; document.body.append(overlay); retry.focus();
+    }
+
+    transitionToGame(owner = this.livingFormOwner) {
+        if (!owner?.isCurrent() || owner.finishing || owner.startRequested) return false;
+        if (!owner.enterCommitted) {
+            if (owner.pendingProgress?.action === 'portrait' && !this.saveLivingFormProgress(owner, 'portrait')) return false;
+            if (!this.saveLivingFormProgress(owner, 'continue')) return false;
+            owner.enterCommitted = true;
+        }
+        if (!this.canPresentLivingForm(owner)) return false;
+        if (owner.transition) return owner.transition();
+        owner.handoff?.beginTransition?.();
+        if (!this.canPresentLivingForm(owner)) return false;
+        const finish = () => {
+            const blocked = () => { this.showLivingFormRecovery(owner); return false; };
+            if (owner.finishing || owner.startRequested) return false;
+            if (!this.canPresentLivingForm(owner)) return blocked();
+            owner.finishing = true;
+            try {
+                if (!owner.detached) {
+                    owner.handoff?.destroy?.();
+                    if (!this.canPresentLivingForm(owner)) return blocked();
+                    owner.detached = true; this.livingFormHandoff = null;
+                }
+                if (!this.canPresentLivingForm(owner)) return blocked();
+                this.restoreDomContainerStyles();
+                if (!this.canPresentLivingForm(owner)) return blocked();
+                owner.recovery?.remove(); owner.recovery = null;
+                if (!this.canPresentLivingForm(owner)) return blocked();
+                // A thrown queue call may already be accepted. Never issue it twice.
+                owner.startRequested = true;
+                this.scene.start('GameScene', { fromSoulReveal: true });
+                return true;
+            } catch (error) {
+                this.showLivingFormRecovery(owner);
+                return false;
+            } finally { owner.finishing = false; }
+        };
+        owner.transition = finish;
+        try { this.cameras.main.fadeOut(360, 0, 0, 0); } catch (error) { /* Optional fade cannot consume the saved route. */ }
+        if (!this.canPresentLivingForm(owner)) return false;
+        try { owner.timer = this.time.delayedCall(360, finish); }
+        catch (error) { return finish(); }
+        return true;
     }
 
     showLivingPortraitHandoff(finalName) {
+        this.retireLivingFormHandoff();
+        const entry = this.captureLivingFormHandoffOwner(this.livingFormHandoff);
+        if (!entry?.isCurrent()) return;
         this.tweens.killAll();
-        this.elements.forEach(element => element?.destroy?.());
+        if (!entry.isCurrent()) return;
+        for (const element of this.elements) {
+            element?.destroy?.();
+            if (!entry.isCurrent()) return;
+        }
         this.elements = [];
         this.prepareDomContainerForHandoff();
+        if (!entry.isCurrent()) return;
         this.livingFormHandoff?.destroy?.();
+        if (!entry.isCurrent()) return;
+        entry.retired = true;
         this.livingFormHandoff = new LivingFormHandoff(this);
+        const owner = this.captureLivingFormHandoffOwner(this.livingFormHandoff);
+        if (!owner?.isCurrent()) return;
         const shown = this.livingFormHandoff.show({
             name: finalName,
             species: this.portraitCreatureData?.genes?.species,
@@ -1430,17 +1785,15 @@ export default class SoulRevealScene extends Phaser.Scene {
             portraitPromise: this.portraitPromise,
             referenceImage: this.portraitReferenceImage,
             keepVisibleOnContinue: true,
+            isCurrent: owner.isCurrent,
             onPortraitShown: record => {
-                if (!record?.imageUrl) return;
-                window.GameState?.set('tutorial.livingFormSeen', true);
-                window.GameState?.recordOpeningPortraitStatus?.('ready');
-                window.GameState?.save?.();
+                if (!record?.imageUrl || !owner.isCurrent() || owner.enterCommitted || owner.portraitCommitted) return;
+                if (!this.saveLivingFormProgress(owner, 'portrait')) this.showLivingFormRecovery(owner);
             },
-            onContinue: () => this.transitionToGame()
+            onContinue: () => this.transitionToGame(owner)
         });
         if (!shown) {
-            this.livingFormHandoff = null;
-            this.transitionToGame();
+            if (!this.transitionToGame(owner)) this.showLivingFormRecovery(owner);
         }
     }
 
@@ -1483,8 +1836,8 @@ export default class SoulRevealScene extends Phaser.Scene {
     /**
      * Save soul data to GameState for profile page access
      */
-    saveSoulDataForProfile() {
-        const soulData = {
+    buildSoulDataForProfile() {
+        return {
             phrase: this.soulPhrase.phrase,
             personality: {
                 core: this.creatureData.personalityCore,
@@ -1512,6 +1865,10 @@ export default class SoulRevealScene extends Phaser.Scene {
             shinyType: this.creatureData.shinyType
         };
 
+    }
+
+    saveSoulDataForProfile() {
+        const soulData = this.buildSoulDataForProfile();
         window.GameState?.set('creature.soulData', soulData);
         devLog('[SoulRevealScene] Soul data saved for profile:', soulData);
     }
@@ -1533,7 +1890,12 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Cleanup on shutdown
      */
     shutdown() {
+        this.retireLivingFormHandoff();
+        this.namingRetired = true;
+        this.namingAttempt = null;
+        this.clearNamingSaveRecovery();
         devLog('[SoulRevealScene] Shutting down');
+        this.portraitPromise = null;
 
         this.nameDomElement?.destroy?.();
         this.nameDomElement = null;

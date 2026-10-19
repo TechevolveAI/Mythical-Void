@@ -3,6 +3,7 @@ const path = require('path');
 const { Blob } = require('buffer');
 const { createHash, webcrypto } = require('crypto');
 const { ReadableStream } = require('stream/web');
+const { EventEmitter } = require('events');
 
 function loadClass(relativePath, className, dependencies = {}) {
     const source = fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8')
@@ -55,6 +56,141 @@ function setup({ video = fakeVideo(), overrides = {}, definition = asset } = {})
 }
 
 describe('PreparedFilm bounded shared media', () => {
+    test('closing from the fetching notification prevents even the first media lookup', async () => {
+        const { film, options } = setup();
+        film.subscribe(state => { if (state === 'fetching') film.dispose(); });
+        expect(await film.prepare()).toBe(false);
+        expect(film.state).toBe('disposed');
+        expect(options.fetch).not.toHaveBeenCalled();
+        expect(film.pending).toBeNull();
+        expect(film.controller).toBeNull();
+    });
+
+    test('reentrant preparation shares the same pending operation before subscribers run', async () => {
+        const { film, options } = setup();
+        let nested, entered = false;
+        film.subscribe(state => {
+            if (state === 'fetching' && !entered) { entered = true; nested = film.prepare(); }
+        });
+        const pending = film.prepare();
+        try {
+            expect(nested).toBe(pending);
+            expect(await pending).toBe(true);
+            expect(options.fetch).toHaveBeenCalledTimes(1);
+        } finally { film.dispose(); await nested; }
+    });
+
+    test('closing from the prepared notification cannot report a usable film', async () => {
+        const { film, options } = setup();
+        film.subscribe(state => { if (state === 'prepared') film.dispose(); });
+        expect(await film.prepare()).toBe(false);
+        expect(film.state).toBe('disposed');
+        expect(film.video).toBeNull();
+        expect(options.revokeURL).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(['close', 'pause'])('%s from the starting notification cannot play retired media', async action => {
+        const { film, video } = setup();
+        await film.prepare();
+        film.subscribe(state => {
+            if (state === 'starting') action === 'close' ? film.dispose() : film.pause();
+        });
+        try {
+            expect(await film.play()).toBe(false);
+            expect(video.play).not.toHaveBeenCalled();
+            expect(film.state).toBe(action === 'close' ? 'disposed' : 'paused');
+            expect(film.stopPlaybackWait).toBeNull();
+        } finally { film.dispose(); }
+    });
+
+    test('closing from first-frame notification cannot report successful shared playback', async () => {
+        const { film } = setup();
+        await film.prepare();
+        film.subscribe(state => { if (state === 'playing') film.dispose(); });
+        expect(await film.play()).toBe(false);
+        expect(film.state).toBe('disposed');
+        expect(film.video).toBeNull();
+    });
+
+    test('a reentrant pause and explicit resume starts only the new playback attempt', async () => {
+        const { film, video } = setup();
+        await film.prepare();
+        let resumed, entered = false;
+        film.subscribe(state => {
+            if (state === 'starting' && !entered) {
+                entered = true;
+                film.pause();
+                resumed = film.play();
+            }
+        });
+        try {
+            expect(await film.play()).toBe(false);
+            expect(await resumed).toBe(true);
+            expect(video.play).toHaveBeenCalledTimes(1);
+            expect(film.state).toBe('playing');
+            expect(film.stopPlaybackWait).toBeNull();
+            expect(film.playbackAttempt).toBeNull();
+        } finally { film.dispose(); }
+    });
+
+    test('prepare during startup reuses decoded media instead of replacing it', async () => {
+        const { film, video, options } = setup();
+        await film.prepare();
+        let retained;
+        film.subscribe(state => { if (state === 'starting') retained = film.prepare(); });
+        try {
+            expect(await film.play()).toBe(true);
+            expect(await retained).toBe(true);
+            expect(film.video).toBe(video);
+            expect(options.fetch).toHaveBeenCalledTimes(1);
+            expect(options.revokeURL).not.toHaveBeenCalled();
+        } finally { film.dispose(); }
+    });
+
+    test('frame-callback playback keeps its direct Watch call and retires the frame wait', async () => {
+        const video = fakeVideo();
+        let frame;
+        video.requestVideoFrameCallback = jest.fn(callback => { frame = callback; return 42; });
+        video.cancelVideoFrameCallback = jest.fn();
+        video.play.mockImplementation(() => {
+            video.paused = false;
+            queueMicrotask(() => { video.currentTime = 0.1; frame(1, { mediaTime: 0.1 }); });
+            return Promise.resolve();
+        });
+        const { film } = setup({ video });
+        await film.prepare();
+        try {
+            const playing = film.play();
+            expect(video.play).toHaveBeenCalledTimes(1);
+            expect(await playing).toBe(true);
+            expect(film.state).toBe('playing');
+            expect(video.cancelVideoFrameCallback).toHaveBeenCalledWith(42);
+            expect(film.stopPlaybackWait).toBeNull();
+        } finally { film.dispose(); }
+    });
+
+    test('the deadline settles even when the underlying lookup ignores abort', async () => {
+        jest.useFakeTimers();
+        let release;
+        const { film } = setup({ overrides: { prepareMs: 25,
+            fetch: () => new Promise(resolve => { release = resolve; }) } });
+        const pending = film.prepare();
+        let outcome = 'pending';
+        pending.then(result => { outcome = result; });
+        try {
+            await jest.advanceTimersByTimeAsync(30);
+            expect(film.state).toBe('failed');
+            expect(film.error).toBe('prepare_timeout');
+            expect(outcome).toBe(false);
+            expect(film.pending).toBeNull();
+        } finally {
+            film.dispose();
+            release({ ok: false, headers: new Map() });
+            await pending;
+            jest.useRealTimers();
+        }
+    });
+
     test('deduplicates preparation, verifies bytes and decodes without any playback or credential', async () => {
         const { film, video, options } = setup();
         const pending = film.prepare();
@@ -162,6 +298,28 @@ describe('PreparedFilm bounded shared media', () => {
 });
 
 describe('PreparedFilmPlayer ownership and escape', () => {
+    test('scene shutdown during Watch cannot start hidden playback or resume the stopped scene', async () => {
+        const { film, video } = setup();
+        await film.prepare();
+        const scene = { events: new EventEmitter(), sys: { isActive: () => true, isPaused: () => true },
+            scene: { pause: jest.fn(), resume: jest.fn() } };
+        const onClose = jest.fn();
+        const player = new PreparedFilmPlayer({ film, title: 'Test film', scene, onClose });
+        film.subscribe(state => { if (state === 'starting') scene.events.emit('shutdown'); });
+        player.action.click();
+        await Promise.resolve();
+        expect(video.play).not.toHaveBeenCalled();
+        expect(film.state).toBe('disposed');
+        expect(film.stopPlaybackWait).toBeNull();
+        expect(film.playbackAttempt).toBeNull();
+        expect(player.closed).toBe(true);
+        expect(player.root.isConnected).toBe(false);
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(scene.scene.resume).not.toHaveBeenCalled();
+        expect(scene.events.listenerCount('shutdown')).toBe(0);
+        expect(scene.events.listenerCount('destroy')).toBe(0);
+    });
+
     test('Continue disposes loading media and restores only its own scene pause', async () => {
         const { film } = setup();
         const scene = {

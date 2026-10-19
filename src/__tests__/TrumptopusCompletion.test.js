@@ -87,13 +87,15 @@ describe('private finale outcome to existing ending adapter',()=>{
         scene={events:new EventEmitter(),clearInput:jest.fn(),enterLevelCompletionState:jest.fn(),scene:{start:jest.fn()},levelStartTime:Date.now()-5000};
         films=filmsFixture();
         createPanel=jest.fn(()=>({close:jest.fn()}));
-        gameState={storageMode:'local',get:jest.fn(()=>[])};
+        gameState={storageMode:'local',get:jest.fn(()=>[]),createPreparedSaveOperation:jest.fn(()=>({
+            isCurrent:()=>true,getTransition:()=>({state:gameState.state,admission:gameState.saveAdmission})
+        }))};
         deps={
-            beginTrumptopusRun:jest.fn(()=>({run:{...run},persisted:false})),
-            checkpointTrumptopusRun:jest.fn((_,sequence,phaseIndex,progress)=>{run={...run,phaseIndex,...progress};return true;}),
-            checkpointTrumptopusApproach:jest.fn((_,sequence,approach,progress)=>{run={...run,approach,...progress};return true;}),
+            beginTrumptopusRun:jest.fn((_,{operation})=>({run:{...run},persisted:false,validity:operation})),
+            checkpointTrumptopusRun:jest.fn((_,sequence,phaseIndex,progress,operation)=>{run={...run,phaseIndex,...progress};return {changed:true,run:{...run},validity:operation};}),
+            checkpointTrumptopusApproach:jest.fn((_,sequence,approach,progress,operation)=>{run={...run,approach,...progress};return {changed:true,run:{...run},validity:operation};}),
             getTrumptopusRun:()=>({...run}),
-            recordTrumptopusVictory:jest.fn(()=>{run={...run,status:'won',receipt};return {changed:true,persisted:false,receipt};}),
+            recordTrumptopusVictory:jest.fn((_,{operation})=>{run={...run,status:'won',receipt};return {changed:true,persisted:false,receipt,run:{...run},validity:operation};}),
             getCampaignFinaleRecovery:jest.fn(()=>({status:'repair'}))
         };
         Completion=load('systems/TrumptopusCompletion.js','TrumptopusCompletion',deps);
@@ -101,12 +103,12 @@ describe('private finale outcome to existing ending adapter',()=>{
     const encounter=state=>({snapshot:()=>state});
     test('private approach checkpoints carry time and damage into the next scene',()=>{
         const controller=new Completion(scene,{gameState,films,createPanel,withApproach:true});
-        expect(deps.beginTrumptopusRun).toHaveBeenCalledWith(gameState,{newExpedition:false,withApproach:true});
+        expect(deps.beginTrumptopusRun).toHaveBeenCalledWith(gameState,{newExpedition:false,withApproach:true,operation:expect.any(Object)});
         expect(films.prepare).not.toHaveBeenCalled();
         controller.advance(20);scene.damageEvidence=[{}];
         const approach={schemaVersion:1,clearedGrips:1,arrived:false};
         expect(controller.saveApproach(approach)).toBe(true);
-        expect(deps.checkpointTrumptopusApproach).toHaveBeenCalledWith(gameState,1,approach,{elapsedMs:20,damageTaken:1});
+        expect(deps.checkpointTrumptopusApproach).toHaveBeenCalledWith(gameState,1,approach,{elapsedMs:20,damageTaken:1},expect.any(Object));
         expect(controller.run.approach).toEqual(approach);
         controller.dispose();expect(controller.saveApproach(approach)).toBe(false);
     });

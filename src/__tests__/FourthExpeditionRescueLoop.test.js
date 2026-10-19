@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { fixture } = require('./support/mountainEncounterFixture.cjs');
+const { expectPeaksCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const levelPath = path.join(__dirname, '../scenes/levels/VoidPeaksLevel.js');
 const routeSource = fs.readFileSync(path.join(__dirname, '../systems/VoidPeaksRoute.js'), 'utf8');
@@ -101,7 +103,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('Snow burst, then jump!');
         expect(source).toContain('const TITAN_ATTACK_WINDUP = 700;');
         expect(source).toContain(
-            'this.time.delayedCall(TITAN_ATTACK_WINDUP'
+            "this.scheduleTitanControlTimer('titanWarningTimer', TITAN_ATTACK_WINDUP"
         );
         expect(source).toContain(
             'this.executeTitanAttack(attack, attackTarget)'
@@ -180,14 +182,33 @@ describe('fourth expedition rescue loop', () => {
             /startBossFight\(\)\s*\{([\s\S]*?)\n    \}\n\n    spawnCosmicTitan/
         )?.[1] || '';
         const defeatBoss = source.match(
-            /defeatBoss\(\)\s*\{([\s\S]*?)\n    \}\n\n    showBossVictory/
+            /defeatBoss\(\)\s*\{([\s\S]*?)\n    \}\n\n    startSavedPeakVictory/
         )?.[1] || '';
 
         expect(startBoss).toContain('this.physics.pause()');
         expect(source).toContain('this.physics.resume()');
-        expect(source).toContain('if (!this.boss?.active || this.bossDefeated || !this.player?.body) return null;');
-        expect(source).toContain('if (this.bossDefeated) return;');
-        expect(defeatBoss).toContain('this.boss.body.enable = false');
+        expect(source).toContain('if (!context.isCurrent()) return null;');
+        expect(defeatBoss).toContain('if (this.bossDefeated) return false;');
+        expect(defeatBoss).toContain('this.enterLevelCompletionState()');
+        expectPeaksCompletionConnection();
+        expect(source).toContain('if (boss?.body) boss.body.enable = false');
+        for (const kind of ['wave', 'laser']) {
+            for (const state of ['inactive-boss', 'restored', 'missing-body', 'intro']) {
+                const f = fixture();
+                try {
+                    if (state === 'inactive-boss') f.scene.boss.active = false;
+                    if (state === 'restored') f.scene.bossDefeated = true;
+                    if (state === 'missing-body') f.scene.player.body = null;
+                    if (state === 'intro') f.scene.bossCombatReady = false;
+                    const shot = kind === 'wave' ? f.scene.fireMountainGroundWave()
+                        : f.scene.fireMountainLaser('summit', { x: 5040, y: 386 });
+                    expect(shot).toBeNull();
+                    expect(f.scene.add.circle).not.toHaveBeenCalled();
+                    expect(f.scene.takeDamage).not.toHaveBeenCalled();
+                    f.onlyPersistent();
+                } finally { f.close(); }
+            }
+        }
     });
 
     test('uses finished Titan artwork with a procedural combat-safe fallback', () => {
@@ -231,9 +252,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('Watch the snowy peaks flash');
         expect(source).toContain('TITAN ROUTE STABLE');
         expect(source).toContain('THE MOUNTAIN IS FREE');
-        expect(source).toContain('Hull Plating recovered');
-        expect(source).toContain("returnBtn.on('pointerup', continueJourney)");
-        expect(source).toContain('this.layoutCampaignEntryContent(layout, [heading, title, detail, saved, returnBtn]');
+        expectPeaksCompletionConnection();
         expect(source).not.toContain('COSMIC TITAN CONQUERED');
     });
 
@@ -257,7 +276,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('singularity: 3000');
         expect(source).toContain('this.titanAttackLocked');
         expect(source).toContain('const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800');
-        expect(source).toContain('this.titanAttackUnlockTimer = this.time.delayedCall(');
+        expect(source).toContain("this.scheduleTitanControlTimer('titanAttackUnlockTimer',");
     });
 
     test('supports deterministic local previews for all Titan attack calls', () => {

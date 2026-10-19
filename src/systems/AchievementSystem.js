@@ -11,6 +11,9 @@
  */
 
 import { devLog, devWarn } from '../utils/devLogger.js';
+import { copyDetachedJsonData, freezeDetachedJsonData } from '../utils/DetachedJsonData.js';
+
+const completionEventDrafts = new WeakMap();
 
 function getGameState() {
     if (typeof window === 'undefined' || !window.GameState) {
@@ -122,14 +125,14 @@ const ACHIEVEMENT_DEFINITIONS = {
                 rewards: { stardust: 100, egg: 'rare' }
             }
         },
-        getProgress: (state) => {
+        getProgress: (state, _tier, preparedNow) => {
             const hatchedAt = state.creature?.lifecycle?.birthDate ||
                 state.creature?.hatchTime;
             if (!hatchedAt) return 0;
             const hatchTimestamp = new Date(hatchedAt).getTime();
             if (!Number.isFinite(hatchTimestamp)) return 0;
             const daysSinceHatch = Math.floor(
-                Math.max(0, Date.now() - hatchTimestamp) / (1000 * 60 * 60 * 24)
+                Math.max(0, (preparedNow === undefined ? Date.now() : preparedNow) - hatchTimestamp) / (1000 * 60 * 60 * 24)
             );
             return daysSinceHatch;
         }
@@ -673,6 +676,11 @@ const ACHIEVEMENT_DEFINITIONS = {
     }
 };
 
+const COMPLETION_CATALOGUE = Object.entries(ACHIEVEMENT_DEFINITIONS).map(([id, definition]) => {
+    const { getProgress, ...data } = definition;
+    return { id, getProgress, bytes: JSON.stringify(data) };
+});
+
 class AchievementSystem {
     constructor() {
         this.initialized = false;
@@ -686,6 +694,9 @@ class AchievementSystem {
 
         // Track achievements waiting to be claimed
         this.pendingClaims = [];
+        this.loadedGameState = null;
+        this.loadedAdmissionEpoch = null;
+        this.loadedAchievementsBytes = null;
     }
 
     /**
@@ -700,7 +711,7 @@ class AchievementSystem {
         }
 
         // Load saved progress
-        this.loadProgress();
+        if (this.loadProgress() === false) return;
 
         this.initialized = true;
         devLog('[AchievementSystem] Initialized with', Object.keys(this.definitions).length, 'achievements');
@@ -710,24 +721,71 @@ class AchievementSystem {
      * Load achievement progress from GameState
      */
     loadProgress() {
-        const saved = getGameState().get('achievements') || {};
+        const state = getGameState(), reader = state.captureSaveAdmissionOwner?.();
+        const epoch = state.getSaveAdmission?.().epoch;
+        const definitions = this.definitions, ids = Object.keys(definitions);
+        const slots = ids.map(id => definitions[id]);
+        const saved = state.get('achievements') || {}, bytes = JSON.stringify(saved);
+        const current = () => getGameState() === state && window.AchievementSystem === this && this.definitions === definitions &&
+            state.getSaveAdmission?.().epoch === epoch && (!reader || reader.isCurrent()) &&
+            JSON.stringify(Object.keys(definitions)) === JSON.stringify(ids) && ids.every((id, index) => definitions[id] === slots[index]);
+        if (!current()) return false;
+        const changedSource = this.loadedGameState &&
+            (this.loadedGameState !== state || this.loadedAdmissionEpoch !== epoch);
 
         // Merge saved progress into definitions
-        Object.keys(this.definitions).forEach(id => {
+        for (const id of ids) {
+            if (!current()) return false;
             if (saved[id]) {
                 this.definitions[id].progress = saved[id].progress || {};
+                if (!current()) return false;
                 this.definitions[id].claimed = saved[id].claimed || {};
             } else {
                 this.definitions[id].progress = {};
+                if (!current()) return false;
                 this.definitions[id].claimed = {};
             }
-        });
+        }
+        if (!current()) return false;
+        // A new admitted source has the same empty volatile queue as a fresh service.
+        // Its durable unlock/claim records are loaded above, never merged or rewarded.
+        if (changedSource) this.pendingClaims = [];
+        if (!current()) return false;
+        this.loadedGameState = state;
+        this.loadedAdmissionEpoch = epoch;
+        this.loadedAchievementsBytes = bytes;
+        return current();
+    }
+
+    hasHatchProgressSource(state) {
+        try {
+            const saved = state.get('achievements') || {};
+            return this.initialized && getGameState() === state && window.AchievementSystem === this && this.loadedGameState === state &&
+                this.loadedAdmissionEpoch === state.getSaveAdmission().epoch &&
+                this.loadedAchievementsBytes === JSON.stringify(saved) &&
+                Object.keys(saved).every(id => Object.hasOwn(this.definitions, id)) &&
+                Object.entries(this.definitions).every(([id, definition]) =>
+                    JSON.stringify(definition.progress || {}) === JSON.stringify(saved[id]?.progress || {}) &&
+                    JSON.stringify(definition.claimed || {}) === JSON.stringify(saved[id]?.claimed || {}));
+        } catch (error) { return false; }
+    }
+
+    ensureHatchProgressSource(state) {
+        if (this.hasHatchProgressSource(state)) return;
+        if (!this.initialized || !this.loadedGameState || getGameState() !== state ||
+            (this.loadedGameState === state && this.loadedAdmissionEpoch === state.getSaveAdmission().epoch)) {
+            throw new Error('Achievement source needs review');
+        }
+        if (this.loadProgress() === false || !this.hasHatchProgressSource(state)) {
+            throw new Error('Achievement source changed while loading');
+        }
     }
 
     /**
      * Save achievement progress to GameState
      */
-    saveProgress() {
+    saveProgress(targetState = null) {
+        const source = targetState ? null : getGameState();
         const toSave = {};
 
         Object.keys(this.definitions).forEach(id => {
@@ -737,17 +795,21 @@ class AchievementSystem {
             };
         });
 
-        getGameState().set('achievements', toSave);
-        getGameState().save?.();
+        (targetState || getGameState()).set('achievements', toSave);
+        (targetState || getGameState()).save?.();
+        if (source && getGameState() === source && this.loadedGameState === source &&
+            this.loadedAdmissionEpoch === source.getSaveAdmission?.().epoch) {
+            this.loadedAchievementsBytes = JSON.stringify(source.get('achievements') || {});
+        }
     }
 
     /**
      * Check all achievements and return newly unlocked ones
      * @returns {Array} Array of newly unlocked achievement tier objects
      */
-    checkAchievements() {
+    checkAchievements(targetState = null) {
         const newUnlocks = [];
-        const gameState = getGameState().get();
+        const gameState = (targetState || getGameState()).get();
 
         Object.values(this.definitions).forEach(achievement => {
             const tierOrder = achievement.singleTier ? ['BRONZE'] : ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
@@ -764,7 +826,9 @@ class AchievementSystem {
 
                 // Calculate progress
                 let progress;
-                if (achievement.isSpecialProgress) {
+                if (targetState && Object.hasOwn(targetState, 'achievementNow')) {
+                    progress = achievement.getProgress(gameState, achievement.isSpecialProgress ? tierKey : undefined, targetState.achievementNow);
+                } else if (achievement.isSpecialProgress) {
                     progress = achievement.getProgress(gameState, tierKey);
                 } else {
                     progress = achievement.getProgress(gameState);
@@ -776,7 +840,7 @@ class AchievementSystem {
                     if (!achievement.progress) achievement.progress = {};
                     achievement.progress[tierKey] = {
                         unlocked: true,
-                        unlockedAt: Date.now(),
+                        unlockedAt: targetState && Object.hasOwn(targetState, 'achievementNow') ? targetState.achievementNow : Date.now(),
                         value: progress
                     };
 
@@ -794,14 +858,17 @@ class AchievementSystem {
                     newUnlocks.push(unlockData);
                     this.pendingClaims.push(unlockData);
 
-                    devLog(`[AchievementSystem] Unlocked: ${achievement.name} (${tierKey})`);
+                    if (!targetState) {
+                        devLog(`[AchievementSystem] Unlocked: ${achievement.name} (${tierKey})`);
+                    }
                 }
             });
         });
 
         // Save progress
         if (newUnlocks.length > 0) {
-            this.saveProgress();
+            if (targetState) this.saveProgress(targetState);
+            else this.saveProgress();
 
             // Emit events
             newUnlocks.forEach(unlock => {
@@ -1114,34 +1181,7 @@ class AchievementSystem {
                 break;
 
             case 'creature_hatched':
-                const recordedHatchIds = getGameState().get('stats.recordedHatchIds') || [];
-                if (data.hatchId && recordedHatchIds.includes(data.hatchId)) {
-                    break;
-                }
-                const hatched = getGameState().get('stats.creaturesHatched') || 0;
-                getGameState().set('stats.creaturesHatched', hatched + 1);
-                if (data.hatchId) {
-                    getGameState().set(
-                        'stats.recordedHatchIds',
-                        [...recordedHatchIds, data.hatchId]
-                    );
-                }
-
-                // Track rarity
-                if (data.rarity) {
-                    const rarityKey = `stats.${data.rarity}Hatched`;
-                    const rarityCount = getGameState().get(rarityKey) || 0;
-                    getGameState().set(rarityKey, rarityCount + 1);
-                }
-
-                // Track species
-                if (data.species) {
-                    const species = getGameState().get('stats.speciesDiscovered') || [];
-                    if (!species.includes(data.species)) {
-                        species.push(data.species);
-                        getGameState().set('stats.speciesDiscovered', species);
-                    }
-                }
+                this.recordHatchEvent(data);
                 break;
 
             case 'enemy_defeated':
@@ -1152,8 +1192,7 @@ class AchievementSystem {
             // `boss_defeated` remains as a compatibility alias for older callers.
             case 'guardian_restored':
             case 'boss_defeated':
-                const bosses = getGameState().get('combat.bossesDefeated') || 0;
-                getGameState().set('combat.bossesDefeated', bosses + 1);
+                this.recordGuardianRestoredEvent(data);
                 break;
 
             case 'level_entered':
@@ -1163,15 +1202,7 @@ class AchievementSystem {
                 break;
 
             case 'level_completed':
-                if (data.levelId) {
-                    getGameState().set(`levels.${data.levelId}.completed`, true);
-                    if (data.noDamage) {
-                        getGameState().set(`levels.${data.levelId}.noDamageRun`, true);
-                    }
-                    if (data.time && data.speedrunThreshold && data.time < data.speedrunThreshold) {
-                        getGameState().set(`levels.${data.levelId}.speedrun`, true);
-                    }
-                }
+                this.recordLevelCompletedEvent(data);
                 break;
 
             case 'campaign_completed':
@@ -1195,6 +1226,341 @@ class AchievementSystem {
 
         // Check achievements after recording event
         this.checkAchievements();
+    }
+
+    recordHatchEvent(data = {}, targetState = null) {
+        const state = () => targetState || getGameState();
+        const recordedHatchIds = state().get('stats.recordedHatchIds') || [];
+        if (data.hatchId && recordedHatchIds.includes(data.hatchId)) return;
+        const hatched = state().get('stats.creaturesHatched') || 0;
+        state().set('stats.creaturesHatched', hatched + 1);
+        if (data.hatchId) {
+            state().set('stats.recordedHatchIds', [...recordedHatchIds, data.hatchId]);
+        }
+        if (data.rarity) {
+            const rarityKey = `stats.${data.rarity}Hatched`;
+            const rarityCount = state().get(rarityKey) || 0;
+            state().set(rarityKey, rarityCount + 1);
+        }
+        if (data.species) {
+            const species = state().get('stats.speciesDiscovered') || [];
+            if (!species.includes(data.species)) {
+                species.push(data.species);
+                state().set('stats.speciesDiscovered', species);
+            }
+        }
+    }
+
+    recordLevelCompletedEvent(data = {}, targetState = null) {
+        const state = () => targetState || getGameState();
+        if (data.levelId) {
+            state().set(`levels.${data.levelId}.completed`, true);
+            if (data.noDamage) state().set(`levels.${data.levelId}.noDamageRun`, true);
+            if (data.time && data.speedrunThreshold && data.time < data.speedrunThreshold) {
+                state().set(`levels.${data.levelId}.speedrun`, true);
+            }
+        }
+    }
+
+    recordGuardianRestoredEvent(_data = {}, targetState = null) {
+        const state = targetState || getGameState();
+        const bosses = state.get('combat.bossesDefeated') || 0;
+        state.set('combat.bossesDefeated', bosses + 1);
+    }
+
+    hasCompletionCalculationCatalogue() {
+        try {
+            if (JSON.stringify(Object.keys(this.definitions)) !== JSON.stringify(COMPLETION_CATALOGUE.map(item => item.id))) return false;
+            return COMPLETION_CATALOGUE.every(item => {
+                const fields = Object.getOwnPropertyDescriptors(this.definitions[item.id]);
+                if (fields.getProgress?.value !== item.getProgress || !fields.getProgress.enumerable) return false;
+                const data = {};
+                for (const key of Reflect.ownKeys(fields)) {
+                    if (['getProgress', 'progress', 'claimed'].includes(key)) continue;
+                    if (typeof key !== 'string' || !fields[key].enumerable || !Object.hasOwn(fields[key], 'value')) return false;
+                    Object.defineProperty(data, key, { value: fields[key].value, enumerable: true });
+                }
+                return JSON.stringify(copyDetachedJsonData(data)) === item.bytes;
+            });
+        } catch { return false; }
+    }
+
+    prepareLevelCompletionEventDraft(state, data, now, topology = null) {
+        if (!Number.isSafeInteger(now) || now < 0 || !this.hasCompletionCalculationCatalogue()) {
+            throw new Error('Achievement completion calculation is unavailable');
+        }
+        const original = topology || this.captureProgressTopology();
+        const prepared = freezeDetachedJsonData(this.prepareProgressEventDraft(copyDetachedJsonData(state),
+            copyDetachedJsonData(data), this.recordLevelCompletedEvent, now, original));
+        completionEventDrafts.set(prepared, { manager: this, kind: 'level', topology: original, definitions: this.definitions, tiers: this.tiers,
+            prepare: this.prepareProgressEventDraft, guardian: this.recordGuardianRestoredEvent,
+            level: this.recordLevelCompletedEvent,
+            check: this.checkAchievements, save: this.saveProgress, state: this.loadedGameState, epoch: this.loadedAdmissionEpoch });
+        return prepared;
+    }
+
+    prepareGuardianCompletionEventDraft(state, now, topology = null) {
+        if (!Number.isSafeInteger(now) || now < 0 || !this.hasCompletionCalculationCatalogue()) {
+            throw new Error('Achievement Guardian calculation is unavailable');
+        }
+        const original = topology || this.captureProgressTopology();
+        const input = copyDetachedJsonData(state), bosses = input.combat?.bossesDefeated;
+        if (bosses != null && (typeof bosses !== 'number' || !Number.isFinite(bosses))) throw new Error('Completion Guardian count changed');
+        const prepared = freezeDetachedJsonData(this.prepareProgressEventDraft(input, {},
+            this.recordGuardianRestoredEvent, now, original));
+        completionEventDrafts.set(prepared, { manager: this, kind: 'guardian', topology: original, definitions: this.definitions, tiers: this.tiers,
+            prepare: this.prepareProgressEventDraft, guardian: this.recordGuardianRestoredEvent, level: this.recordLevelCompletedEvent,
+            check: this.checkAchievements, save: this.saveProgress, state: this.loadedGameState, epoch: this.loadedAdmissionEpoch });
+        return prepared;
+    }
+
+    // Each level keeps its actual before/after order using the issued detached
+    // cache. Neither continuation reloads live progress or grants anything.
+    continueCompletionGuardianEventDraft(previous, state, now) {
+        return this.continueCompletionEventDraft(previous, state, {}, now, 'guardian');
+    }
+
+    continueCompletionLevelEventDraft(previous, state, data, now) {
+        return this.continueCompletionEventDraft(previous, state, data, now, 'level');
+    }
+
+    continueCompletionEventDraft(previous, state, data, now, kind) {
+        const owner = completionEventDrafts.get(previous);
+        const current = () => owner?.manager === this && owner.topology.isCurrent() &&
+            owner.kind === (kind === 'guardian' ? 'level' : 'guardian') &&
+            window.AchievementSystem === this && getGameState() === owner.state && this.loadedGameState === owner.state &&
+            this.loadedAdmissionEpoch === owner.epoch && this.definitions === owner.definitions && this.tiers === owner.tiers &&
+            this.prepareProgressEventDraft === owner.prepare && this.recordGuardianRestoredEvent === owner.guardian &&
+            this.recordLevelCompletedEvent === owner.level &&
+            this.checkAchievements === owner.check && this.saveProgress === owner.save && this.hasCompletionCalculationCatalogue();
+        if (!['guardian', 'level'].includes(kind) || !current() || !Number.isSafeInteger(now) || now < 0) throw new Error('Completion event source changed');
+        const input = copyDetachedJsonData(state), saved = previous.state.achievements;
+        const event = copyDetachedJsonData(data);
+        if (kind === 'level' && (!event || !['mythicalForest', 'crystalCaves', 'cosmicReef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(event.levelId) ||
+            typeof event.noDamage !== 'boolean' || !Number.isFinite(event.time) || event.time < 0 || !Number.isFinite(event.speedrunThreshold) || event.speedrunThreshold < 0)) {
+            throw new Error('Completion level event changed');
+        }
+        const matches = snapshot => Object.hasOwn(snapshot, 'achievements') === Object.hasOwn(previous.state, 'achievements') &&
+            JSON.stringify(snapshot.achievements) === JSON.stringify(saved);
+        const bosses = input.combat?.bossesDefeated;
+        if (!matches(input) || (bosses != null && (typeof bosses !== 'number' || !Number.isFinite(bosses)))) {
+            throw new Error('Completion Guardian input changed');
+        }
+        const relations = Object.fromEntries(Object.entries(previous.achievements).map(([id, entry]) => [id,
+            Object.fromEntries(['progress', 'claimed'].map(key => [key, entry[key] === saved?.[id]?.[key]]))]));
+        const topology = { isCurrent: current, matches, bind: (snapshot, definitions) => {
+            for (const [id, fields] of Object.entries(relations)) for (const key of ['progress', 'claimed']) {
+                if (fields[key]) definitions[id][key] = snapshot.achievements[id][key];
+            }
+        } };
+        const detached = { initialized: true, definitions: Object.fromEntries(Object.entries(this.definitions).map(([id, definition]) => [id, {
+            ...definition, progress: copyDetachedJsonData(previous.achievements[id].progress),
+            claimed: copyDetachedJsonData(previous.achievements[id].claimed)
+        }])), tiers: owner.tiers, pendingClaims: copyDetachedJsonData(previous.pendingClaims), events: this.events,
+        checkAchievements: owner.check, saveProgress: owner.save };
+        const result = owner.prepare.call(detached, input, event, kind === 'guardian' ? owner.guardian : owner.level, now, topology);
+        if (!current()) throw new Error('Completion Guardian source changed');
+        return freezeDetachedJsonData(result);
+    }
+
+    /** Prepare domain changes only. The naming transaction must own publication. */
+    prepareHatchEventDraft(state, data = {}) {
+        return this.prepareProgressEventDraft(state, data, this.recordHatchEvent);
+    }
+
+    // Loaded dictionaries may alias their own saved slots, or be separate after
+    // a known publication. Equal bytes alone do not distinguish those cases.
+    captureProgressTopology() {
+        const state = this.loadedGameState, root = state?.state, definitions = this.definitions;
+        if (!root) throw new Error('Achievement topology source is unavailable');
+        const pins = [], canonicalSlots = new Map(), cacheSlots = new Map(), relations = {};
+        const pin = (owner, key) => {
+            const field = Object.getOwnPropertyDescriptor(owner, key);
+            if (field && (!Object.hasOwn(field, 'value') || !field.enumerable)) throw new Error('Unsupported achievement slot');
+            pins.push({ owner, key, field }); return field;
+        };
+        const savedField = pin(root, 'achievements'), saved = savedField?.value;
+        const savedBytes = JSON.stringify(copyDetachedJsonData(savedField ? saved : {}));
+        if (savedField && (!saved || typeof saved !== 'object' || Array.isArray(saved))) throw new Error('Unsupported achievement root');
+        for (const [id, entry] of Object.entries(saved || {})) {
+            pin(saved, id);
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('Unsupported achievement entry');
+            for (const key of ['progress', 'claimed']) {
+                const field = pin(entry, key);
+                if (field) {
+                    copyDetachedJsonData(field.value);
+                    if (!field.value || typeof field.value !== 'object' || Array.isArray(field.value) || canonicalSlots.has(field.value)) {
+                        throw new Error('Unsupported cross-slot achievement alias');
+                    }
+                    canonicalSlots.set(field.value, `${id}:${key}`);
+                }
+            }
+        }
+        for (const [id, definition] of Object.entries(definitions)) {
+            pin(definitions, id); relations[id] = {};
+            for (const key of ['progress', 'claimed']) {
+                const value = pin(definition, key)?.value, label = `${id}:${key}`;
+                if (!value || typeof value !== 'object' || Array.isArray(value) || cacheSlots.has(value) ||
+                    (canonicalSlots.has(value) && canonicalSlots.get(value) !== label)) throw new Error('Unsupported achievement cache alias');
+                copyDetachedJsonData(value); cacheSlots.set(value, label);
+                relations[id][key] = canonicalSlots.get(value) === label;
+            }
+        }
+        const isCurrent = () => {
+            try {
+                return this.loadedGameState === state && state.state === root && this.definitions === definitions && pins.every(({ owner, key, field }) => {
+                    const next = Object.getOwnPropertyDescriptor(owner, key);
+                    return !field ? !next : Boolean(next) && ['value', 'get', 'set', 'enumerable', 'writable', 'configurable'].every(name => next[name] === field[name]);
+                }) && JSON.stringify(copyDetachedJsonData(savedField ? root.achievements : {})) === savedBytes;
+            } catch { return false; }
+        };
+        return { isCurrent, matches: snapshot => Object.hasOwn(snapshot, 'achievements') === Boolean(savedField) &&
+            JSON.stringify(copyDetachedJsonData(savedField ? snapshot.achievements : {})) === savedBytes,
+        bind: (snapshot, stagedDefinitions) => {
+            for (const [id, fields] of Object.entries(relations)) for (const key of ['progress', 'claimed']) {
+                if (fields[key]) stagedDefinitions[id][key] = snapshot.achievements[id][key];
+            }
+        } };
+    }
+
+    prepareProgressEventDraft(state, data, record, preparedNow, capturedTopology = null) {
+        if (!this.initialized) throw new Error('Achievement progress has not been loaded');
+        const topology = capturedTopology || this.captureProgressTopology();
+        if (!topology.isCurrent() || !topology.matches(state)) throw new Error('Achievement topology source changed');
+        const clone = value => JSON.parse(JSON.stringify(value));
+        const stagedState = clone(state);
+        const events = [];
+        let saveRequests = 0;
+        const target = {
+            get: propertyPath => propertyPath
+                ? propertyPath.split('.').reduce((value, key) => value?.[key], stagedState)
+                : stagedState,
+            set: (propertyPath, value) => {
+                if (!propertyPath || ['__proto__', 'constructor', 'prototype']
+                    .some(part => propertyPath.includes(part))) return;
+                const keys = propertyPath.split('.');
+                const last = keys.pop();
+                let current = stagedState;
+                for (const key of keys) {
+                    if (!current[key] || typeof current[key] !== 'object') current[key] = {};
+                    current = current[key];
+                }
+                const oldValue = current[last];
+                current[last] = value;
+                events.push(clone({ kind: 'state', event: 'stateChanged', data: {
+                    path: propertyPath, oldValue, newValue: value, timestamp: preparedNow === undefined ? Date.now() : preparedNow
+                } }), clone({ kind: 'state', event: `changed:${propertyPath}`, data: value }));
+            },
+            save: () => { saveRequests += 1; events.push({ kind: 'save-request' }); }
+        };
+        if (preparedNow !== undefined) target.achievementNow = preparedNow;
+        const staged = {
+            definitions: Object.fromEntries(Object.entries(this.definitions).map(([id, definition]) => [id, {
+                ...definition, progress: clone(definition.progress || {}), claimed: clone(definition.claimed || {})
+            }])),
+            tiers: this.tiers,
+            pendingClaims: clone(this.pendingClaims),
+            events: this.events
+                ? { emit: (event, value) => events.push(clone({ kind: 'achievement', event, data: value })) }
+                : null,
+            checkAchievements: this.checkAchievements,
+            saveProgress: this.saveProgress
+        };
+        topology.bind(stagedState, staged.definitions);
+        record.call(staged, data, target);
+        staged.checkAchievements(target);
+        if (!topology.isCurrent()) throw new Error('Achievement topology source changed');
+        const achievements = Object.fromEntries(Object.entries(staged.definitions).map(([id, definition]) => [id, {
+            progress: definition.progress || {}, claimed: definition.claimed || {}
+        }]));
+        return copyDetachedJsonData({ state: stagedState, achievements,
+            pendingClaims: staged.pendingClaims, events, saveRequests });
+    }
+
+    /** Own only the precomputed progress transition on this original loaded manager. */
+    captureHatchProgressPublication() {
+        const state = getGameState(), epoch = state.getSaveAdmission?.().epoch;
+        if (!this.hasHatchProgressSource(state)) throw new Error('Achievement progress has not been loaded for this source');
+        const definitions = this.definitions, ids = Object.keys(definitions), events = this.events;
+        const tiers = this.tiers, tierBytes = JSON.stringify(tiers);
+        const catalogue = ids.map(id => ({ definition: definitions[id], getProgress: definitions[id].getProgress,
+            data: JSON.stringify({ ...definitions[id], progress: undefined, claimed: undefined }) }));
+        const slots = ids.flatMap(id => ['progress', 'claimed'].map(key => ({
+            owner: definitions[id], key, before: definitions[id][key], beforeBytes: JSON.stringify(definitions[id][key])
+        })));
+        slots.push({ owner: this, key: 'pendingClaims', before: this.pendingClaims,
+            beforeBytes: JSON.stringify(this.pendingClaims) });
+        slots.push({ owner: this, key: 'loadedAchievementsBytes', before: this.loadedAchievementsBytes,
+            beforeBytes: JSON.stringify(this.loadedAchievementsBytes) });
+        let cursor = 0, assigning = false, phase = 'captured', preparedCurrent = () => true;
+        const matches = (slot, after) => slot.owner[slot.key] === (after ? slot.after : slot.before) &&
+            JSON.stringify(slot.owner[slot.key]) === (after ? slot.afterBytes : slot.beforeBytes);
+        const isCurrent = () => {
+            try {
+                return preparedCurrent() && this.initialized && this.loadedGameState === state && getGameState() === state && window.AchievementSystem === this &&
+                    this.loadedAdmissionEpoch === epoch && state.getSaveAdmission?.().epoch === epoch &&
+                    this.definitions === definitions && this.events === events &&
+                    this.tiers === tiers && JSON.stringify(tiers) === tierBytes &&
+                    JSON.stringify(Object.keys(definitions)) === JSON.stringify(ids) &&
+                    ids.every((id, index) => definitions[id] === catalogue[index].definition &&
+                        definitions[id].getProgress === catalogue[index].getProgress &&
+                        JSON.stringify({ ...definitions[id], progress: undefined, claimed: undefined }) === catalogue[index].data) &&
+                    slots.every((slot, index) => matches(slot, index < cursor) ||
+                        (assigning && index === cursor && matches(slot, true)));
+            } catch (error) { return false; }
+        };
+        return {
+            isCurrent,
+            isPublished: () => phase === 'published' && isCurrent(),
+            prepare: prepared => {
+                if (phase !== 'captured' || !isCurrent() || !Array.isArray(prepared?.pendingClaims) ||
+                    JSON.stringify(Object.keys(prepared.achievements || {})) !== JSON.stringify(ids)) {
+                    throw new Error('Prepared achievement publication is unavailable');
+                }
+                const clone = value => JSON.parse(JSON.stringify(value));
+                for (let index = 0; index < slots.length; index++) {
+                    const slot = slots[index];
+                    const value = slot.owner === this
+                        ? slot.key === 'pendingClaims' ? prepared.pendingClaims : JSON.stringify(prepared.state.achievements || {})
+                        : prepared.achievements[ids[Math.floor(index / 2)]][slot.key];
+                    slot.after = clone(value); slot.afterBytes = JSON.stringify(slot.after);
+                }
+                // These ordinary mutable copies are deliberately not aliases of
+                // the save graph. Pin them separately before any slot is exposed.
+                const nodes = [], seen = new Set();
+                const pin = node => {
+                    if (!node || typeof node !== 'object' || seen.has(node)) return;
+                    seen.add(node);
+                    nodes.push({ node, prototype: Object.getPrototypeOf(node), fields: Object.getOwnPropertyDescriptors(node), keys: Reflect.ownKeys(node) });
+                    Object.values(node).forEach(pin);
+                };
+                slots.forEach(slot => pin(slot.after));
+                preparedCurrent = () => nodes.every(({ node, prototype, fields, keys }) => {
+                    const current = Object.getOwnPropertyDescriptors(node), next = Reflect.ownKeys(node);
+                    return Object.isExtensible(node) && Object.getPrototypeOf(node) === prototype && next.length === keys.length &&
+                        keys.every((key, index) => key === next[index] && ['value', 'get', 'set', 'enumerable', 'writable', 'configurable']
+                            .every(name => Object.is(fields[key][name], current[key]?.[name])));
+                });
+                if (!isCurrent()) throw new Error('Achievement publication was retired');
+                phase = 'prepared';
+            },
+            publish: () => {
+                if (phase !== 'prepared' || !isCurrent()) throw new Error('Achievement publication was retired');
+                phase = 'publishing';
+                while (cursor < slots.length) {
+                    if (!isCurrent()) throw new Error('Achievement publication was retired');
+                    const slot = slots[cursor], previous = cursor;
+                    assigning = true;
+                    try { slot.owner[slot.key] = slot.after; }
+                    finally {
+                        try { if (matches(slot, true)) cursor += 1; }
+                        finally { assigning = false; }
+                    }
+                    if (cursor === previous) throw new Error('Achievement publication did not complete');
+                }
+                phase = 'published';
+            }
+        };
     }
 
     /**

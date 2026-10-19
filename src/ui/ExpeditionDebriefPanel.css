@@ -16,6 +16,7 @@
     pointer-events: auto;
 }
 .expedition-debrief * { box-sizing: border-box; }
+.expedition-debrief[hidden] { display: none; }
 .expedition-debrief-shell {
     width: min(100%, 620px);
     max-height: 100%;
@@ -60,9 +61,114 @@
 .expedition-debrief :focus-visible { outline: 3px solid #f2c14e; outline-offset: -3px; }
 .expedition-debrief-continue:disabled { opacity: .7; }
 .expedition-debrief-error { color: #ffd1bf; padding-bottom: 8px; font-size: 14px; }
+.expedition-debrief-rewards { margin: 16px 0 0; }
+.expedition-debrief-reward { padding: 12px 0; border-top: 1px solid #385552; }
+.expedition-debrief-reward dt { color: #8fe3cf; font-size: 12px; font-weight: 700; }
+.expedition-debrief-reward[data-reward-kind="powerup"] dt { color: #91ddf1; }
+.expedition-debrief-reward[data-reward-kind="ship"] dt,
+.expedition-debrief-reward[data-reward-kind="coins"] dt { color: #efd28e; }
+.expedition-debrief-reward[data-reward-kind="upgrade"] dt { color: #f0b9dd; }
+.expedition-debrief-reward dd { margin: 3px 0 0; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.expedition-debrief-reward dd.expedition-debrief-reward-detail { color: #cededa; font-size: 14px; font-weight: 400; }
+.expedition-debrief-details p { white-space: pre-line; }
+.expedition-debrief-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.expedition-debrief-actions button {
+    min-height: 44px; padding: 10px 12px; border: 1px solid #527775; border-radius: 6px;
+    background: transparent; color: #f2d58b; cursor: pointer; font: 700 14px/1.4 Arial, sans-serif;
+    touch-action: manipulation;
+}
 @media (max-height: 500px) {
     .expedition-debrief-header, .expedition-debrief-footer { padding: 10px 18px; }
     .expedition-debrief-title { font-size: 20px; padding: 4px 0; }
     .expedition-debrief-story { padding: 4px 18px 12px; }
     .expedition-debrief-next { padding-bottom: 8px; }
+}
+
+/* Regional victories are a visual reward moment; the older story debrief is unchanged. */
+.expedition-debrief--victory {
+    background: #071411;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.expedition-debrief--victory .expedition-debrief-shell {
+    width: min(100%, 680px);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.expedition-debrief--victory .expedition-debrief-header { padding: 8px 12px 0; text-align: center; }
+.expedition-debrief--victory .expedition-debrief-eyebrow { text-transform: uppercase; color: #edcf79; }
+.expedition-debrief--victory .expedition-debrief-title { font: 700 32px/1.12 'Trebuchet MS', Arial, sans-serif; padding: 8px 0; }
+.expedition-debrief--victory .expedition-debrief-context { color: #b9cec6; }
+.expedition-debrief--victory .expedition-debrief-story { padding: 0 4px 8px; }
+.victory-resident { margin: 0; height: 236px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.victory-resident-image { width: 216px; height: 178px; object-fit: contain; animation: victory-arrive 650ms ease-out both; }
+.victory-resident-image[hidden] { display: none; }
+.victory-resident figcaption { text-align: center; font-size: 22px; font-weight: 700; line-height: 1.2; }
+.victory-resident-status { display: block; color: #a8d9cb; font-size: 12px; font-weight: 400; margin-top: 4px; }
+.victory-resident-fallback { height: 156px; display: grid; place-items: center; color: #8fe3cf; }
+.victory-resident-fallback svg { width: 72px; height: 72px; }
+.victory-loot { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.expedition-debrief--victory .victory-loot-item {
+    --item-ink: #126254;
+    --item-paper: #d9f3e9;
+    position: relative; display: flex; flex-direction: column; align-items: center;
+    min-width: 0; min-height: 150px; padding: 12px 6px 18px; margin: 0;
+    border: 2px solid transparent; border-radius: 8px;
+    background: var(--item-paper); color: #102b28;
+    font: 14px/1.25 Arial, sans-serif; text-align: center; cursor: pointer; touch-action: manipulation;
+    transition: border-color 120ms, background-color 120ms;
+}
+.victory-loot-item[data-reward-kind="ship"] { --item-ink: #7d4716; --item-paper: #f4db9e; }
+.victory-loot-item[data-reward-kind="upgrade"] { --item-ink: #813d60; --item-paper: #f3d3e0; }
+.victory-item-art { height: 48px; width: 64px; display: grid; place-items: center; color: var(--item-ink); margin-bottom: 7px; }
+.victory-item-art svg { width: 38px; height: 38px; stroke-width: 1.8; }
+.victory-loot-item strong { font-size: 14px; min-height: 35px; display: grid; place-items: center; overflow-wrap: anywhere; }
+.victory-item-destination { font-size: 11px; padding-top: 4px; }
+.victory-item-more { position: absolute; bottom: 3px; right: 5px; color: var(--item-ink); }
+.victory-item-more svg { width: 12px; height: 12px; }
+.victory-loot-item[aria-expanded="true"] { border-color: #fff; }
+.victory-loot-item[aria-expanded="true"] .victory-item-more { transform: rotate(180deg); }
+.victory-loot-item:hover { border-color: var(--item-ink); }
+.victory-reward-explanation { padding: 14px 12px; color: #dfebe6; font-size: 14px; line-height: 1.5; border-bottom: 1px solid #36534a; }
+.victory-reward-explanation[hidden] { display: none; }
+.expedition-debrief--victory .victory-reward-explanation p { margin-top: 4px; }
+.victory-coins { display: flex; gap: 8px; align-items: center; justify-content: center; min-height: 50px; color: #f3d178; }
+.victory-coins svg { width: 24px; height: 24px; }
+.victory-coins strong { font-size: 22px; }
+.victory-coins span { color: #c9d7d0; font-size: 13px; }
+.expedition-debrief--victory .expedition-debrief-details { margin: 0; font-size: 13px; }
+.expedition-debrief--victory .expedition-debrief-details summary { min-height: 44px; padding: 12px 0; }
+.expedition-debrief--victory .expedition-debrief-actions { margin: 0; }
+.expedition-debrief--victory .expedition-debrief-actions button { border: 0; padding: 8px 10px; color: #bfcec8; font-size: 13px !important; text-decoration: underline; text-underline-offset: 4px; }
+.expedition-debrief--victory .expedition-debrief-footer { padding: 10px 4px 0; background: #081310; border-top: 1px solid #29443a; text-align: center; }
+.expedition-debrief--victory .expedition-debrief-next { font-size: 12px; padding-bottom: 8px; }
+.expedition-debrief--victory .expedition-debrief-continue { min-height: 52px; background: #edcc77; color: #233014; }
+@keyframes victory-arrive { from { opacity: 0; transform: translateY(10px) scale(.95); } to { opacity: 1; transform: none; } }
+@media (min-width: 800px) and (min-height: 501px) {
+    .expedition-debrief--victory .expedition-debrief-story { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 0 20px; align-items: center; padding: 16px 4px 12px; }
+    .victory-resident { grid-column: 1; grid-row: 1 / 4; height: 280px; }
+    .victory-resident-image { height: 212px; width: 220px; }
+    .victory-loot, .victory-reward-explanation, .victory-coins { grid-column: 2; }
+    .expedition-debrief--victory .expedition-debrief-details,
+    .expedition-debrief--victory .expedition-debrief-actions { grid-column: 1 / -1; }
+    .expedition-debrief--victory .expedition-debrief-title { font-size: 36px; }
+}
+@media (max-height: 740px) and (max-width: 799px) {
+    .victory-resident { height: 196px; }
+    .victory-resident-image { height: 142px; }
+    .expedition-debrief--victory .expedition-debrief-title { font-size: 28px; }
+}
+@media (max-height: 500px) {
+    .expedition-debrief--victory .expedition-debrief-header { padding: 0; }
+    .expedition-debrief--victory .expedition-debrief-title { font-size: 22px; padding: 4px 0; }
+    .expedition-debrief--victory .expedition-debrief-context { font-size: 12px; }
+    .victory-resident { height: 180px; }
+    .victory-resident-image { height: 124px; }
+    .expedition-debrief--victory .expedition-debrief-footer { padding-top: 6px; }
+    .expedition-debrief--victory .expedition-debrief-next { padding-bottom: 4px; }
+    .expedition-debrief--victory .expedition-debrief-continue { min-height: 44px; padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .victory-resident-image { animation: none; }
+    .victory-loot-item { transition: none; }
 }

@@ -231,7 +231,7 @@ describe('living portrait Netlify function', () => {
         expect(providerFetch).not.toHaveBeenCalled();
     });
 
-    test('returns only an application job ID when generation starts', async () => {
+    test.each(['cinematic', 'storybook', 'cosmic', 'watercolor'])('returns only an application job ID when %s generation starts', async style => {
         const adminClient = createAdminClient();
         const providerFetch = jest.fn().mockResolvedValue({
             ok: true,
@@ -249,7 +249,7 @@ describe('living portrait Netlify function', () => {
 
         const response = await portraitFunction.handler(event({
             ageGroup: 'age_18_plus',
-            style: 'storybook',
+            style,
             portraitSpec: createSpec(),
             referenceImage: 'data:image/png;base64,iVBORw0KGgo='
         }, {
@@ -283,9 +283,10 @@ describe('living portrait Netlify function', () => {
         expect(providerBody.input.prompt).toContain(
             'stellar burst, constellation sense'
         );
-        expect(providerBody.input.prompt).toContain(
-            'first-contact photograph from a premium live-action science-fantasy film'
-        );
+        const paintedStyle = style === 'storybook' || style === 'watercolor';
+        expect(providerBody.input.prompt).toContain(paintedStyle
+            ? 'richly imagined encounter with a living alien in the selected painting medium'
+            : 'first-contact photograph from a premium live-action science-fantasy film');
         expect(providerBody.input.prompt).toContain(
             'Do not merely upscale, smooth, repaint, or extrude the pixel sprite'
         );
@@ -298,8 +299,12 @@ describe('living portrait Netlify function', () => {
         expect(providerBody.input.prompt).toContain('Surface biology:');
         expect(providerBody.input.prompt).toContain('Body mechanics:');
         expect(providerBody.input.prompt).toContain(
-            'Head biology: Keep the compact oval cranial carapace'
+            'Head biology: Interpret the compact attention region, compound-eye cues and paired tipped antennae'
         );
+        expect(providerBody.input.prompt).toContain('ART DIRECTION // living-interpretation-v1');
+        expect(providerBody.input.prompt).toContain('APPEAL AND PERSONALITY // ALIVE, ALIEN AND APPROACHABLE');
+        expect(providerBody.input.prompt).toContain('not a shared mascot body or colour scheme');
+        expect(providerBody.input.prompt).toContain('not just surface texture');
         expect(providerBody.input.prompt).toContain(
             'one coherent insectoid cranial plan visibly fused with smaller, slightly offset aquatic traits'
         );
@@ -311,12 +316,12 @@ describe('living portrait Netlify function', () => {
         expect(providerBody.input.prompt).toContain(
             'there must be no visible pixel grid'
         );
-        expect(providerBody.input.prompt).toContain(
-            'OPTICAL REALISM GATE // MANDATORY'
-        );
-        expect(providerBody.input.prompt).toContain(
-            'real corneal depth, wet tear lines, eyelid margins or nictitating membranes'
-        );
+        expect(providerBody.input.prompt).toContain(paintedStyle
+            ? 'PAINTED MATERIAL AND DEPTH // MANDATORY'
+            : 'OPTICAL REALISM GATE // MANDATORY');
+        expect(providerBody.input.prompt).toContain(paintedStyle
+            ? 'expressing living attention through painted depth'
+            : 'real corneal depth, wet tear lines, eyelid margins or nictitating membranes');
         expect(providerBody.input.prompt).toContain(
             'no obvious CGI character render'
         );
@@ -512,6 +517,10 @@ describe('living portrait Netlify function', () => {
         expect(gatewayRequest.contents[0].text).toContain(
             'IMAGE 1 IS THE AUTHORITATIVE IDENTITY REFERENCE'
         );
+        expect(gatewayRequest.contents[0].text).toContain('ART DIRECTION // living-interpretation-v1');
+        expect(gatewayRequest.contents[0].text).toContain('APPEAL AND PERSONALITY // ALIVE, ALIEN AND APPROACHABLE');
+        expect(gatewayRequest.contents[0].text).toContain('not a shared mascot body or colour scheme');
+        expect(gatewayRequest.contents[0].text).toContain('not just surface texture');
         expect(gatewayRequest.contents[1]).toEqual({
             inlineData: {
                 mimeType: 'image/png',

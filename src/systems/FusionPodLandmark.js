@@ -70,9 +70,9 @@ export function getFusionPodLandmarkSnapshot(
     if (discovered && !status.unlocked) {
         state = 'calibrating';
         statusLabel =
-            `FIELD CALIBRATION ${currentLevel}/${levelRequirement}`;
+            `LEVEL ${currentLevel}/${levelRequirement}`;
         interactionLabel =
-            `Fusion calibration Level ${currentLevel}/${levelRequirement}`;
+            `Fusion opens at Level ${levelRequirement}; current level ${currentLevel}`;
         tone = 'calibrating';
     } else if (status.unlocked && status.reconciliationPending > 0) {
         state = 'verification_required';
@@ -143,15 +143,15 @@ export function formatFusionPodLandmarkObjective(snapshot) {
         return 'Locate the dormant Fusion Pod in the Sanctuary.';
     }
     if (snapshot.state === 'dormant') {
-        return 'Rescue a second creature to wake the dormant Fend interface.';
+        return 'Hatch another egg from Inventory to discover the Fusion Pod.';
     }
     if (snapshot.state === 'calibrating') {
-        return `Raise the active creature to field level ${snapshot.levelRequirement}.`;
+        return `Explore with your creature to reach Level ${snapshot.levelRequirement}.`;
     }
     if (snapshot.state === 'maturing') {
         return snapshot.collectionCount < 2
-            ? 'Rescue another creature. Fusion preserves both parents.'
-            : 'Wait until two creatures reach adulthood.';
+            ? 'Hatch another egg from Inventory. Both parents stay with you.'
+            : 'Let both creatures grow into adults. Both parents stay with you.';
     }
     if (snapshot.state === 'capacity_full') {
         return 'Make Sanctuary capacity before creating a new lineage.';

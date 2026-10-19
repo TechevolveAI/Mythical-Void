@@ -1,8 +1,13 @@
 import Phaser from 'phaser';
 import {
     queueProjectBeaconDebrief,
-    unlockProjectBeaconMilestone
+    unlockProjectBeaconMilestone,
+    getProjectBeaconDebrief,
+    acknowledgeProjectBeaconDebrief
 } from '../systems/ProjectBeaconStory.js';
+import ExpeditionDebriefPanel from '../ui/ExpeditionDebriefPanel.js';
+import { getRegionalVictorySummary } from '../systems/RegionalVictorySummary.js';
+import { shareGuardianRestoration } from '../utils/GuardianRestorationShare.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
 import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
@@ -21,6 +26,8 @@ import { nextStoryVideo, showStoryVideoNotice, openStoryVideo } from '../ui/Stor
 import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
 import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometry.js';
 import { createDecorativeFlag } from '../systems/world/DecorativeFlags.js';
+import { getExpeditionCheckpointDefinition } from '../systems/ExpeditionCheckpoints.js';
+import { PATROL_SENTINEL_FRAME, drawPatrolSentinelArtwork } from '../systems/PatrolSentinelArtwork.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -127,56 +134,6 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
 const EXPEDITION_CHECKPOINT_PATH =
     'story.projectBeacon.expeditionCheckpoint';
 const EXPEDITION_CHECKPOINT_VERSION = 2;
-const EXPEDITION_CHECKPOINT_PRESENTATION = Object.freeze({
-    MythicalForestLevel: {
-        levelStateId: 'mythicalForest',
-        checkpoints: [
-            ['forest_anchor_1', 'Tangled Roots'],
-            ['forest_anchor_2', 'Dark Hollow'],
-            ['forest_anchor_3', 'Hidden Lives']
-        ]
-    },
-    CrystalCavesLevel: {
-        levelStateId: 'crystalCaves',
-        checkpoints: [
-            ['caves_anchor_1', 'Echo Pass'],
-            ['caves_anchor_2', 'Living Chamber'],
-            ['caves_anchor_3', 'Guardian Threshold']
-        ]
-    },
-    ReefLevel: {
-        levelStateId: 'cosmicReef',
-        checkpoints: [
-            ['reef_waypoint_1', 'Drift Marker'],
-            ['reef_waypoint_2', 'Traveler Relay'],
-            ['reef_waypoint_3', 'Passage Vector']
-        ]
-    },
-    VoidPeaksLevel: {
-        levelStateId: 'voidPeaks',
-        checkpoints: [
-            ['peaks_relay_1', 'Lower Relay'],
-            ['peaks_relay_2', 'Ridge Relay'],
-            ['peaks_relay_3', 'Summit Relay']
-        ]
-    },
-    AuroraDepthsLevel: {
-        levelStateId: 'auroraDepths',
-        checkpoints: [
-            ['aurora_prism_1', 'Lower Prism'],
-            ['aurora_prism_2', 'Heart Prism'],
-            ['aurora_prism_3', 'Sky Prism']
-        ]
-    },
-    FinalVoidLevel: {
-        levelStateId: 'finalVoid',
-        checkpoints: [
-            ['final_bond_1', 'Living Systems'],
-            ['final_bond_2', 'Return Route'],
-            ['final_bond_3', 'Trust Marker']
-        ]
-    }
-});
 
 function calculateVictoryCoins(levelId, bonusCount = 0) {
     const reward = bossConfigs[BOSS_REWARD_KEY_BY_LEVEL[levelId]]?.rewards;
@@ -278,7 +235,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isInvincible = false; // Invincibility frames after taking damage
         this.isRespawning = false; // Debounce flag for pit respawn
         this.invincibilityDuration = 1500; // 1.5 seconds of invincibility
+        this.guardRecoveryUntil = 0;
         this.invincibilityTween = null; // Reference to flashing tween
+        this.invincibilityPeriod = null;
         this.deathScreenElements = null; // Track death screen UI for cleanup
         this.deathKeyHandler = null;
         this.katanaCombatProfile = {
@@ -444,6 +403,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.generatedVideoPlayback = null;
         this.residentReleaseElements = [];
         this.residentReleaseOpen = false;
+        this.residentReleasePresentation = null;
         this.residentReleaseTableau = null;
         this.pendingResidentReleaseContinuation = null;
         this._returningToHub = false;
@@ -619,6 +579,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Reset all game state - called on init() for restart support
      */
     resetGameState() {
+        this.endInvincibility();
         this.applyMovementProfile();
         const previewUpgradeIds = {
             crystal: ['crystal_edge'],
@@ -738,6 +699,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isRestarting = false;
         this.isDucking = false;
         this.isInvincible = false;
+        this.guardRecoveryUntil = 0;
         this.isRespawning = false;
         this.invincibilityTween = null;
         this.stuckFrameCount = 0;
@@ -792,6 +754,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.companionMediaRequest += 1;
         this.companionRescueTableau?.destroy?.();
         this.companionRescueTableau = null;
+        this.residentReleasePresentation?.retire();
         this.residentReleaseOpen = false;
         this.residentReleaseTableau?.destroy?.();
         this.residentReleaseTableau = null;
@@ -3025,6 +2988,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
 
         joystickZone.on('pointerdown', (pointer) => {
+            if (!this.canAcceptPlatformerTouchInput()) return;
+            if (this.joystickActive && this.joystickPointerId !== null &&
+                this.joystickPointerId !== pointer.id) return;
             this.joystickActive = true;
             this.joystickPointerId = pointer.id;
             const nativeTouchIdentifier =
@@ -3084,7 +3050,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
 
         joystickZone.on('pointermove', (pointer) => {
-            if (!this.joystickActive) return;
+            if (!this.canAcceptPlatformerTouchInput() || !this.joystickActive ||
+                pointer.id !== this.joystickPointerId) return;
             this.updateJoystick(pointer);
         });
 
@@ -3096,7 +3063,8 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Scene-level pointer tracking for joystick
         this.platformerJoystickMoveHandler = (pointer) => {
-            if (this.joystickActive && pointer.id === this.joystickPointerId) {
+            if (this.canAcceptPlatformerTouchInput() && this.joystickActive &&
+                pointer.id === this.joystickPointerId) {
                 this.updateJoystick(pointer);
             }
         };
@@ -3124,6 +3092,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             };
         };
         this.platformerTouchStartHandler = (event) => {
+            if (!this.canAcceptPlatformerTouchInput()) return;
             const touches = Array.from(event.changedTouches || []).map(candidate => ({
                 candidate,
                 point: mapNativeTouch(candidate)
@@ -3164,7 +3133,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // stops forwarding an owned drag to Phaser after the finger crosses a
         // display-list boundary. Phaser remains the primary input path.
         this.platformerTouchMoveHandler = (event) => {
-            if (!this.joystickActive) return;
+            if (!this.canAcceptPlatformerTouchInput() || !this.joystickActive) return;
             const touch = Array.from(event.touches || []).find(
                 candidate => candidate.identifier === this.joystickTouchIdentifier
             );
@@ -3306,6 +3275,10 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     handlePlatformerMobileResize(gameSize = this.scale?.gameSize) {
+        if (this.pauseMenuActive) {
+            if (this.pauseMenuView === 'powerups') this.showPowerupMenu();
+            else this.returnToPauseMenu();
+        }
         if (!this.isMobile && !this.detectMobile()) return;
 
         const controlsWereVisible = this.platformerControlsVisible === true;
@@ -3334,6 +3307,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.releaseAllPlatformerActionButtons();
         this.cleanupPlatformerInputHandlers();
         this.clearMobileControlCoach();
+        this.energyRingButtons = {};
+        this.energyCostLabels = {};
         this.mobileControlElements?.forEach(element => {
             try {
                 element?.removeAllListeners?.();
@@ -3355,13 +3330,21 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickThumb = null;
     }
 
+    canAcceptPlatformerTouchInput() {
+        return this.platformerControlsVisible === true &&
+            !this.isPlayerDead && !this.isRespawning &&
+            !this.pauseMenuActive && !this.levelCompletionActive &&
+            this.physics?.world?.isPaused !== true;
+    }
+
     /**
-     * Hide platformer mobile controls (during intro screens)
+     * Hide controls and release their touch ownership for modal screens.
      */
     hidePlatformerMobileControls() {
-        if (!this.mobileControlElements || this.mobileControlElements.length === 0) return;
-
+        this.platformerControlsVisible = false;
         this.releaseAllPlatformerActionButtons();
+        this.resetJoystick();
+        if (!this.mobileControlElements || this.mobileControlElements.length === 0) return;
 
         this.mobileControlElements.forEach(element => {
             if (element && typeof element.setAlpha === 'function') {
@@ -3374,7 +3357,6 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         });
 
-        this.platformerControlsVisible = false;
         console.log('[PlatformerLevel] Mobile controls hidden (for intro screen)');
     }
 
@@ -3524,7 +3506,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.energyRingButtons[id] = { ring: energyRing, x, y, radius: radius + 6, cost: energyCost };
 
             // Initial draw
-            this.drawEnergyRing(energyRing, x, y, radius + 6, energyCost);
+            this.drawEnergyRing(energyRing, x, y, radius + 6, energyCost, id);
         }
 
         // Button background
@@ -3768,11 +3750,13 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Draw energy ring around a button
      * Shows how much energy is available vs required
      */
-    drawEnergyRing(graphics, x, y, radius, energyCost) {
+    drawEnergyRing(graphics, x, y, radius, energyCost, buttonId = null) {
         graphics.clear();
 
-        const hasEnough = this.crystalEnergy >= energyCost;
+        const freeCharge = buttonId === 'special' && this.freeSpecialAttackCharges > 0;
+        const hasEnough = freeCharge || this.crystalEnergy >= energyCost;
         const energyPercent = Math.min(this.crystalEnergy / energyCost, 1);
+        const labelKey = buttonId || `${x}_${y}`;
 
         // Background ring (dark, shows what's missing)
         graphics.lineStyle(4, 0x2D2D4D, 0.6);
@@ -3781,17 +3765,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         graphics.strokePath();
 
         if (hasEnough) {
-            // Full ring when ready (bright cyan glow)
-            graphics.lineStyle(4, 0x00FFFF, 0.9);
+            this.energyCostLabels?.[labelKey]?.setVisible(false);
+            const readyColor = freeCharge ? 0xFFD166 : 0x00FFFF;
+            graphics.lineStyle(4, readyColor, 0.9);
             graphics.beginPath();
             graphics.arc(x, y, radius, -Math.PI / 2, Math.PI * 1.5);
             graphics.strokePath();
 
             // Pulsing glow effect
-            graphics.lineStyle(8, 0x00FFFF, 0.2);
+            graphics.lineStyle(8, readyColor, 0.2);
             graphics.beginPath();
             graphics.arc(x, y, radius, -Math.PI / 2, Math.PI * 1.5);
             graphics.strokePath();
+            if (freeCharge) {
+                // A small reward diamond fits inside the existing ring glow.
+                graphics.fillStyle(0xFFF5C2, 1);
+                graphics.fillTriangle(x, y - radius - 4, x - 4, y - radius, x + 4, y - radius);
+                graphics.fillTriangle(x, y - radius + 4, x - 4, y - radius, x + 4, y - radius);
+            }
         } else {
             // Partial ring showing energy progress (yellow/orange)
             const angle = -Math.PI / 2 + (Math.PI * 2 * energyPercent);
@@ -3800,20 +3791,24 @@ class PlatformerLevelScene extends Phaser.Scene {
             graphics.arc(x, y, radius, -Math.PI / 2, angle);
             graphics.strokePath();
 
-            // Small indicator for required energy
-            const costText = this.add.text(x + radius - 2, y - radius + 2, `${energyCost}⚡`, {
-                fontSize: '10px',
-                color: hasEnough ? '#00FFFF' : '#FF6B6B',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(10003);
-            this.mobileControlElements.push(costText);
-
-            // Store for cleanup on redraw
             if (!this.energyCostLabels) this.energyCostLabels = {};
-            if (this.energyCostLabels[`${x}_${y}`]) {
-                this.energyCostLabels[`${x}_${y}`].destroy();
+            let costText = this.energyCostLabels[labelKey];
+            if (costText?.active === false) {
+                const index = this.mobileControlElements.indexOf(costText);
+                if (index >= 0) this.mobileControlElements.splice(index, 1);
+                costText = null;
             }
-            this.energyCostLabels[`${x}_${y}`] = costText;
+            if (!costText) {
+                costText = this.add.text(x + radius - 2, y - radius + 2, `${energyCost}⚡`, {
+                    fontSize: '10px',
+                    color: '#FF6B6B',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(10003)
+                    .setAlpha(this.platformerControlsVisible === false ? 0 : 1);
+                this.energyCostLabels[labelKey] = costText;
+                this.mobileControlElements.push(costText);
+            }
+            costText.setText(`${energyCost}⚡`).setPosition(x + radius - 2, y - radius + 2).setVisible(true);
         }
     }
 
@@ -3823,8 +3818,9 @@ class PlatformerLevelScene extends Phaser.Scene {
     updateEnergyRings() {
         if (!this.energyRingButtons) return;
 
-        Object.values(this.energyRingButtons).forEach(btn => {
-            this.drawEnergyRing(btn.ring, btn.x, btn.y, btn.radius, btn.cost);
+        Object.entries(this.energyRingButtons).forEach(([id, btn]) => {
+            if (btn.ring?.active === false) return;
+            this.drawEnergyRing(btn.ring, btn.x, btn.y, btn.radius, btn.cost, id);
         });
     }
 
@@ -4189,7 +4185,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             return 'stomp';
         }
 
-        if (this.isInvincible || this.isPlayerDead) {
+        if (this.isInvincible || this.isPlayerDead || now < this.guardRecoveryUntil) {
             return 'ignored';
         }
 
@@ -4448,7 +4444,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             sentinel.setCollideWorldBounds(true);
             sentinel.setBounce(0.05);
             sentinel.setDepth(850);
-            sentinel.body.setSize(44, 52, true);
+            sentinel.body.setSize(PATROL_SENTINEL_FRAME.bodyWidth, PATROL_SENTINEL_FRAME.bodyHeight, true);
             if (airborne) {
                 sentinel.body.setAllowGravity(false);
                 sentinel.setBounce(0);
@@ -4501,18 +4497,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.textures.exists(textureKey)) return;
 
         const graphics = this.make.graphics({ add: false });
-        graphics.fillStyle(accentColor, 0.22);
-        graphics.fillCircle(32, 35, 30);
-        graphics.fillStyle(bodyColor, 1);
-        graphics.fillRoundedRect(12, 16, 40, 44, 10);
-        graphics.fillStyle(accentColor, 0.95);
-        graphics.fillTriangle(32, 1, 12, 24, 52, 24);
-        graphics.fillStyle(eyeColor, 1);
-        graphics.fillCircle(24, 36, 4);
-        graphics.fillCircle(40, 36, 4);
-        graphics.lineStyle(3, accentColor, 0.9);
-        graphics.strokeRoundedRect(12, 16, 40, 44, 10);
-        graphics.generateTexture(textureKey, 64, 70);
+        drawPatrolSentinelArtwork(graphics, { bodyColor, accentColor, eyeColor });
+        graphics.generateTexture(textureKey, PATROL_SENTINEL_FRAME.width, PATROL_SENTINEL_FRAME.height);
         graphics.destroy();
     }
 
@@ -5052,6 +5038,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     updateEnergyDisplay() {
         this.energyDisplay.removeAll(true);
+        this.updateEnergyRings();
 
         if (this.detectMobile()) {
             const crystal = this.add.graphics();
@@ -5086,9 +5073,6 @@ class PlatformerLevelScene extends Phaser.Scene {
             crystal.setPosition(i * 28, 0);
             this.energyDisplay.add(crystal);
         }
-
-        // Also update mobile button energy rings
-        this.updateEnergyRings();
     }
 
     /**
@@ -5350,6 +5334,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (effect.freeSpecialAttack > 0) {
             this.freeSpecialAttackCharges += Math.floor(effect.freeSpecialAttack);
+            this.updateEnergyRings();
             return {
                 success: true,
                 message: `Free Super Blast charged x${this.freeSpecialAttackCharges}`
@@ -5835,7 +5820,8 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Check enemy hits. Creature-tech upgrades strengthen the Earth-forged blade.
         if (this.enemies) {
-            this.enemies.getChildren().forEach(enemy => {
+            // Defeat removes from the live Group; snapshot this strike's members.
+            this.enemies.getChildren().slice().forEach(enemy => {
                 const dist = Phaser.Math.Distance.Between(
                     attackX, attackY,
                     enemy.x, enemy.y
@@ -5921,66 +5907,102 @@ class PlatformerLevelScene extends Phaser.Scene {
         projectile.setDepth(898);
         projectile.setRotation(direction > 0 ? 0 : Math.PI);
 
-        // Add physics body
-        this.physics.add.existing(projectile);
-        projectile.body.setAllowGravity(false);
-        projectile.body.setSize(20, 10);
-        projectile.body.setVelocityX(400 * direction);
-
-        // Trail effect
-        const trailInterval = this.time.addEvent({
-            delay: 30,
-            callback: () => {
-                if (!projectile.active) return;
-                const trail = this.add.graphics();
-                trail.fillStyle(0x00FFFF, 0.4);
-                trail.fillCircle(0, 0, 5);
-                trail.setPosition(projectile.x, projectile.y);
-                trail.setDepth(897);
-                this.tweens.add({
-                    targets: trail,
-                    alpha: 0,
-                    scaleX: 0.3,
-                    scaleY: 0.3,
-                    duration: 150,
-                    onComplete: () => trail.destroy()
-                });
-            },
-            repeat: 15
-        });
-
-        // Check collisions with enemies
-        if (this.enemies) {
-            this.physics.add.overlap(projectile, this.enemies, (proj, enemy) => {
-                this.damageEnemy(enemy, rangedDamage);
-                this.createProjectileImpact(proj.x, proj.y);
-                trailInterval.remove();
-                proj.destroy();
-            });
-        }
-
-        // Check collision with boss
-        const bossTarget = this.getBossCombatTarget();
-        if (bossTarget) {
-            this.physics.add.overlap(projectile, bossTarget, (proj) => {
-                if (this.resolveBossHit(rangedDamage, { source: 'ranged' })) {
-                    console.log(
-                        `[PlatformerLevel] Boss hit by ranged attack! (${rangedDamage} damage)`
-                    );
-                }
-                this.createProjectileImpact(proj.x, proj.y);
-                trailInterval.remove();
-                proj.destroy();
-            });
-        }
-
-        // Destroy after time/distance
-        this.time.delayedCall(1500, () => {
-            if (projectile.active) {
-                trailInterval.remove();
-                projectile.destroy();
+        let retired = false;
+        let trailInterval = null;
+        let expiryTimer = null;
+        const colliders = [];
+        const trails = new Set();
+        const release = () => {
+            if (retired) return;
+            retired = true;
+            this.events?.off?.('shutdown', retire);
+            projectile.off?.('destroy', release);
+            trailInterval?.remove?.(false);
+            expiryTimer?.remove?.(false);
+            for (const collider of colliders) {
+                // Phaser clears world when a collider has already been destroyed.
+                if (collider?.world !== null) collider?.destroy?.();
             }
-        });
+            colliders.length = 0;
+            for (const trail of trails) {
+                this.tweens?.killTweensOf?.(trail);
+                trail.destroy();
+            }
+            trails.clear();
+        };
+        const retire = () => {
+            release();
+            if (projectile.active) projectile.destroy();
+        };
+        const hit = applyDamage => {
+            if (retired || !projectile.active) return;
+            const { x, y } = projectile;
+            retire();
+            applyDamage();
+            if (this.sys?.isActive?.() !== false) this.createProjectileImpact(x, y);
+        };
+        projectile.once?.('destroy', release);
+        this.events?.once?.('shutdown', retire);
+
+        try {
+            // Add physics body
+            this.physics.add.existing(projectile);
+            projectile.body.setAllowGravity(false);
+            projectile.body.setSize(20, 10);
+            projectile.body.setVelocityX(400 * direction);
+
+            // Trail effect
+            trailInterval = this.time.addEvent({
+                delay: 30,
+                callback: () => {
+                    if (retired || !projectile.active) return;
+                    const trail = this.add.graphics();
+                    trails.add(trail);
+                    trail.fillStyle(0x00FFFF, 0.4);
+                    trail.fillCircle(0, 0, 5);
+                    trail.setPosition(projectile.x, projectile.y);
+                    trail.setDepth(897);
+                    this.tweens.add({
+                        targets: trail,
+                        alpha: 0,
+                        scaleX: 0.3,
+                        scaleY: 0.3,
+                        duration: 150,
+                        onComplete: () => {
+                            trails.delete(trail);
+                            trail.destroy();
+                        }
+                    });
+                },
+                repeat: 15
+            });
+
+            // Check collisions with enemies
+            if (this.enemies) {
+                colliders.push(this.physics.add.overlap(projectile, this.enemies, (_proj, enemy) => {
+                    hit(() => this.damageEnemy(enemy, rangedDamage));
+                }));
+            }
+
+            // Check collision with boss
+            const bossTarget = this.getBossCombatTarget();
+            if (bossTarget) {
+                colliders.push(this.physics.add.overlap(projectile, bossTarget, () => {
+                    hit(() => {
+                        if (this.resolveBossHit(rangedDamage, { source: 'ranged' })) {
+                            console.log(
+                                `[PlatformerLevel] Boss hit by ranged attack! (${rangedDamage} damage)`
+                            );
+                        }
+                    });
+                }));
+            }
+
+            expiryTimer = this.time.delayedCall(1500, retire);
+        } catch (error) {
+            retire();
+            throw error;
+        }
 
         // Play ranged attack sound (use a crystal-like sound)
         if (window.AudioManager) {
@@ -6078,7 +6100,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // ranged attacks, and stomps. This preserves miniboss callbacks and
         // still gives the three-energy blast its intended instant-clear power.
         if (this.enemies) {
-            this.enemies.getChildren().forEach(enemy => {
+            // Defeat callbacks may remove neighbours or add new enemies.
+            this.enemies.getChildren().slice().forEach(enemy => {
                 const dist = Phaser.Math.Distance.Between(
                     this.player.x, this.player.y,
                     enemy.x, enemy.y
@@ -6235,12 +6258,23 @@ class PlatformerLevelScene extends Phaser.Scene {
         return true;
     }
 
+    beginGuardRecovery() {
+        // A blocked hit is one collision episode, not one physics frame.
+        // Use the existing scene clock; no extra timer or saved state is needed.
+        this.guardRecoveryUntil = (Number(this.time?.now) || 0) + this.invincibilityDuration;
+    }
+
     /**
      * Player takes damage
      * @param {number} amount - Damage amount (1 = 1 heart)
      * @param {boolean} bypassInvincibility - If true, ignore invincibility (for pit falls)
      */
     takeDamage(amount, bypassInvincibility = false) {
+        if (this.isPlayerDead || this.levelCompletionActive) return;
+        if (!bypassInvincibility && (
+            this.isInvincible || (Number(this.time?.now) || 0) < this.guardRecoveryUntil
+        )) return;
+
         // Crystal Shield blocks all damage
         if (this.hasShield) {
             console.log('[PlatformerLevel] Damage blocked by Crystal Shield!');
@@ -6257,6 +6291,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.optionalRouteGuardCharges > 0 && !bypassInvincibility) {
             this.optionalRouteGuardCharges -= 1;
+            this.beginGuardRecovery();
             this.onOptionalRouteGuardConsumed?.();
             this.showFloatingText?.(
                 `${this.optionalRouteGuardLabel} · ${this.optionalRouteGuardCharges} LEFT`,
@@ -6275,6 +6310,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.powerupShieldHits > 0 && !bypassInvincibility) {
             this.powerupShieldHits -= 1;
+            this.beginGuardRecovery();
             const guardianBlock = this.guardianShieldHitsRemaining > 0;
             if (guardianBlock) this.guardianShieldHitsRemaining -= 1;
             const blockLabel = guardianBlock
@@ -6299,6 +6335,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.guardianGuardCharges > 0 && !bypassInvincibility) {
             this.guardianGuardCharges -= 1;
+            this.beginGuardRecovery();
             this.updateKatanaUpgradeDisplay();
             this.showFloatingText?.(
                 'ROOT BRIDGE',
@@ -6321,6 +6358,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.communityGuardCharges > 0 && !bypassInvincibility) {
             this.communityGuardCharges -= 1;
+            this.beginGuardRecovery();
             this.updateKatanaUpgradeDisplay();
             this.showFloatingText?.(
                 'FEND RELAY',
@@ -6340,6 +6378,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.auroraGuardCharges > 0 && !bypassInvincibility) {
             this.auroraGuardCharges -= 1;
+            this.beginGuardRecovery();
             this.updateKatanaUpgradeDisplay();
             this.showFloatingText?.(
                 'AURORA GUARD',
@@ -6394,7 +6433,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.armCenteringStance();
 
         // Start invincibility period
-        this.isInvincible = true;
+        this.beginInvincibility();
 
         // Flash red initially (if not using combatJuice)
         if (!this.combatJuice) {
@@ -6408,18 +6447,33 @@ class PlatformerLevelScene extends Phaser.Scene {
         const knockbackX = this.player.facingRight ? -200 : 200;
         this.player.setVelocity(knockbackX, -150);
 
-        // Flashing effect during invincibility
-        this.startInvincibilityFlash();
-
         // Sound
         if (window.AudioManager) {
             window.AudioManager.playError();
         }
+    }
 
-        // End invincibility after duration
-        this.time.delayedCall(this.invincibilityDuration, () => {
-            this.endInvincibility();
+    beginInvincibility(duration = this.invincibilityDuration, { flash = true } = {}) {
+        const player = this.player;
+        if (!player || player.active === false || this.isPlayerDead || this.levelCompletionActive ||
+            !Number.isFinite(duration) || duration <= 0) return false;
+
+        const previous = this.invincibilityPeriod;
+        const samePlayer = previous?.player === player;
+        // Timer remaining time respects a paused/scaled Phaser Clock; wall time does not.
+        const remaining = samePlayer ? previous.timer?.getRemaining?.() || 0 : 0;
+        const delay = Math.max(duration, remaining);
+        const flashing = flash || (samePlayer && previous.flashing);
+        this.endInvincibility();
+
+        const period = { player, flashing, timer: null };
+        this.invincibilityPeriod = period;
+        this.isInvincible = true;
+        if (flashing) this.startInvincibilityFlash();
+        period.timer = this.time.delayedCall(delay, () => {
+            if (this.invincibilityPeriod === period) this.endInvincibility(period);
         });
+        return true;
     }
 
     /**
@@ -6428,6 +6482,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     startInvincibilityFlash() {
         if (!this.player) return;
 
+        this.invincibilityTween?.stop();
         // Create flashing tween
         this.invincibilityTween = this.tweens.add({
             targets: this.player,
@@ -6441,19 +6496,21 @@ class PlatformerLevelScene extends Phaser.Scene {
     /**
      * End invincibility period
      */
-    endInvincibility() {
+    endInvincibility(period = this.invincibilityPeriod) {
+        if (period !== this.invincibilityPeriod) return false;
+        const player = period?.player || this.player;
+        this.invincibilityPeriod = null;
         this.isInvincible = false;
+        period?.timer?.remove(false);
 
         // Stop flashing
-        if (this.invincibilityTween) {
-            this.invincibilityTween.stop();
-            this.invincibilityTween = null;
-        }
+        const tween = this.invincibilityTween;
+        this.invincibilityTween = null;
+        tween?.stop();
 
         // Reset alpha
-        if (this.player) {
-            this.player.setAlpha(1);
-        }
+        if (player?.active !== false) player?.setAlpha?.(1);
+        return true;
     }
 
     armCenteringStance() {
@@ -6658,10 +6715,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 this.stuckFrameCount = 0;
 
                 // Brief invincibility to prevent immediate re-collision
-                this.isInvincible = true;
-                this.time.delayedCall(500, () => {
-                    this.isInvincible = false;
-                });
+                this.beginInvincibility(500, { flash: false });
 
                 console.log('[PlatformerLevel] Player rescued from stuck position');
             }
@@ -6789,7 +6843,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         const resume = window.GameState?.get?.(EXPEDITION_CHECKPOINT_PATH);
         const sceneKey = this.scene?.key;
-        const presentation = EXPEDITION_CHECKPOINT_PRESENTATION[sceneKey];
+        const presentation = getExpeditionCheckpointDefinition(sceneKey);
         const x = Number(resume?.x);
         const y = Number(resume?.y);
 
@@ -6847,8 +6901,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         const resume = window.GameState?.get?.(EXPEDITION_CHECKPOINT_PATH);
-        const presentation =
-            EXPEDITION_CHECKPOINT_PRESENTATION[this.scene?.key];
+        const presentation = getExpeditionCheckpointDefinition(this.scene?.key);
         const checkpointIndex = Number(resume?.checkpointIndex);
         const checkpoint = presentation?.checkpoints?.[checkpointIndex];
 
@@ -7013,6 +7066,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Prevent multiple pit fall triggers
         if (this.isRespawning) return;
         this.isRespawning = true;
+        this.resetPlatformerRecoveryInput();
 
         if (this.health <= 1 && this.attemptAutonomousCreatureRescue('lethal_fall')) {
             return;
@@ -7146,6 +7200,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.autonomousRescueMomentElements = [];
     }
 
+    resetPlatformerRecoveryInput() {
+        // Keyup can be missed while the keyboard plugin is disabled. Recovery
+        // must discard held keys, touch ownership and queued actions together.
+        this.input?.keyboard?.resetKeys?.();
+        this.releaseAllPlatformerActionButtons();
+        this.resetJoystick();
+    }
+
     /**
      * Respawn player at last checkpoint or safe position
      */
@@ -7160,16 +7222,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Teleport player
         this.player.setPosition(respawnPos.x, respawnPos.y);
         this.player.setVelocity(0, 0);
-        this.resetJoystick();
+        this.resetPlatformerRecoveryInput();
         this.recoveryInputLockedUntil = this.time.now + 550;
 
         // Brief invincibility after respawn
-        this.isInvincible = true;
-        this.startInvincibilityFlash();
-
-        this.time.delayedCall(this.invincibilityDuration, () => {
-            this.endInvincibility();
-        });
+        this.beginInvincibility();
 
         // Reset respawning flag
         this.isRespawning = false;
@@ -7183,7 +7240,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.isPlayerDead) {
             return;
         }
+        this.endInvincibility();
         this.isPlayerDead = true;
+        this.resetPlatformerRecoveryInput();
 
         console.log('[PlatformerLevel] Player died');
         this.hidePlatformerMobileControls();
@@ -7413,11 +7472,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isPlayerDead = false;
         this.isRestarting = false;
         this.isRespawning = false;
-        this.isInvincible = true;
 
         this.player.setPosition(this.checkpointPosition.x, this.checkpointPosition.y);
         this.player.setVelocity(0, 0);
-        this.resetJoystick();
+        this.resetPlatformerRecoveryInput();
         this.recoveryInputLockedUntil = this.time.now + 550;
         this.player.setAlpha(1);
         this.player.setScale(1);
@@ -7425,6 +7483,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.player.body) {
             this.player.body.enable = true;
         }
+        this.beginInvincibility();
 
         this.input.keyboard.enabled = true;
         this.showPlatformerMobileControls();
@@ -7432,17 +7491,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.updateEnergyDisplay();
         this.resumeFailureRecoveryClock();
         this.physics.resume();
-        this.startInvincibilityFlash();
         this.showFloatingText(
             'PROJECT BEACON LINK RESTORED',
             this.checkpointPosition.x,
             this.checkpointPosition.y - 60,
             '#8FE3CF'
         );
-
-        this.time.delayedCall(this.invincibilityDuration, () => {
-            this.endInvincibility();
-        });
     }
 
     clearDeathScreen() {
@@ -7470,13 +7524,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Prevent multiple pause menus
         if (this.pauseMenuActive || this.levelCompletionActive) return;
         this.pauseMenuActive = true;
+        this.pauseMenuView = 'pause';
 
         this.hidePlatformerMobileControls();
 
         // Pause physics but keep rendering
         this.physics.pause();
 
-        const { width, height } = this.cameras.main;
+        const { width, height } = this.scale?.gameSize || this.cameras.main;
         this.pauseMenuElements = [];
 
         // Dark overlay
@@ -7539,6 +7594,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         powerupBtn.on('pointerdown', () => {
             window.AudioManager?.playButtonClick?.();
             this.powerupStatusMessage = null;
+            this.powerupPage = 0;
             this.showPowerupMenu();
         });
 
@@ -7594,22 +7650,33 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.pauseMenuElements = [];
     }
 
+    getPowerupMenuLayout(width, height, itemCount) {
+        const rowHeight = 56;
+        const rowsPerPage = Math.max(1, Math.min(6, Math.floor((height - 32 - 190) / rowHeight)));
+        const pageCount = Math.max(1, Math.ceil(itemCount / rowsPerPage));
+        const page = Math.max(0, Math.min(pageCount - 1, this.powerupPage || 0));
+        const rowCount = Math.max(1, Math.min(rowsPerPage, itemCount - page * rowsPerPage));
+        const panelWidth = Math.min(440, width - 32);
+        const panelHeight = Math.min(height - 24, 190 + rowCount * rowHeight);
+        return { rowHeight, rowsPerPage, pageCount, page, panelWidth, panelHeight,
+            panelX: (width - panelWidth) / 2, panelY: (height - panelHeight) / 2 };
+    }
+
     showPowerupMenu() {
         if (!this.pauseMenuActive || this.levelCompletionActive) return;
+        this.pauseMenuView = 'powerups';
 
         this.clearPauseMenuElements();
 
-        const { width, height } = this.cameras.main;
+        const { width, height } = this.scale?.gameSize || this.cameras.main;
         const manager = window.InventoryManager;
         const powerups = (manager?.getAllItems?.() || [])
             .map((item, slot) => ({ item, slot }))
-            .filter(({ item }) => item.type === 'powerup' && item.usableInLevel)
-            .slice(0, 6);
-        const rowCount = Math.max(1, powerups.length);
-        const panelWidth = Math.min(440, width - 32);
-        const panelHeight = Math.min(height - 32, 165 + rowCount * 50);
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
+            .filter(({ item }) => item.type === 'powerup' && item.usableInLevel);
+        const layout = this.getPowerupMenuLayout(width, height, powerups.length);
+        const { panelWidth, panelHeight, panelX, panelY, page, pageCount, rowsPerPage, rowHeight } = layout;
+        this.powerupPage = page;
+        const visiblePowerups = powerups.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.84);
@@ -7643,7 +7710,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.pauseMenuElements.push(overlay, panel, title, status);
 
-        const rowStartY = panelY + 82;
+        const rowStartY = panelY + 98;
         const rowWidth = panelWidth - 28;
         const rowX = panelX + 14;
 
@@ -7662,35 +7729,39 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.pauseMenuElements.push(empty);
         }
 
-        powerups.forEach(({ item, slot }, index) => {
-            const rowY = rowStartY + index * 50;
+        visiblePowerups.forEach(({ item, slot }, index) => {
+            const rowY = rowStartY + index * rowHeight;
             const row = this.add.graphics();
             row.fillStyle(0x1D2938, 1);
-            row.fillRoundedRect(rowX, rowY, rowWidth, 42, 6);
+            row.fillRoundedRect(rowX, rowY, rowWidth, 48, 6);
             row.lineStyle(1, 0x40536A, 0.9);
-            row.strokeRoundedRect(rowX, rowY, rowWidth, 42, 6);
+            row.strokeRoundedRect(rowX, rowY, rowWidth, 48, 6);
             row.setScrollFactor(0).setDepth(5002);
 
             const name = this.add.text(
                 rowX + 12,
-                rowY + 21,
+                rowY + 24,
                 `${item.icon || '⚡'} ${item.name}  x${item.quantity || 1}`,
                 {
                     fontSize: width < 520 ? '13px' : '15px',
-                    color: '#F3F7FA'
+                    color: '#F3F7FA',
+                    wordWrap: { width: rowWidth - 88 }
                 }
             ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5003);
 
             const useButton = this.add.text(
                 rowX + rowWidth - 10,
-                rowY + 21,
+                rowY + 24,
                 'USE',
                 {
                     fontSize: '12px',
                     color: '#111827',
                     backgroundColor: '#FFD166',
                     fontStyle: 'bold',
-                    padding: { x: 12, y: 7 }
+                    fixedWidth: 56,
+                    fixedHeight: 44,
+                    align: 'center',
+                    padding: { x: 0, y: 14 }
                 }
             ).setOrigin(1, 0.5).setScrollFactor(0).setDepth(5003)
                 .setInteractive({ useHandCursor: true });
@@ -7716,18 +7787,43 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         const backButton = this.add.text(
             width / 2,
-            panelY + panelHeight - 25,
+            panelY + panelHeight - 32,
             '← BACK',
             {
                 fontSize: '14px',
                 color: '#FFFFFF',
                 backgroundColor: '#334155',
-                padding: { x: 18, y: 8 }
+                fixedHeight: 48,
+                padding: { x: 18, y: 14 }
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(5003)
             .setInteractive({ useHandCursor: true });
         backButton.on('pointerdown', () => this.returnToPauseMenu());
         this.pauseMenuElements.push(backButton);
+
+        if (pageCount > 1) {
+            const pageText = this.add.text(width / 2, panelY + panelHeight - 68, `${page + 1} / ${pageCount}`, {
+                fontSize: '12px', color: '#AAB6C4'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(5003);
+            this.pauseMenuElements.push(pageText);
+            [-1, 1].forEach(direction => {
+                const enabled = page + direction >= 0 && page + direction < pageCount;
+                const arrow = this.add.text(width / 2 + direction * (panelWidth / 2 - 40), panelY + panelHeight - 32,
+                    direction < 0 ? '←' : '→', {
+                        fontSize: '20px', color: enabled ? '#FFFFFF' : '#66717D',
+                        backgroundColor: '#334155', fixedWidth: 48, fixedHeight: 48,
+                        align: 'center', padding: { x: 0, y: 12 }
+                    }).setOrigin(0.5).setScrollFactor(0).setDepth(5003);
+                if (enabled) {
+                    arrow.setInteractive({ useHandCursor: true });
+                    arrow.on('pointerdown', () => {
+                        this.powerupPage = page + direction;
+                        this.showPowerupMenu();
+                    });
+                }
+                this.pauseMenuElements.push(arrow);
+            });
+        }
 
         this.pauseEscHandler = (event) => {
             if (event.key === 'Escape') {
@@ -8614,7 +8710,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     /**
      * Return to hub world
      */
-    returnToHub() {
+    returnToHub({ sanctuary = false, shipReconstructionHandoff = false, nextGateLabel = null } = {}) {
         if (this._returningToHub) return;
         this._returningToHub = true;
 
@@ -8629,7 +8725,17 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.physics.world.gravity.y = 0;
 
         // Go to HubWorldScene
-        this.scene.start('HubWorldScene');
+        try {
+            if (sanctuary) {
+                this.scene.start('GameScene', {
+                    biome: 'nebula', shipReconstructionHandoff,
+                    shipReconstructionNextGateLabel: nextGateLabel
+                });
+            } else this.scene.start('HubWorldScene');
+        } catch (error) {
+            this._returningToHub = false;
+            throw error;
+        }
     }
 
     /**
@@ -8650,6 +8756,12 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('[PlatformerLevel] Shutting down - cleaning up resources');
+        this.residentReleasePresentation?.retire();
+        this.endInvincibility();
+        this.regionalVictoryPanel?.destroy();
+        this.regionalVictoryPanel = null;
+        this.regionalVictorySummaryStarted = false;
+        this.residentReleaseClose = null;
 
         // Scenes can be left from the death panel. Never retain a paused Clock
         // or TweenManager when Phaser later starts this scene again.
@@ -8811,6 +8923,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.levelCompletionActive) return false;
 
         this.levelCompletionActive = true;
+        this.endInvincibility();
         // Scene-time shake can outlast a wall-time celebration on slow frames.
         // Reward and exit controls must not inherit a moving hit target.
         this.cameras?.main?.shakeEffect?.reset?.();
@@ -8841,6 +8954,115 @@ class PlatformerLevelScene extends Phaser.Scene {
             returnAction();
         };
         window.addEventListener('keydown', this.levelCompletionKeyHandler);
+    }
+
+    showRegionalVictorySummary() {
+        if (!this.levelCompletionResult || this.regionalVictorySummaryStarted) return false;
+        this.regionalVictorySummaryStarted = true;
+        this.enterLevelCompletionState();
+        this.destroyGeneratedVideoReadyNotice();
+        const resultOwner = this.levelCompletionResult, stateOwner = window.GameState;
+        const admissionEpoch = stateOwner?.getSaveAdmission?.().epoch;
+        const ownsSummary = () => this.sys?.isActive?.() !== false && !this._returningToHub &&
+            this.levelCompletionResult === resultOwner && window.GameState === stateOwner &&
+            stateOwner?.getSaveAdmission?.().epoch === admissionEpoch;
+        const showSummary = () => {
+            if (!ownsSummary()) return false;
+            this.pendingResidentReleaseContinuation = null;
+            const result = this.levelCompletionResult;
+            const state = window.GameState;
+            const pending = state?.get?.('story.projectBeacon.pendingDebriefs') || [];
+            const queued = pending.find(entry => entry.levelId === result.levelId);
+            const debrief = queued ? getProjectBeaconDebrief(queued.id) : null;
+            const summary = getRegionalVictorySummary(result, debrief);
+            if (!summary) return false;
+            const newResident = result.rescuedResident?.newlyRescued;
+            summary.portraitName = newResident ? result.rescuedResident.name : state?.get?.('creature.name');
+            const portraitTexture = newResident ? this.residentReleaseTexture : this.player?.texture?.key;
+            // Reuse the exact resident shown leaving the cage, not a marketing portrait.
+            if (portraitTexture && this.textures?.exists?.(portraitTexture)) {
+                try {
+                    const texture = this.textures.get(portraitTexture);
+                    summary.portraitUrl = window.LivingPortraitService?.captureReference?.({ texture, frame: texture.get() })
+                        || this.textures.getBase64(portraitTexture);
+                }
+                catch { /* Artwork is optional; the return path must always remain usable. */ }
+            }
+            const battleRecord = result.levelId === 'mythicalForest' && Number.isFinite(this.forestBossDuration)
+                ? `Guardian freed in ${Math.ceil(this.forestBossDuration / 1000)}s. ${this.forestBossHits || 0} successful strikes.`
+                : null;
+            summary.fieldNote = [summary.fieldNote, battleRecord, this.getVillageCompletionCopy({ compact: true })]
+                .filter(Boolean).join('\n\n');
+            const secondaryActions = result.levelId === 'mythicalForest' ? [{
+                id: 'secret-message', label: 'Secret message',
+                run: panel => this.replayForestBirthdayMessage([panel])
+            }] : [];
+            if (result.levelId === 'mythicalForest' && result.firstCompletion === true) {
+                secondaryActions.push({
+                    id: 'invite', label: 'Invite someone',
+                    run: async (_panel, button) => {
+                        if (button.disabled) return;
+                        button.disabled = true;
+                        try {
+                            const status = await shareGuardianRestoration(window.navigator);
+                            button.textContent = {
+                                shared: 'Invitation shared', copied: 'Link copied',
+                                cancelled: 'Invite someone', shown: 'MYTHICALVOID.COM'
+                            }[status] || 'Invite someone';
+                        } finally { button.disabled = false; }
+                    }
+                });
+            }
+            const input = this.input;
+            const inputWasEnabled = input?.enabled;
+            if (!ownsSummary()) return false;
+            const panel = new ExpeditionDebriefPanel({
+                onVisibilityChange: visible => {
+                    if (input && this.input === input && this.regionalVictoryPanel === panel &&
+                        this.levelCompletionResult === resultOwner && window.GameState === stateOwner &&
+                        stateOwner?.getSaveAdmission?.().epoch === admissionEpoch) {
+                        input.enabled = visible ? false : inputWasEnabled;
+                    }
+                },
+                onContinue: () => {
+                    if (!ownsSummary() || this.regionalVictoryPanel !== panel) return false;
+                    if (queued) acknowledgeProjectBeaconDebrief(state, queued.id);
+                    if (!ownsSummary() || this.regionalVictoryPanel !== panel) return false;
+                    this.returnToHub({
+                        sanctuary: true,
+                        shipReconstructionHandoff: result.shipPartAwarded === true,
+                        nextGateLabel: debrief?.nextGate?.label || null
+                    });
+                    return true;
+                }
+            });
+            this.regionalVictoryPanel = panel;
+            (this.completionSaveAttempt || this.forestCompletionAttempt)?.ownPanel?.(panel);
+            try {
+                if (panel.show({ ...summary, secondaryActions }) === false) {
+                    throw new Error('The rewards screen could not be opened.');
+                }
+                if (!ownsSummary() || this.regionalVictoryPanel !== panel) {
+                    panel.destroy();
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                try { panel.destroy(); } catch (cleanupError) { console.warn('[PlatformerLevel] Rewards cleanup needs review.'); }
+                if (this.regionalVictoryPanel === panel) this.regionalVictoryPanel = null;
+                throw error;
+            }
+        };
+        this.presentLevelCompletion();
+        if (this.residentReleaseOpen) {
+            const completionAttempt = this.completionSaveAttempt || this.forestCompletionAttempt;
+            this.pendingResidentReleaseContinuation = completionAttempt
+                ? completionAttempt.bindSummaryContinuation(showSummary)
+                : showSummary;
+            this.bindLevelCompletionReturn(() => this.residentReleaseClose?.());
+            return true;
+        }
+        return showSummary();
     }
 
     showKatanaUpgradeReveal({ onClose = null } = {}) {
@@ -8935,6 +9157,47 @@ class PlatformerLevelScene extends Phaser.Scene {
         const artY = compact ? height * 0.36 : height * 0.47;
         const artSize = Math.min(compact ? width * 0.46 : width * 0.34, height * 0.55);
         const elements = [];
+        const state = window.GameState, epoch = state?.getSaveAdmission?.().epoch;
+        const result = this.levelCompletionResult, plugin = this.scene, clock = this.time, events = this.events;
+        const tweens = this.tweens;
+        const owner = { closed: false, busy: false, timer: null, animation: null, tableau: null,
+            close: null, keyHandler: null, continuation: null, request: null };
+        const isCurrent = () => !owner.closed && this.residentReleasePresentation === owner &&
+            this.levelCompletionResult === result && this.scene === plugin && this.time === clock && this.tweens === tweens &&
+            this.events === events && this.sys?.isActive?.() !== false && !this._returningToHub &&
+            window.GameState === state && state?.getSaveAdmission?.().epoch === epoch;
+        const optional = callback => {
+            try { callback(); } catch (error) { console.warn('[PlatformerLevel] Optional rescue feedback unavailable.'); }
+        };
+        owner.retire = () => {
+            if (owner.closed) return;
+            owner.closed = true;
+            if (owner.request) owner.request.active = false;
+            owner.request = null;
+            events?.off?.('shutdown', owner.retire);
+            if (this.residentReleasePresentation === owner) {
+                this.residentReleasePresentation = null;
+                this.residentReleaseOpen = false;
+                if (this.residentReleaseClose === owner.close) this.residentReleaseClose = null;
+                if (this.pendingResidentReleaseContinuation === owner.continuation) this.pendingResidentReleaseContinuation = null;
+                if (this.residentReleaseElements === elements) this.residentReleaseElements = [];
+                if (this.residentReleaseTableau === owner.tableau) this.residentReleaseTableau = null;
+                if (this.regionalVictorySummaryStarted && owner.keyHandler &&
+                    this.levelCompletionKeyHandler === owner.keyHandler) {
+                    window.removeEventListener('keydown', owner.keyHandler);
+                    this.levelCompletionKeyHandler = null;
+                }
+            }
+            const timer = owner.timer, animation = owner.animation, tableau = owner.tableau;
+            owner.timer = owner.animation = owner.tableau = null;
+            optional(() => timer?.remove?.(false));
+            optional(() => animation?.remove?.(false));
+            optional(() => tableau?.destroy?.());
+            elements.forEach(element => optional(() => element?.destroy?.()));
+        };
+        this.residentReleasePresentation = owner;
+        (this.completionSaveAttempt || this.forestCompletionAttempt)?.ownRelease?.(owner);
+        events?.once?.('shutdown', owner.retire);
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x02080B, 0.97);
@@ -8946,25 +9209,28 @@ class PlatformerLevelScene extends Phaser.Scene {
         elements.push(overlay);
 
         const mediaService = window.CompanionMediaService || companionMediaService;
-        Promise.resolve(mediaService?.createCinematicStill?.(this, {
-            momentId: `resident_release_${resident.id}`,
-            stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby',
-            depth: depth + 1,
-            alpha: 0.24,
-            veilAlpha: 0.08,
-            duration: 60000,
-            isCurrent: () => (
-                this.residentReleaseOpen &&
-                this.sys?.isActive?.() !== false
-            )
-        })).then(tableau => {
+        let tableauRequest = null;
+        optional(() => {
+            tableauRequest = mediaService?.createCinematicStill?.(this, {
+                momentId: `resident_release_${resident.id}`,
+                stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby',
+                depth: depth + 1,
+                alpha: 0.24,
+                veilAlpha: 0.08,
+                duration: 60000,
+                isCurrent
+            });
+        });
+        Promise.resolve(tableauRequest).then(tableau => {
             if (!tableau) return;
-            if (!this.residentReleaseOpen || this.sys?.isActive?.() === false) {
-                tableau.destroy?.();
+            if (!isCurrent()) {
+                optional(() => tableau.destroy?.());
                 return;
             }
+            owner.tableau = tableau;
             this.residentReleaseTableau = tableau;
         }).catch(() => null);
+        if (!isCurrent()) { owner.retire(); return false; }
 
         const header = this.add.text(
             compact ? centerX : width * 0.06,
@@ -8979,26 +9245,29 @@ class PlatformerLevelScene extends Phaser.Scene {
         ).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
         elements.push(header);
 
-        const residentTexture = resident.genetics
-            ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
-                resident.genetics,
-                0,
-                'juvenile'
-            )?.textureName
-            : null;
+        let residentTexture = null;
+        optional(() => {
+            residentTexture = resident.genetics
+                ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+                    resident.genetics,
+                    0,
+                    'juvenile'
+                )?.textureName
+                : null;
+        });
+        this.residentReleaseTexture = residentTexture;
         let artwork = null;
-        if (residentTexture && this.textures.exists(residentTexture)) {
-            artwork = this.add.image(artX, artY, residentTexture)
-                .setScrollFactor(0)
-                .setDepth(depth + 2)
-                .setAlpha(0);
+        optional(() => {
+            if (!residentTexture || !this.textures.exists(residentTexture)) return;
+            artwork = this.add.image(artX, artY, residentTexture);
+            elements.push(artwork);
+            artwork.setScrollFactor(0).setDepth(depth + 2).setAlpha(0);
             const scale = Math.min(
                 artSize / Math.max(1, artwork.width),
                 artSize / Math.max(1, artwork.height)
             );
             artwork.setScale(scale);
-            elements.push(artwork);
-        }
+        });
 
         const cage = this.add.graphics();
         cage.lineStyle(compact ? 6 : 8, 0xA7B0B8, 0.95);
@@ -9063,7 +9332,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         const button = this.add.text(
             centerX,
             height - (compact ? 44 : 60),
-            `WELCOME ${resident.name.toUpperCase()} TO THE SANCTUARY`,
+            this.regionalVictorySummaryStarted
+                ? 'SEE YOUR REWARDS'
+                : `WELCOME ${resident.name.toUpperCase()} TO THE SANCTUARY`,
             {
                 fontFamily: 'Arial, sans-serif',
                 fontSize: compact ? '15px' : '19px',
@@ -9077,31 +9348,58 @@ class PlatformerLevelScene extends Phaser.Scene {
         elements.push(button);
 
         const close = () => {
-            if (!this.residentReleaseOpen) return;
-            this.residentReleaseOpen = false;
+            if (!isCurrent() || owner.busy) return;
             const continuation = this.pendingResidentReleaseContinuation;
-            this.pendingResidentReleaseContinuation = null;
-            this.residentReleaseTableau?.destroy?.();
-            this.residentReleaseTableau = null;
-            elements.forEach(element => element?.destroy?.());
-            this.residentReleaseElements = [];
-            window.AudioManager?.playButtonClick?.();
-            if (continuation) {
-                this.time.delayedCall(100, () => {
-                    if (this.sys?.isActive?.() === false) return;
-                    continuation();
+            owner.keyHandler = this.levelCompletionKeyHandler;
+            owner.continuation = continuation;
+            if (!continuation) { owner.retire(); optional(() => window.AudioManager?.playButtonClick?.()); return; }
+            owner.busy = true;
+            const request = { active: true };
+            owner.request = request;
+            // Next presenters must see the release as closing, while its action
+            // remains available until the synchronous handoff is accepted.
+            this.residentReleaseOpen = false;
+            button.disableInteractive();
+            const retry = () => {
+                if (owner.request !== request) return;
+                request.active = false;
+                owner.request = null;
+                if (!isCurrent()) { owner.retire(); return; }
+                owner.busy = false;
+                this.residentReleaseOpen = true;
+                if (!this.pendingResidentReleaseContinuation) this.pendingResidentReleaseContinuation = continuation;
+                button.setText('TRY AGAIN');
+                button.setInteractive({ useHandCursor: true });
+            };
+            try {
+                owner.timer = clock.delayedCall(100, () => {
+                    if (!request.active || owner.request !== request) return;
+                    request.active = false;
+                    owner.timer = null;
+                    if (!isCurrent()) { owner.retire(); return; }
+                    try {
+                        if (this.pendingResidentReleaseContinuation === continuation) this.pendingResidentReleaseContinuation = null;
+                        if (continuation() === false) { retry(); return; }
+                        owner.retire();
+                    } catch (error) { retry(); }
                 });
-            }
+            } catch (error) { retry(); }
+            optional(() => window.AudioManager?.playButtonClick?.());
         };
+        owner.close = close;
+        this.residentReleaseClose = close;
         button.on('pointerup', close);
-        this.time.delayedCall(700, () => {
-            if (!this.residentReleaseOpen) return;
-            this.tweens.add({ targets: cage, alpha: 0, scaleX: 1.35, duration: 500 });
-            this.tweens.add({ targets: welcomeFlag, alpha: 1, delay: 500, duration: 350 });
-            if (artwork) {
-                this.tweens.add({ targets: artwork, alpha: 1, duration: 700 });
-            }
-            window.AudioManager?.playAchievement?.();
+        optional(() => {
+            owner.animation = clock.delayedCall(700, () => {
+                owner.animation = null;
+                if (!isCurrent()) return;
+                optional(() => tweens.add({ targets: cage, alpha: 0, scaleX: 1.35, duration: 500 }));
+                optional(() => tweens.add({ targets: welcomeFlag, alpha: 1, delay: 500, duration: 350 }));
+                if (artwork) {
+                    optional(() => tweens.add({ targets: artwork, alpha: 1, duration: 700 }));
+                }
+                optional(() => window.AudioManager?.playAchievement?.());
+            });
         });
         this.residentReleaseElements = elements;
         return true;

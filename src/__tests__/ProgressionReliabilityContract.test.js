@@ -11,11 +11,16 @@ describe('secondary journey reliability contract', () => {
     const inventoryManager = read('systems/InventoryManager.js');
     const forest = read('scenes/levels/MythicalForestLevel.js');
     const loader = read('utils/SceneLoader.js');
+    const gateController = read('scenes/controllers/HubGateTransitionController.js');
 
     test('starts a gate exactly once with an independent mobile fallback', () => {
-        expect(hub).toContain('beginGateSceneTransition(gate)');
-        expect(hub).toContain('this.gateTransitionStarted = true');
-        expect(hub).toContain('this.gateTransitionFallback = setTimeout(() => {');
+        expect(hub).toContain('this.beginGateSceneTransition(gate, attempt)');
+        expect(gateController).toContain('this.scene.gateTransitionStarted = true');
+        expect(gateController).toContain('setTimeout(() => this.begin(gate, attempt), 1800)');
+        expect(gateController.indexOf('setTimeout(() => this.begin(gate, attempt), 1800)')).toBeLessThan(
+            gateController.indexOf('prepareCinematic?.(')
+        );
+        expect(gateController).toContain('attempt.started) return false;');
         expect(hub).toContain('this.isTransitioning = false;');
     });
 
@@ -42,7 +47,8 @@ describe('secondary journey reliability contract', () => {
 
     test('starts purchased egg hatching from a durable reservation', () => {
         expect(inventoryManager).toContain('reserveEggForHatching(');
-        expect(inventoryManager).toContain("status: 'reserved'");
+        expect(inventoryManager).toContain('reserveInventoryEggForHatching?.(');
+        expect(read('systems/GameState.js')).toContain("schemaVersion: 1, status: 'reserved'");
         expect(inventory).toContain('reserveEggForHatching?.(');
         expect(inventory).toContain('const launchReservedHatch = () => {');
         expect(inventory).toContain("sceneManager.start('HatchingScene', {");
@@ -50,11 +56,11 @@ describe('secondary journey reliability contract', () => {
             'const hatchLaunchTimeout = setTimeout(launchReservedHatch, 3000);'
         );
         expect(inventory).toContain('this.pendingTimeouts.push(hatchLaunchTimeout);');
-        expect(inventory).toContain('The selected egg could not be reserved for hatching');
+        expect(inventory).toContain('Hatching is paused. Your game could not safely save this step.');
     });
 
     test('starts the first Forest field brief from permanent local media', () => {
-        expect(hub).toContain("momentId: 'first_forest_arrival'");
+        expect(gateController).toContain("momentId: 'first_forest_arrival'");
         expect(forest).toContain('showFirstForestArrivalCinematic');
         expect(forest).toContain("momentId: 'first_forest_arrival'");
         expect(forest).toContain('PROJECT BEACON // FIELD BRIEF');

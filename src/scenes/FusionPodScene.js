@@ -18,9 +18,9 @@ const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 const FUSION_ELIGIBLE_STAGES = new Set(['adult', 'elder']);
 const FUSION_ADULT_AGE_MS = 2 * 24 * 60 * 60 * 1000;
 const FUSION_STORY_COPY = Object.freeze({
-    title: 'FUSION POD // CURRENT SYNTHESIS',
-    subtitle: 'Two stable life patterns form a new lineage. Both creatures remain with you.',
-    empty: 'Select two family records to compare their Current signatures.'
+    title: 'FUSION POD',
+    subtitle: 'Create new life together. Both parents stay with you.',
+    empty: 'Choose two adult creatures to see their shared traits.'
 });
 
 export function getCreatureFusionReadiness(creature, now = Date.now()) {
@@ -181,6 +181,8 @@ class FusionPodScene extends Phaser.Scene {
         this.previousTopOnly = true;
         this.breedButtonEnabled = false;
         this.cleanupComplete = false;
+        this.fusionViewEpoch = {};
+        this.pendingFusionView = null;
         this.fusionConsentModal = null;
         this.sharedFusionModal = null;
         this.fusionConsentReceipt = null;
@@ -189,6 +191,8 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     init(data = {}) {
+        this.finishFusionLoading();
+        this.fusionViewEpoch = {};
         this.parent1Index = null;
         this.parent1Data = null;
         this.parent2Index = null;
@@ -496,6 +500,7 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     async resumeReservedFusion(transaction, width, height) {
+        if (this.cleanupComplete || this.pendingFusionView) return;
         this.fusionTransaction = transaction;
         this.fusionOperationId = transaction.operationId;
         const collection = getGameState().getCreatureCollection?.() || [];
@@ -514,39 +519,83 @@ class FusionPodScene extends Phaser.Scene {
         }
 
         [this.parent1Data, this.parent2Data] = parents;
-        window.UXEnhancements?.showLoading?.(
-            'Restoring reserved lineage...'
-        );
+        const view = this.captureFusionView();
+        this.breedingInProgress = true;
+        this.beginFusionLoading('Restoring reserved lineage...', view);
+        try {
+            const executionResult = await this.executeServerFusionOutcome();
+            if (!this.isCurrentFusionView(view) || executionResult.cancelled) return;
+            if (!executionResult.success || !executionResult.execution) {
+                this.showRequirementNotMet(width, height, 'reserved_recovery',
+                    'The lineage service is still unavailable. The reserved result remains safe; return to the Pod to retry.');
+                return;
+            }
 
-        const executionResult = await this.executeServerFusionOutcome();
-        if (!executionResult.success || !executionResult.execution) {
-            this.showRequirementNotMet(
-                width,
-                height,
-                'reserved_recovery',
-                'The lineage service is still unavailable. The reserved result remains safe; return to the Pod to retry.'
-            );
-            return;
+            this.fusionTransaction = executionResult.transaction;
+            const hatchData = this.buildServerHatchData(executionResult.execution.outcome);
+            const staged = this.stageFusionHatchData(hatchData);
+            if (!staged.success) {
+                this.showRequirementNotMet(width, height, 'reserved_recovery',
+                    'The result returned but could not be secured locally. The reservation remains safe; sync and retry.');
+                return;
+            }
+            this.startFusionHatch(hatchData, view);
+        } catch (error) {
+            if (!this.isCurrentFusionView(view)) return;
+            this.showRequirementNotMet(width, height, 'reserved_recovery',
+                'The reserved lineage could not open. Return to the Pod to retry.');
+        } finally {
+            this.finishFusionLoading(view);
+            if (this.isCurrentFusionView(view) && !view.handoffStarted) this.breedingInProgress = false;
         }
+    }
 
-        this.fusionTransaction = executionResult.transaction;
-        const hatchData = this.buildServerHatchData(
-            executionResult.execution.outcome
-        );
-        const staged = this.stageFusionHatchData(hatchData);
-        if (!staged.success) {
-            this.showRequirementNotMet(
-                width,
-                height,
-                'reserved_recovery',
-                'The result returned but could not be secured locally. The reservation remains safe; sync and retry.'
-            );
-            return;
+    captureFusionView() {
+        let isCurrentCampaign;
+        try {
+            isCurrentCampaign = window.CloudSave?.captureCampaignGuard?.() || (() => true);
+        } catch (error) {
+            isCurrentCampaign = () => false;
         }
+        return { epoch: this.fusionViewEpoch,
+            operationId: this.fusionTransaction?.operationId || this.fusionOperationId,
+            saveOwner: window.GameState, cloudSave: window.CloudSave,
+            parents: [this.parent1Data, this.parent2Data], isCurrentCampaign,
+            timer: null, started: false, handoffStarted: false, resultStaged: false };
+    }
 
-        window.UXEnhancements?.hideLoading?.();
-        this.shutdown();
+    isCurrentFusionView(view) {
+        if (!view || this.cleanupComplete || view.epoch !== this.fusionViewEpoch || !view.operationId ||
+            view.saveOwner !== window.GameState || view.cloudSave !== window.CloudSave ||
+            view.operationId !== (this.fusionTransaction?.operationId || this.fusionOperationId) ||
+            (this.fusionOperationId && this.fusionOperationId !== view.operationId) ||
+            view.parents[0] !== this.parent1Data || view.parents[1] !== this.parent2Data) return false;
+        try { return Boolean(view.isCurrentCampaign()); }
+        catch (error) { return false; }
+    }
+
+    beginFusionLoading(message, view) {
+        this.pendingFusionView = view;
+        try { window.UXEnhancements?.showLoading?.(message, view); }
+        catch (error) { console.warn('[FusionPodScene] Optional loading display unavailable'); }
+    }
+
+    finishFusionLoading(view = this.pendingFusionView) {
+        if (!view) return;
+        view.timer?.remove?.(false);
+        view.timer = null;
+        if (this.pendingFusionView === view) this.pendingFusionView = null;
+        try { window.UXEnhancements?.hideLoading?.(view); }
+        catch (error) { console.warn('[FusionPodScene] Optional loading cleanup unavailable'); }
+    }
+
+    startFusionHatch(hatchData, view) {
+        if (!this.isCurrentFusionView(view) || view.handoffStarted) return false;
+        // Phaser retires this scene after a successful queued start. A failed
+        // start must leave the current view available for recovery.
         this.scene.start('BreedingHatchScene', hatchData);
+        view.handoffStarted = true;
+        return true;
     }
 
     requestFusionConsent() {
@@ -654,21 +703,21 @@ class FusionPodScene extends Phaser.Scene {
 
         if (reason === 'locked') {
             icon = '◈';
-            title = 'Creature Not Yet Ready';
+            title = 'Fusion opens at Level 5';
             const currentLevel = Number(context) || 1;
-            message = `The Fusion Pod responds when a creature reaches Level 5.\n\nCurrent level: ${currentLevel}/5\n\nContinue expeditions and strengthen the bond.`;
+            message = `Explore with your creature to reach Level 5.\n\nCurrent level: ${currentLevel}/5`;
         } else if (reason === 'need_creatures') {
             icon = '🥚';
             title = 'More Creatures Needed';
             const collectionCount = context?.collection?.length || 0;
-            message = `Two family records are required.\n\nCollection: ${collectionCount}/2 creatures\n\nRescue or hatch another creature to continue.`;
+            message = `Your creatures: ${collectionCount}/2\n\nHatch an egg from Inventory.\nBoth parents stay with you.`;
         } else if (reason === 'reserved_recovery') {
             icon = '◇';
             title = 'Reserved Lineage Safe';
             message = `${context}\n\nNo new operation will be created and neither parent record has changed.`;
         } else {
             icon = '⏳';
-            title = 'Signatures Still Forming';
+            title = 'Adults needed';
             const readiness = context?.readiness || [];
             const readyCount = readiness.filter(entry => entry.eligible).length;
             const statusLines = readiness
@@ -676,19 +725,25 @@ class FusionPodScene extends Phaser.Scene {
                 .slice(0, 2)
                 .map(entry => {
                     const name = entry.creature?.name || 'Creature';
-                    if (entry.reason === 'maturing') {
-                        return `${name}: stable in ${formatFusionWaitTime(entry.remainingMs)}`;
+                    if (entry.reason === 'maturing' && Number.isFinite(entry.remainingMs) && entry.remainingMs > 0) {
+                        return `${name}: growing (${formatFusionWaitTime(entry.remainingMs)})`;
                     }
                     if (entry.reason === 'wellbeing') {
-                        return `${name}: needs care before growth can continue`;
+                        return `${name}: needs care in Sanctuary`;
                     }
-                    return `${name}: lifecycle record needs a sanctuary check`;
+                    if (entry.reason === 'lifecycle_sync') {
+                        return `${name}: visit Sanctuary to check growth`;
+                    }
+                    if (entry.reason === 'departed') {
+                        return `${name}: has left the Sanctuary`;
+                    }
+                    return `${name}: growth details unavailable`;
                 });
             message = [
-                `Stable adult signatures: ${readyCount}/2`,
+                `Adults ready: ${readyCount}/2`,
                 ...statusLines,
                 '',
-                'Both creatures remain after synthesis.'
+                'Both parents stay with you.'
             ].join('\n');
         }
 
@@ -1849,7 +1904,7 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     attemptBreeding({ consentReceipt = null } = {}) {
-        if (this.breedingInProgress || !this.parent1Data || !this.parent2Data) return;
+        if (this.cleanupComplete || this.breedingInProgress || !this.parent1Data || !this.parent2Data) return;
         if (!consentReceipt && !this.fusionConsentReceipt) {
             this.requestFusionConsent();
             return;
@@ -1880,11 +1935,6 @@ class FusionPodScene extends Phaser.Scene {
         this.breedButton?.setColor?.('#AFC3CF');
         this.drawBreedButtonBackground(0x263245, 0x657682);
 
-        // Show loading
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Creating new life...');
-        }
-
         // Play egg creation sound sequence
         window.AudioManager?.playFusionCreateEgg?.();
 
@@ -1910,9 +1960,18 @@ class FusionPodScene extends Phaser.Scene {
             parentIds
         ) || this.fusionOperationId;
         this.fusionOffspringSequence = 0;
+        const view = this.captureFusionView();
+        this.beginFusionLoading('Creating new life...', view);
 
         // Perform breeding after dramatic delay
-        this.time.delayedCall(2000, async () => {
+        view.timer = this.time.delayedCall(2000, async () => {
+            if (view.started) return;
+            if (!this.isCurrentFusionView(view)) {
+                this.finishFusionLoading(view);
+                return;
+            }
+            view.started = true;
+            view.timer = null;
             try {
                 let offspringGenes;
                 let offspringInheritance = null;
@@ -1977,6 +2036,7 @@ class FusionPodScene extends Phaser.Scene {
                 }
                 this.fusionTransaction = authorityResult.transaction;
                 const reservationResult = await this.reserveFusionAuthority();
+                if (!this.isCurrentFusionView(view) || reservationResult.cancelled) return;
                 if (!reservationResult.success) {
                     throw new Error(this.getFusionFailureMessage(reservationResult));
                 }
@@ -1988,6 +2048,7 @@ class FusionPodScene extends Phaser.Scene {
                     isTwinBirth
                 );
                 const executionResult = await this.executeServerFusionOutcome();
+                if (!this.isCurrentFusionView(view) || executionResult.cancelled) return;
                 if (!executionResult.success) {
                     throw new Error(this.getFusionFailureMessage(executionResult));
                 }
@@ -2000,8 +2061,8 @@ class FusionPodScene extends Phaser.Scene {
                     if (!staged.success) {
                         throw new Error(this.getFusionFailureMessage(staged));
                     }
-                    this.shutdown();
-                    this.scene.start('BreedingHatchScene', hatchData);
+                    view.resultStaged = true;
+                    this.startFusionHatch(hatchData, view);
                     return;
                 }
 
@@ -2063,13 +2124,7 @@ class FusionPodScene extends Phaser.Scene {
                         }
                     });
 
-                    if (window.UXEnhancements) {
-                        window.UXEnhancements.hideLoading();
-                    }
-
-                    // Launch BreedingHatchScene with TWIN data. Clean the Pod
-                    // explicitly because DOM/canvas overlays must not depend
-                    // on a later scene-manager shutdown tick.
+                    // Retain both reserved children before launching their reveal.
                     const hatchData = {
                         isTwinBirth: true,
                         twin1: {
@@ -2097,8 +2152,9 @@ class FusionPodScene extends Phaser.Scene {
                     if (!staged.success) {
                         throw new Error(this.getFusionFailureMessage(staged));
                     }
-                    this.shutdown();
-                    this.scene.start('BreedingHatchScene', hatchData);
+                    view.resultStaged = true;
+                    this.startFusionHatch(hatchData, view);
+                    return;
 
                     } else {
                     // Standard single offspring
@@ -2132,10 +2188,6 @@ class FusionPodScene extends Phaser.Scene {
                         result.offspringData.secretAbilities = unlockedAbilities;
                     }
 
-                    if (window.UXEnhancements) {
-                        window.UXEnhancements.hideLoading();
-                    }
-
                     // Launch the spectacular BreedingHatchScene
                     const hatchData = {
                         offspringGenes: result.offspringGenes,
@@ -2154,44 +2206,47 @@ class FusionPodScene extends Phaser.Scene {
                     if (!staged.success) {
                         throw new Error(this.getFusionFailureMessage(staged));
                     }
-                    this.shutdown();
-                    this.scene.start('BreedingHatchScene', hatchData);
+                    view.resultStaged = true;
+                    this.startFusionHatch(hatchData, view);
+                    return;
                     }
                 } finally {
                     restoreGenerationRandom?.();
                 }
 
             } catch (error) {
+                if (!this.isCurrentFusionView(view)) return;
                 console.error('[FusionPodScene] Fusion error:', error);
                 console.error('[FusionPodScene] Error stack:', error?.stack);
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
-                }
                 const serverReserved =
                     this.fusionTransaction?.authorityReservation
                         ?.reservationMode === 'server_reserved';
                 if (
                     this.fusionTransaction &&
                     !this.previewCreatures &&
-                    !serverReserved
+                    !serverReserved &&
+                    !view.resultStaged
                 ) {
                     getGameState().clearInterruptedFusion?.('generation_failed');
                     this.fusionTransaction = null;
                 }
                 // Show more helpful error message
-                const errorMsg = serverReserved
+                const errorMsg = view.resultStaged
+                    ? 'The hatch could not open. Return to the Pod to retry.'
+                    : serverReserved
                     ? 'Connection interrupted. Reserved lineage is safe; re-enter the Pod to resume.'
                     : error?.message || 'Unknown error';
                 this.showBreedingError(
-                    serverReserved
+                    serverReserved || view.resultStaged
                         ? errorMsg
                         : `Fusion failed: ${errorMsg.substring(0, 50)}`
                 );
-            }
-
-            this.breedingInProgress = false;
-            if (!this.cleanupComplete) {
-                this.updateBreedButton();
+            } finally {
+                this.finishFusionLoading(view);
+                if (this.isCurrentFusionView(view) && !view.handoffStarted) {
+                    this.breedingInProgress = false;
+                    this.updateBreedButton();
+                }
             }
         });
     }
@@ -2302,6 +2357,8 @@ class FusionPodScene extends Phaser.Scene {
                 transaction: this.fusionTransaction
             };
         }
+        const view = this.captureFusionView();
+        if (!this.isCurrentFusionView(view)) return { success: false, cancelled: true, reason: 'scene_changed' };
 
         let reservation;
         try {
@@ -2310,6 +2367,7 @@ class FusionPodScene extends Phaser.Scene {
                 { cloudSave: window.CloudSave }
             );
         } catch (error) {
+            if (!this.isCurrentFusionView(view)) return { success: false, cancelled: true, reason: 'scene_changed' };
             return {
                 success: false,
                 reason: error?.code === '40001'
@@ -2317,6 +2375,8 @@ class FusionPodScene extends Phaser.Scene {
                     : 'authority_reservation_rejected'
             };
         }
+
+        if (!this.isCurrentFusionView(view)) return { success: false, cancelled: true, reason: 'scene_changed' };
 
         if (this.previewCreatures) {
             return {
@@ -2331,7 +2391,7 @@ class FusionPodScene extends Phaser.Scene {
         }
 
         return getGameState().attachFusionAuthorityReservation?.(
-            this.fusionTransaction.operationId,
+            view.operationId,
             reservation
         ) || { success: false, reason: 'transaction_unavailable' };
     }
@@ -2354,6 +2414,8 @@ class FusionPodScene extends Phaser.Scene {
         if (!authority?.executeReservedOperation) {
             return { success: false, reason: 'authority_execution_unavailable' };
         }
+        const view = this.captureFusionView();
+        if (!this.isCurrentFusionView(view)) return { success: false, cancelled: true, reason: 'scene_changed' };
 
         let execution;
         try {
@@ -2363,11 +2425,14 @@ class FusionPodScene extends Phaser.Scene {
                 { cloudSave: window.CloudSave }
             );
         } catch (error) {
+            if (!this.isCurrentFusionView(view)) return { success: false, cancelled: true, reason: 'scene_changed' };
             return { success: false, reason: 'authority_execution_rejected' };
         }
 
+        if (!this.isCurrentFusionView(view)) return { success: false, cancelled: true, reason: 'scene_changed' };
+
         const attached = getGameState().attachFusionAuthorityExecution?.(
-            this.fusionTransaction.operationId,
+            view.operationId,
             execution
         ) || { success: false, reason: 'transaction_unavailable' };
         return {
@@ -3002,6 +3067,7 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     closeScene() {
+        if (this.cleanupComplete) return;
         console.log('[FusionPodScene] Closing and returning to GameScene');
 
         this.releaseSanctuaryOpeningGuard();
@@ -3044,6 +3110,8 @@ class FusionPodScene extends Phaser.Scene {
     shutdown() {
         if (this.cleanupComplete) return;
         this.cleanupComplete = true;
+        this.finishFusionLoading();
+        this.fusionViewEpoch = {};
         console.log('[FusionPodScene] Shutting down...');
 
         // Stop fusion music

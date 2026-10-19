@@ -1,13 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { checkpointHelpers, checkpointFixture } = require('./support/expeditionCheckpointFixtures.cjs');
 
 function loadHubWorldScene(sceneWindow = {}) {
     const filePath = path.join(__dirname, '../scenes/HubWorldScene.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
         .replace(/^import Phaser from 'phaser';$/m, '')
+        .replace(/^import HubGateTransitionController from .*;$/m,
+            fs.readFileSync(path.join(__dirname, '../scenes/controllers/HubGateTransitionController.js'), 'utf8')
+                .replace('export default class ', 'class '))
         .replace(/^import ExpeditionDebriefPanel from .*;$/m, '')
+        .replace(/^import .*ExpeditionCheckpoints\.js';$/m, '')
         .replace(
             /import \{[\s\S]*?\} from '\.\.\/systems\/ProjectBeaconStory\.js';/,
             'const acknowledgeProjectBeaconDebrief = () => {};\n' +
@@ -33,6 +38,7 @@ function loadHubWorldScene(sceneWindow = {}) {
     }
 
     const sandbox = {
+        ...checkpointHelpers,
         module: { exports: {} },
         exports: {},
         console,
@@ -223,7 +229,7 @@ describe('persistent expedition resume presentation', () => {
             gateId: 'mythical_forest',
             sceneKey: 'MythicalForestLevel',
             checkpointId: 'forest_anchor_3',
-            label: 'Guardian Approach',
+            label: 'Hidden Lives',
             current: 3,
             total: 3
         });
@@ -283,9 +289,32 @@ describe('persistent expedition resume presentation', () => {
         });
 
         expect(scene.infoText.setText).toHaveBeenCalledWith(
-            'FOREST Mythical Forest\nBeacon 3/3 • Guardian Approach'
+            'FOREST Mythical Forest\nBeacon 3/3 • Hidden Lives'
         );
         expect(scene.actionLabel.setText).toHaveBeenCalledWith('RESUME');
+    });
+
+    test.each([
+        { version: 3 }, { routeSignalMask: undefined }, { routeSignalMask: 0 },
+        { routeSignalMask: 8 }, { routeSignalMask: 1 }, { x: -1 }, { y: null }
+    ])('does not offer RESUME for unusable checkpoint fields: %j', overrides => {
+        const sceneWindow = createResumeWindow({
+            checkpoint: checkpointFixture('mythical_forest', 2, overrides)
+        });
+        const HubWorldScene = loadHubWorldScene(sceneWindow);
+        expect(new HubWorldScene().getExpeditionResumeForGate('mythical_forest')).toBeNull();
+        expect(sceneWindow.GameState.set).not.toHaveBeenCalled();
+        expect(sceneWindow.GameState.save).not.toHaveBeenCalled();
+    });
+
+    test('counts out-of-order roots, not the index of the latest root', () => {
+        const sceneWindow = createResumeWindow({
+            checkpoint: checkpointFixture('mythical_forest', 2, { routeSignalMask: 4 })
+        });
+        const HubWorldScene = loadHubWorldScene(sceneWindow);
+        expect(new HubWorldScene().getExpeditionResumeForGate('mythical_forest')).toMatchObject({
+            label: 'Hidden Lives', current: 1, total: 3
+        });
     });
 
     test('all expedition briefings present restored Beacon state without another modal', () => {

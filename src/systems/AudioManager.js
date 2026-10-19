@@ -13,6 +13,10 @@ class AudioManager {
         this.muted = false;
         this.sounds = new Map();
         this.preferenceListeners = new Set();
+        this.retiringMusic = new Map();
+        this.soundEffects = new Set();
+        this.careResponses = new Set();
+        this.soundEffectGeneration = 0;
 
         // Cache for procedurally generated audio buffers
         this.generatedSounds = new Map();
@@ -28,6 +32,8 @@ class AudioManager {
         this.audioPageShowHandler = null;
         this.audioPageHideHandler = null;
         this.phaserSound = null;
+        this.phaserSoundContext = null;
+        this.audioBindingGeneration = 0;
     }
 
     /**
@@ -157,12 +163,17 @@ class AudioManager {
     }
 
     attachPhaserSound(sound) {
+        const context = sound?.context ?? null;
+        if (this.phaserSound !== sound || this.phaserSoundContext !== context) this.audioBindingGeneration++;
         this.phaserSound = sound;
+        this.phaserSoundContext = context;
         sound?.setMute?.(this.muted);
         this.setupMobileAudioUnlock();
     }
 
     suspendAudioContexts() {
+        this.audioBindingGeneration++;
+        this.cancelSoundEffects();
         this.audioUnlocked = false;
         this.getAudioContexts().forEach(context => {
             try { Promise.resolve(context.suspend?.()).catch(() => {}); } catch { /* Already closed. */ }
@@ -1211,6 +1222,7 @@ class AudioManager {
      * Play a procedurally generated tone sequence
      * @param {string} name - Sound effect name
      * @param {number} volumeMultiplier - Optional volume multiplier
+     * @returns {Function|undefined} Stop only this sequence, when started
      */
     playSound(name, volumeMultiplier = 1.0) {
         if (!this.initialized || this.muted || !this.audioContext) return;
@@ -1218,11 +1230,14 @@ class AudioManager {
 
         // Auto-resume audio context if suspended (mobile safety check)
         if (['suspended', 'interrupted'].includes(this.audioContext.state)) {
-            this.resume().then(resumed => {
-                if (resumed) this.playSound(name, volumeMultiplier);
-            });
+            // A pickup or attack belongs to this instant, not a later unlock.
+            this.cancelSoundEffects();
+            void this.resume();
             return;
         }
+        const context = this.audioContext;
+        const generation = this.soundEffectGeneration;
+        if (!this.canPlaySoundEffect(context, generation)) return;
 
         // Lazy generation: if sound not in cache, check registry and generate
         let tones = this.generatedSounds.get(name);
@@ -1239,37 +1254,129 @@ class AudioManager {
             }
         }
 
+        const effect = { context, generation, retired: false, voices: new Set() };
+        this.soundEffects.add(effect);
         try {
-            let currentTime = this.audioContext.currentTime;
+            const startedAt = context.currentTime;
+            let currentTime = startedAt;
 
-            tones.forEach((tone) => {
-                const oscillator = this.audioContext.createOscillator();
-                const gainNode = this.audioContext.createGain();
+            for (const tone of tones) {
+                if (effect.retired || !this.canPlaySoundEffect(context, generation)) {
+                    this.retireSoundEffect(effect);
+                    break;
+                }
+                const voice = { source: null, output: null, released: false };
+                effect.voices.add(voice);
+                const oscillator = voice.source = context.createOscillator();
+                const gainNode = voice.output = context.createGain();
 
                 // Use safe connect to prevent errors
                 if (!this.safeConnect(oscillator, gainNode) ||
-                    !this.safeConnect(gainNode, this.audioContext?.destination)) {
-                    return; // Skip this tone if connection failed
+                    !this.safeConnect(gainNode, context.destination) ||
+                    !this.canPlaySoundEffect(context, generation)) {
+                    this.retireSoundEffect(effect);
+                    break;
                 }
 
                 oscillator.frequency.value = tone.frequency;
                 oscillator.type = 'sine'; // Smooth sine wave
+                if (tone.at !== undefined) currentTime = startedAt + tone.at;
 
                 // Calculate final volume
                 const finalVolume = tone.volume * this.sfxVolume * this.masterVolume * volumeMultiplier;
 
                 // Envelope for smooth attack/release
                 gainNode.gain.setValueAtTime(0, currentTime);
-                gainNode.gain.linearRampToValueAtTime(finalVolume, currentTime + 0.01); // Quick attack
+                gainNode.gain.linearRampToValueAtTime(finalVolume, currentTime + (tone.attack ?? 0.01));
                 gainNode.gain.linearRampToValueAtTime(0, currentTime + tone.duration); // Decay to silence
 
+                oscillator.onended = () => this.releaseSoundVoice(effect, voice);
                 oscillator.start(currentTime);
-                oscillator.stop(currentTime + tone.duration);
+                if (effect.retired || !this.canPlaySoundEffect(context, generation)) {
+                    this.retireSoundEffect(effect);
+                    break;
+                }
+                oscillator.stop(currentTime + tone.duration + (tone.stopTail ?? 0));
 
                 currentTime += tone.duration;
-            });
+            }
+            if (!effect.voices.size) this.retireSoundEffect(effect);
         } catch (error) {
+            this.retireSoundEffect(effect);
             console.warn('[AudioManager] Failed to play sound:', error);
+        }
+        return () => this.retireSoundEffect(effect);
+    }
+
+    playFarewell() {
+        this.registerSound('creature_farewell', [
+            { frequency: 440, at: 0, duration: 0.8, volume: 0.15, attack: 0.1, stopTail: 0.1 },
+            { frequency: 392, at: 0.9, duration: 0.8, volume: 0.15, attack: 0.1, stopTail: 0.1 },
+            { frequency: 349, at: 1.8, duration: 0.8, volume: 0.15, attack: 0.1, stopTail: 0.1 },
+            { frequency: 330, at: 2.7, duration: 1.2, volume: 0.15, attack: 0.1, stopTail: 0.1 },
+            { frequency: 294, at: 4, duration: 1.5, volume: 0.15, attack: 0.1, stopTail: 0.1 }
+        ]);
+        return this.playSound('creature_farewell');
+    }
+
+    canPlaySoundEffect(context, generation) {
+        return Boolean(context && this.audioContext === context && generation === this.soundEffectGeneration &&
+            this.initialized && !this.muted && this.masterVolume > 0 && this.sfxVolume > 0 &&
+            context.state === 'running' && !(typeof document !== 'undefined' && document.hidden));
+    }
+
+    releaseSoundVoice(effect, voice) {
+        if (voice.released) return;
+        voice.released = true;
+        effect.voices.delete(voice);
+        if (voice.source) voice.source.onended = null;
+        for (const node of [voice.source, voice.output]) {
+            try { node?.disconnect(); } catch { /* Already disconnected. */ }
+        }
+        if (!effect.voices.size) {
+            effect.retired = true;
+            this.soundEffects.delete(effect);
+        }
+    }
+
+    retireSoundEffect(effect) {
+        if (effect.retired) return;
+        effect.retired = true;
+        this.soundEffects.delete(effect);
+        for (const voice of [...effect.voices]) {
+            const source = voice.source;
+            this.releaseSoundVoice(effect, voice);
+            try { source?.stop(); } catch { /* Not started or already stopped. */ }
+        }
+    }
+
+    cancelSoundEffects() {
+        this.soundEffectGeneration++;
+        for (const response of this.careResponses) {
+            response.active = false;
+            clearTimeout(response.timer);
+        }
+        this.careResponses.clear();
+        for (const effect of [...this.soundEffects]) this.retireSoundEffect(effect);
+    }
+
+    playSoundWithResponse(action, name, delay) {
+        const context = this.audioContext, generation = this.soundEffectGeneration;
+        const eligible = this.canPlaySoundEffect(context, generation);
+        this.playSound(action);
+        if (!eligible || !this.canPlaySoundEffect(context, generation)) return;
+        const response = { context, generation, active: true, timer: null };
+        this.careResponses.add(response);
+        try {
+            response.timer = setTimeout(() => {
+                if (!response.active || !this.careResponses.delete(response)) return;
+                response.active = false;
+                if (this.canPlaySoundEffect(context, generation)) this.playSound(name);
+            }, delay);
+        } catch (error) {
+            response.active = false;
+            this.careResponses.delete(response);
+            console.warn('[AudioManager] Care response unavailable:', error);
         }
     }
 
@@ -1946,25 +2053,21 @@ class AudioManager {
      * Play feed action with creature response
      */
     playFeedWithResponse() {
-        this.playSound('feed');
-        // Play creature response after brief delay
-        setTimeout(() => this.playSound('feed_response'), 300);
+        this.playSoundWithResponse('feed', 'feed_response', 300);
     }
 
     /**
      * Play pet action with creature purr response
      */
     playPetWithResponse() {
-        this.playSound('pet');
-        setTimeout(() => this.playSound('pet_response'), 250);
+        this.playSoundWithResponse('pet', 'pet_response', 250);
     }
 
     /**
      * Play play action with excited response
      */
     playPlayWithResponse() {
-        this.playSound('play');
-        setTimeout(() => this.playSound('play_response'), 350);
+        this.playSoundWithResponse('play', 'play_response', 350);
     }
 
     /**
@@ -2269,6 +2372,7 @@ class AudioManager {
      */
     toggleMute() {
         this.muted = !this.muted;
+        if (this.muted) this.cancelSoundEffects();
 
         // Save to GameState if available
         if (typeof window !== 'undefined' && window.GameState) {
@@ -2340,6 +2444,7 @@ class AudioManager {
      */
     setMasterVolume(volume) {
         this.masterVolume = Math.max(0, Math.min(1, volume));
+        if (this.masterVolume === 0) this.cancelSoundEffects();
         this.persistVolumePreference(
             'settings.volume.master',
             'audioMasterVolume',
@@ -2356,6 +2461,7 @@ class AudioManager {
      */
     setSFXVolume(volume) {
         this.sfxVolume = Math.max(0, Math.min(1, volume));
+        if (this.sfxVolume === 0) this.cancelSoundEffects();
         this.persistVolumePreference(
             'settings.volume.sfx',
             'audioSFXVolume',
@@ -2389,7 +2495,13 @@ class AudioManager {
      */
     resume() {
         const contexts = this.getAudioContexts();
-        if (!contexts.length || this.muted || (typeof document !== 'undefined' && document.hidden)) return Promise.resolve(false);
+        const generation = this.audioBindingGeneration;
+        const procedural = this.audioContext, sound = this.phaserSound, recorded = sound?.context;
+        const ownsBinding = () => this.audioBindingGeneration === generation && this.audioContext === procedural &&
+            this.phaserSound === sound && this.phaserSound?.context === recorded;
+        if (this.muted || (typeof document !== 'undefined' && document.hidden) ||
+            (this.audioContext && this.audioContext.state !== 'running')) this.cancelSoundEffects();
+        if (!ownsBinding() || !contexts.length || this.muted || (typeof document !== 'undefined' && document.hidden)) return Promise.resolve(false);
         // Both resume calls must happen synchronously inside the same trusted gesture.
         const attempts = contexts.map(context => {
             if (context.state === 'running') return Promise.resolve(true);
@@ -2399,6 +2511,7 @@ class AudioManager {
             } catch { return Promise.resolve(false); }
         });
         return Promise.all(attempts).then(() => {
+            if (!ownsBinding()) return false;
             if (this.muted || (typeof document !== 'undefined' && document.hidden)) {
                 this.suspendAudioContexts();
                 return false;
@@ -2504,6 +2617,11 @@ class AudioManager {
      */
     initMusicSystem() {
         this.musicNodes = {
+            context: this.audioContext,
+            retired: false,
+            timeouts: new Set(),
+            intervals: new Set(),
+            transientSources: new Set(),
             gainNode: null,
             oscillators: [],
             lfoNodes: []
@@ -2511,6 +2629,80 @@ class AudioManager {
         this.currentArea = null;
         this.musicPlaying = false;
         this.arpeggioInterval = null;
+    }
+
+    isCurrentMusic(nodes) {
+        return Boolean(nodes && !nodes.retired && this.musicPlaying &&
+            this.musicNodes === nodes && this.audioContext === nodes.context);
+    }
+
+    canPlayMusicNote(nodes) {
+        return this.isCurrentMusic(nodes) && !this.muted &&
+            nodes.context.state === 'running' &&
+            !(typeof document !== 'undefined' && document.hidden);
+    }
+
+    scheduleMusicTimeout(nodes, callback, delay) {
+        if (!this.isCurrentMusic(nodes)) return null;
+        const timer = setTimeout(() => {
+            nodes.timeouts.delete(timer);
+            if (this.isCurrentMusic(nodes)) this.runMusicCallback(nodes, callback);
+        }, delay);
+        nodes.timeouts.add(timer);
+        return timer;
+    }
+
+    scheduleMusicInterval(nodes, callback, delay) {
+        if (!this.isCurrentMusic(nodes)) return null;
+        const timer = setInterval(() => {
+            if (this.isCurrentMusic(nodes)) this.runMusicCallback(nodes, callback);
+            else {
+                clearInterval(timer);
+                nodes.intervals.delete(timer);
+            }
+        }, delay);
+        nodes.intervals.add(timer);
+        return timer;
+    }
+
+    runMusicCallback(nodes, callback) {
+        try { callback(); }
+        catch (error) { this.deferFailedMusic(nodes, error); }
+    }
+
+    deferFailedMusic(nodes, error) {
+        this.stopMusicOscillators(nodes);
+        if (this.musicNodes === nodes) {
+            this.musicPlaying = false;
+            this.currentArea = null;
+        }
+        // The requested area remains available for normal audio recovery.
+        console.warn('[AudioManager] Music setup deferred:', error);
+    }
+
+    stopMusicSchedules(nodes) {
+        if (!nodes) return;
+        nodes.retired = true;
+        nodes.timeouts?.forEach(timer => clearTimeout(timer));
+        nodes.intervals?.forEach(timer => clearInterval(timer));
+        nodes.timeouts?.clear();
+        nodes.intervals?.clear();
+        if (nodes === this.musicNodes) {
+            this.arpeggioInterval = null;
+            this.bowlInterval = null;
+        }
+    }
+
+    trackMusicSource(nodes, source, ...outputs) {
+        const entry = { source, release: () => {
+            if (!nodes.transientSources.delete(entry)) return;
+            source.onended = null;
+            for (const node of [source, ...outputs]) {
+                try { node.disconnect(); } catch { /* Already disconnected. */ }
+            }
+        } };
+        nodes.transientSources.add(entry);
+        source.onended = entry.release;
     }
 
     /**
@@ -2546,26 +2738,21 @@ class AudioManager {
         this.currentArea = area;
         this.musicPlaying = true;
 
-        // Create master gain node for music
-        this.musicNodes.gainNode = this.audioContext.createGain();
-        this.musicNodes.gainNode.gain.value = 0;
-
-        // Safe connect to destination
-        if (!this.safeConnect(this.musicNodes.gainNode, this.audioContext?.destination)) {
-            console.warn('[AudioManager] Failed to connect music gain node');
-            return;
+        const nodes = this.musicNodes;
+        try {
+            nodes.gainNode = this.audioContext.createGain();
+            nodes.gainNode.gain.value = 0;
+            if (!this.safeConnect(nodes.gainNode, this.audioContext?.destination)) {
+                throw new Error('Music destination unavailable');
+            }
+            config.layers.forEach(layerType => this.createMusicLayer(layerType, config));
+            nodes.gainNode.gain.linearRampToValueAtTime(
+                this.muted ? 0 : this.musicVolume * this.masterVolume * 0.3,
+                this.audioContext.currentTime + 1
+            );
+        } catch (error) {
+            this.deferFailedMusic(nodes, error);
         }
-
-        // Create layers based on configuration
-        config.layers.forEach(layerType => {
-            this.createMusicLayer(layerType, config);
-        });
-
-        // Fade in
-        this.musicNodes.gainNode.gain.linearRampToValueAtTime(
-            this.muted ? 0 : this.musicVolume * this.masterVolume * 0.3,
-            this.audioContext.currentTime + 1
-        );
     }
 
     /**
@@ -2705,12 +2892,13 @@ class AudioManager {
      * Create arpeggio layer - scheduled note sequence
      */
     createArpeggioLayer(baseFreq, intervals, tempo) {
+        const nodes = this.musicNodes;
         const beatDuration = 60 / tempo; // Seconds per beat
         const noteLength = beatDuration * 0.8;
         let currentNote = 0;
 
         const playArpeggioNote = () => {
-            if (!this.musicPlaying) return;
+            if (!this.canPlayMusicNote(nodes)) return;
 
             const now = this.audioContext.currentTime;
             const interval = intervals[currentNote % intervals.length];
@@ -2726,7 +2914,8 @@ class AudioManager {
             gain.gain.exponentialRampToValueAtTime(0.001, now + noteLength);
 
             this.safeConnect(osc, gain);
-            this.safeConnect(gain, this.musicNodes?.gainNode);
+            this.safeConnect(gain, nodes.gainNode);
+            this.trackMusicSource(nodes, osc, gain);
 
             osc.start(now);
             osc.stop(now + noteLength);
@@ -2735,18 +2924,18 @@ class AudioManager {
         };
 
         // Start arpeggio loop
-        this.arpeggioInterval = setInterval(playArpeggioNote, beatDuration * 1000);
+        this.arpeggioInterval = this.scheduleMusicInterval(nodes, playArpeggioNote, beatDuration * 1000);
     }
 
     /**
      * Create bells/chimes layer - high sine tones with fast decay
      */
     createBellsLayer(baseFreq, intervals) {
-        const now = this.audioContext.currentTime;
+        const nodes = this.musicNodes;
 
         // Random bell strikes every few seconds
         const playBell = () => {
-            if (!this.musicPlaying) return;
+            if (!this.canPlayMusicNote(nodes)) return;
 
             const interval = intervals[Math.floor(Math.random() * intervals.length)];
             const freq = baseFreq * interval;
@@ -2760,18 +2949,17 @@ class AudioManager {
             gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 2);
 
             this.safeConnect(osc, gain);
-            this.safeConnect(gain, this.musicNodes?.gainNode);
+            this.safeConnect(gain, nodes.gainNode);
+            this.trackMusicSource(nodes, osc, gain);
 
             osc.start();
             osc.stop(this.audioContext.currentTime + 2);
-
-            // Schedule next bell at random interval
-            if (this.musicPlaying) {
-                setTimeout(playBell, 2000 + Math.random() * 4000);
-            }
         };
-
-        setTimeout(playBell, 1000);
+        const tick = () => {
+            playBell();
+            this.scheduleMusicTimeout(nodes, tick, 2000 + Math.random() * 4000);
+        };
+        this.scheduleMusicTimeout(nodes, tick, 1000);
     }
 
     /**
@@ -2853,10 +3041,11 @@ class AudioManager {
      * Create pulse/heartbeat layer - rhythmic low tones
      */
     createPulseLayer(baseFreq, tempo) {
+        const nodes = this.musicNodes;
         const beatDuration = 60 / tempo;
 
         const playPulse = () => {
-            if (!this.musicPlaying) return;
+            if (!this.canPlayMusicNote(nodes)) return;
 
             const now = this.audioContext.currentTime;
 
@@ -2869,17 +3058,17 @@ class AudioManager {
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
 
             this.safeConnect(osc, gain);
-            this.safeConnect(gain, this.musicNodes?.gainNode);
+            this.safeConnect(gain, nodes.gainNode);
+            this.trackMusicSource(nodes, osc, gain);
 
             osc.start(now);
             osc.stop(now + 0.5);
-
-            if (this.musicPlaying) {
-                setTimeout(playPulse, beatDuration * 2000); // Every 2 beats
-            }
         };
-
-        setTimeout(playPulse, 500);
+        const tick = () => {
+            playPulse();
+            this.scheduleMusicTimeout(nodes, tick, beatDuration * 2000);
+        };
+        this.scheduleMusicTimeout(nodes, tick, 500);
     }
 
     /**
@@ -2928,12 +3117,12 @@ class AudioManager {
      * Emulates Tibetan singing bowls with rich harmonics
      */
     createSingingBowlLayer(baseFreq, intervals) {
-        const now = this.audioContext.currentTime;
+        const nodes = this.musicNodes;
         let noteIndex = 0;
 
         // Play a singing bowl tone every 8 seconds
         const playBowlNote = () => {
-            if (!this.musicPlaying) return;
+            if (!this.canPlayMusicNote(nodes)) return;
 
             const currentTime = this.audioContext.currentTime;
             const interval = intervals[noteIndex % intervals.length];
@@ -2975,9 +3164,12 @@ class AudioManager {
             this.safeConnect(osc2, harm2Gain);
             this.safeConnect(osc3, harm3Gain);
 
-            this.safeConnect(mainGain, this.musicNodes?.gainNode);
-            this.safeConnect(harm2Gain, this.musicNodes?.gainNode);
-            this.safeConnect(harm3Gain, this.musicNodes?.gainNode);
+            this.safeConnect(mainGain, nodes.gainNode);
+            this.safeConnect(harm2Gain, nodes.gainNode);
+            this.safeConnect(harm3Gain, nodes.gainNode);
+            this.trackMusicSource(nodes, osc, mainGain);
+            this.trackMusicSource(nodes, osc2, harm2Gain);
+            this.trackMusicSource(nodes, osc3, harm3Gain);
 
             osc.start(currentTime);
             osc2.start(currentTime);
@@ -2994,13 +3186,7 @@ class AudioManager {
         playBowlNote();
 
         // Schedule subsequent bowl strikes
-        this.bowlInterval = setInterval(() => {
-            if (this.musicPlaying) {
-                playBowlNote();
-            } else {
-                clearInterval(this.bowlInterval);
-            }
-        }, 8000);
+        this.bowlInterval = this.scheduleMusicInterval(nodes, playBowlNote, 8000);
     }
 
     /**
@@ -3050,8 +3236,9 @@ class AudioManager {
      * Soft, occasional chime sounds for ambient texture
      */
     createWindChimesLayer(baseFreq, intervals) {
+        const nodes = this.musicNodes;
         const playChime = () => {
-            if (!this.musicPlaying) return;
+            if (!this.canPlayMusicNote(nodes)) return;
 
             const currentTime = this.audioContext.currentTime;
             const interval = intervals[Math.floor(Math.random() * intervals.length)];
@@ -3069,7 +3256,8 @@ class AudioManager {
             gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 2);
 
             this.safeConnect(osc, gainNode);
-            this.safeConnect(gainNode, this.musicNodes?.gainNode);
+            this.safeConnect(gainNode, nodes.gainNode);
+            this.trackMusicSource(nodes, osc, gainNode);
 
             osc.start(currentTime);
             osc.stop(currentTime + 2.1);
@@ -3077,19 +3265,15 @@ class AudioManager {
 
         // Play chimes at random intervals (3-7 seconds)
         const scheduleNextChime = () => {
-            if (!this.musicPlaying) return;
-
             const delay = 3000 + Math.random() * 4000;
-            setTimeout(() => {
-                if (this.musicPlaying) {
-                    playChime();
-                    scheduleNextChime();
-                }
+            this.scheduleMusicTimeout(nodes, () => {
+                playChime();
+                scheduleNextChime();
             }, delay);
         };
 
         // Start chime sequence
-        setTimeout(playChime, 1000);
+        this.scheduleMusicTimeout(nodes, playChime, 1000);
         scheduleNextChime();
     }
 
@@ -3337,27 +3521,30 @@ class AudioManager {
 
         console.log('[AudioManager] 🔇 Stopping music');
 
-        // Clear arpeggio interval
-        if (this.arpeggioInterval) {
-            clearInterval(this.arpeggioInterval);
-            this.arpeggioInterval = null;
-        }
-
+        this.stopMusicSchedules(this.musicNodes);
         this.musicPlaying = false;
 
         if (this.musicNodes.gainNode) {
             if (fade) {
                 // Fade out over 1 second
-                this.musicNodes.gainNode.gain.linearRampToValueAtTime(
-                    0,
-                    this.audioContext.currentTime + 1
-                );
+                try {
+                    this.musicNodes.gainNode.gain.linearRampToValueAtTime(
+                        0,
+                        this.audioContext.currentTime + 1
+                    );
+                } catch {
+                    this.stopMusicOscillators();
+                    this.currentArea = null;
+                    return;
+                }
 
                 // Stop oscillators after fade
                 const retiringNodes = this.musicNodes;
-                setTimeout(() => {
+                const timer = setTimeout(() => {
+                    this.retiringMusic.delete(retiringNodes);
                     this.stopMusicOscillators(retiringNodes);
                 }, 1100);
+                this.retiringMusic.set(retiringNodes, timer);
             } else {
                 // Immediate stop
                 this.stopMusicOscillators();
@@ -3372,13 +3559,18 @@ class AudioManager {
      */
     stopMusicOscillators(nodes = this.musicNodes) {
         if (nodes) {
+            this.stopMusicSchedules(nodes);
+            if (this.retiringMusic.has(nodes)) {
+                clearTimeout(this.retiringMusic.get(nodes));
+                this.retiringMusic.delete(nodes);
+            }
+            for (const entry of [...(nodes.transientSources || [])]) {
+                try { entry.source.stop(); } catch { /* Already stopped. */ }
+                entry.release();
+            }
             nodes.oscillators.forEach(osc => {
-                try {
-                    osc.stop();
-                    osc.disconnect();
-                } catch (e) {
-                    // Oscillator already stopped
-                }
+                try { osc.stop(); } catch { /* Already stopped. */ }
+                try { osc.disconnect(); } catch { /* Already disconnected. */ }
             });
             nodes.oscillators = [];
 
@@ -3392,7 +3584,7 @@ class AudioManager {
             nodes.lfoNodes = [];
 
             if (nodes.gainNode) {
-                nodes.gainNode.disconnect();
+                try { nodes.gainNode.disconnect(); } catch { /* Already disconnected. */ }
                 nodes.gainNode = null;
             }
         }
@@ -3427,12 +3619,16 @@ class AudioManager {
      * Clean up audio resources
      */
     destroy() {
+        this.audioBindingGeneration++;
+        this.audioUnlocked = false;
+        this.cancelSoundEffects();
         this.preferenceListeners.clear();
         this.requestedArea = null;
         // Stop any playing music
         if (this.musicPlaying) {
             this.stopMusic(false);
         }
+        for (const nodes of [...this.retiringMusic.keys()]) this.stopMusicOscillators(nodes);
 
         // Remove mobile audio unlock listeners
         this.removeUnlockListeners();
@@ -3449,6 +3645,7 @@ class AudioManager {
             this.audioPageHideHandler = null;
         }
         this.phaserSound = null;
+        this.phaserSoundContext = null;
 
         // Clear music nodes
         this.musicNodes = null;
@@ -3456,7 +3653,7 @@ class AudioManager {
         this.musicPlaying = false;
 
         if (this.audioContext) {
-            this.audioContext.close();
+            try { Promise.resolve(this.audioContext.close()).catch(() => {}); } catch { /* Already closed. */ }
             this.audioContext = null;
         }
         this.generatedSounds.clear();

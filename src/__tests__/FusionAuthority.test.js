@@ -400,7 +400,7 @@ describe('FusionAuthority', () => {
             serverReservation,
             execution.receipt,
             ['Nova'],
-            { cloudSave }
+            { cloudSave, isCurrentCampaign: expect.any(Function) }
         );
     });
 
@@ -712,6 +712,54 @@ describe('FusionAuthority', () => {
             name: 'FusionAuthorityFinalizationError',
             message: 'fusion_server_finalization_invalid'
         }));
+    });
+
+    test.each(['reserve', 'execute', 'finalize'])('%s cannot dispatch after reset during session acquisition', async step => {
+        const request = authority.createRequest({ transaction: createTransaction(), parents: createParents() });
+        let epoch = 0;
+        const rpc = jest.fn();
+        const invoke = jest.fn();
+        const cloudSave = {
+            isEnabled: () => true,
+            captureCampaignGuard: () => { const captured = epoch; return () => epoch === captured; },
+            ensureSession: async () => { epoch += 1; },
+            performServerMutation: callback => callback(),
+            client: { rpc, functions: { invoke } }
+        };
+        const reservation = { reservationMode: 'server_reserved', offspringCount: 1 };
+        const pending = step === 'reserve' ? authority.reserveOperation(request, { cloudSave })
+            : step === 'execute' ? authority.executeReservedOperation(request, reservation, { cloudSave })
+                : authority.finalizeReservedOperation(request, reservation, {}, ['Synthetic child'], { cloudSave });
+        await expect(pending).rejects.toMatchObject({ code: 'cloud_campaign_changed' });
+        expect(rpc).not.toHaveBeenCalled();
+        expect(invoke).not.toHaveBeenCalled();
+    });
+
+    test.each(['reserve', 'execute'])('reconciliation does not continue after reset during %s', async step => {
+        let epoch = 0;
+        const cloudSave = {
+            isEnabled: () => true,
+            captureCampaignGuard: jest.fn(() => { const captured = epoch; return () => epoch === captured; })
+        };
+        const normalized = { request: {}, offspringCount: 1, offspringIds: ['synthetic-child'], names: ['Synthetic child'] };
+        jest.spyOn(authority, 'normalizeReconciliationRecord').mockReturnValue(normalized);
+        const reserve = jest.spyOn(authority, 'reserveOperation').mockImplementation(async () => {
+            if (step === 'reserve') epoch += 1;
+            return { reservationMode: 'server_reserved', offspringCount: 1, offspringIds: normalized.offspringIds };
+        });
+        const execute = jest.spyOn(authority, 'executeReservedOperation').mockImplementation(async () => {
+            epoch += 1;
+            return { receipt: {} };
+        });
+        const finalize = jest.spyOn(authority, 'finalizeReservedOperation');
+        await expect(authority.reconcileOfflineReceipt({}, { cloudSave })).rejects.toMatchObject({ code: 'cloud_campaign_changed' });
+        expect(cloudSave.captureCampaignGuard).toHaveBeenCalledTimes(1);
+        expect(reserve).toHaveBeenCalledTimes(1);
+        expect(execute).toHaveBeenCalledTimes(step === 'execute' ? 1 : 0);
+        expect(finalize).not.toHaveBeenCalled();
+        if (step === 'execute') {
+            expect(execute.mock.calls[0][2].isCurrentCampaign).toBe(reserve.mock.calls[0][1].isCurrentCampaign);
+        }
     });
 
     test('replays deterministic random sequences and restores global functions', () => {

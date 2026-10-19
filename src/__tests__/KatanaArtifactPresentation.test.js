@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectCrystalCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 const vm = require('vm');
 
 function loadPresentationResolver() {
@@ -94,15 +95,11 @@ describe('katana artifact presentation', () => {
         expect(artifactSource).toContain("inventory: 'CURRENT CONFIGURATION'");
     });
 
-    test('reveals newly earned upgrades before ordinary level rewards', () => {
+    test('keeps upgrade artwork available but uses the single regional reward summary', () => {
         expect(platformerSource).toContain('showKatanaUpgradeReveal({ onClose = null }');
         expect(platformerSource).toContain("context: 'upgrade'");
-        expect(crystalSource).toContain(
-            'onClose: () => this.showCompletionScreen()'
-        );
-        expect(auroraSource).toContain(
-            'onClose: () => this.showLevelComplete()'
-        );
+        expectCrystalCompletionConnection();
+        expectAuroraCompletionConnection();
     });
 
     test('serializes the resident release and katana reward on touch devices', () => {

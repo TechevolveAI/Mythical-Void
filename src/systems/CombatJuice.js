@@ -33,6 +33,7 @@ export default class CombatJuice {
 
         // Hit stop state (brief pause on impact)
         this.hitStopActive = false;
+        this.hitFlashes = new Map();
     }
 
     /**
@@ -117,20 +118,55 @@ export default class CombatJuice {
      * @param {number} duration - Flash duration in ms
      */
     hitFlash(target, color = 0xFFFFFF, duration = 100) {
-        if (!target || !this.scene) return;
+        const scene = this.scene;
+        const clock = scene?.time;
+        const corners = ['tintTopLeft', 'tintTopRight', 'tintBottomLeft', 'tintBottomRight'];
+        if (!target?.active || typeof target.setTint !== 'function' ||
+            !corners.every(key => Number.isFinite(target[key])) || !clock?.delayedCall) return false;
 
-        // Store original tint
-        const originalTint = target.tintTopLeft || 0xFFFFFF;
-
-        // Apply flash tint
-        target.setTint(color);
-
-        // Reset after duration
-        this.scene.time.delayedCall(duration, () => {
-            if (target && target.active) {
-                target.clearTint();
+        const readTint = () => ({ colors: corners.map(key => target[key]), fill: target.tintFill === true });
+        const matches = tint => tint && tint.fill === (target.tintFill === true) &&
+            corners.every((key, index) => target[key] === tint.colors[index]);
+        const previous = this.hitFlashes.get(target);
+        // Repeated hits share the original appearance, unless another effect
+        // has since replaced it (for example, a freed Guardian's green tint).
+        const original = previous?.ownsTint() ? previous.original : readTint();
+        previous?.retire(false);
+        const flash = { original, timer: null, tint: null, retired: false };
+        flash.ownsTint = () => !flash.retired && this.hitFlashes.get(target) === flash &&
+            this.scene === scene && scene.time === clock && target.active && matches(flash.tint);
+        flash.retire = (restore = true) => {
+            if (flash.retired) return;
+            const restoreTint = restore && flash.ownsTint();
+            flash.retired = true;
+            if (this.hitFlashes.get(target) === flash) this.hitFlashes.delete(target);
+            flash.timer?.remove(false);
+            flash.timer?.destroy();
+            target.off?.('destroy', flash.onDestroy);
+            scene.events?.off?.('shutdown', flash.onShutdown);
+            if (restoreTint) {
+                try {
+                    target.setTint(...original.colors);
+                    target.tintFill = original.fill;
+                } catch {
+                    // Optional feedback cannot interrupt combat or shutdown.
+                }
             }
-        });
+        };
+        flash.onDestroy = () => flash.retire(false);
+        flash.onShutdown = () => flash.retire();
+        this.hitFlashes.set(target, flash);
+        try {
+            target.setTint(color);
+            flash.tint = readTint();
+            target.once?.('destroy', flash.onDestroy);
+            scene.events?.once?.('shutdown', flash.onShutdown);
+            flash.timer = clock.delayedCall(duration, () => flash.retire());
+            return true;
+        } catch {
+            flash.retire();
+            return false;
+        }
     }
 
     /**
@@ -984,6 +1020,7 @@ export default class CombatJuice {
      * Cleanup all combat juice elements
      */
     cleanup() {
+        [...this.hitFlashes.values()].forEach(flash => flash.retire());
         if (this.comboTimer) {
             this.comboTimer.remove();
         }

@@ -54,6 +54,9 @@ class NASAContentSystem {
     }
 
     async fetchWithTimeout(url, options = {}) {
+        if (typeof __MYTHICAL_PRIVATE_REVIEW__ !== 'undefined' && __MYTHICAL_PRIVATE_REVIEW__) {
+            throw new Error('Private review uses offline space content');
+        }
         const controller = typeof AbortController !== 'undefined'
             ? new AbortController()
             : null;
@@ -179,6 +182,7 @@ class NASAContentSystem {
      * Check if we should show daily content (first login today)
      */
     shouldShowDailyContent() {
+        if (typeof __MYTHICAL_PRIVATE_REVIEW__ !== 'undefined' && __MYTHICAL_PRIVATE_REVIEW__) return false;
         const today = new Date().toISOString().split('T')[0];
         const shouldShow = this.lastShownDate !== today;
         devLog(`[NASAContent] shouldShowDailyContent: ${shouldShow} (lastShown: ${this.lastShownDate}, today: ${today})`);

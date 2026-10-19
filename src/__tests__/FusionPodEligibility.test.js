@@ -100,6 +100,70 @@ describe('Fusion Pod maturity requirements', () => {
         expect(formatFusionWaitTime(25 * 60 * 60 * 1000)).toBe('1d 1h');
     });
 
+    function requirementView(reason, context) {
+        const scene = new FusionPodScene();
+        const texts = [];
+        const handlers = new Map();
+        scene.createOverlay = jest.fn();
+        scene.closeScene = jest.fn();
+        const graphic = {};
+        ['fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'setDepth']
+            .forEach(method => { graphic[method] = jest.fn(() => graphic); });
+        scene.add = {
+            graphics: () => graphic,
+            text: (x, y, value) => {
+                texts.push(value);
+                const label = {};
+                ['setOrigin', 'setDepth', 'setInteractive', 'setStyle']
+                    .forEach(method => { label[method] = jest.fn(() => label); });
+                label.on = (event, callback) => {
+                    handlers.set(`${value}:${event}`, callback);
+                    return label;
+                };
+                return label;
+            }
+        };
+        const before = JSON.stringify(context);
+        scene.showRequirementNotMet(390, 844, reason, context);
+        expect(JSON.stringify(context)).toBe(before);
+        expect(handlers.has('Got it:pointerdown')).toBe(true);
+        handlers.get('Got it:pointerdown')();
+        expect(scene.closeScene).toHaveBeenCalledTimes(1);
+        return texts.join('\n');
+    }
+
+    test('points a player with one creature to egg hatching, not resident rescue', () => {
+        const text = requirementView('need_creatures', { collection: [{ id: 'alpha' }] });
+        expect(text).toContain('Your creatures: 1/2');
+        expect(text).toContain('Hatch an egg from Inventory');
+        expect(text).toContain('Both parents stay with you');
+        expect(text).not.toMatch(/rescue|family records|synthesis/i);
+    });
+
+    test('gives a short expedition next step before the existing level unlock', () => {
+        const text = requirementView('locked', 3);
+        expect(text).toContain('Explore with your creature to reach Level 5');
+        expect(text).toContain('Current level: 3/5');
+    });
+
+    test.each([
+        ['maturing', DAY_MS, 'growing (1d)'],
+        ['wellbeing', null, 'needs care in Sanctuary'],
+        ['lifecycle_sync', 0, 'visit Sanctuary to check growth'],
+        ['departed', null, 'has left the Sanctuary'],
+        ['missing_birth_record', null, 'growth details unavailable']
+    ])('explains %s without promising immediate adulthood', (reason, remainingMs, expected) => {
+        const text = requirementView('need_adults', { readiness: [
+            { eligible: true, creature: { id: 'adult', name: 'Luma' } },
+            { eligible: false, reason, remainingMs, creature: { id: 'young', name: 'Sprig' } }
+        ] });
+        expect(text).toContain('Adults needed');
+        expect(text).toContain('Adults ready: 1/2');
+        expect(text).toContain(`Sprig: ${expected}`);
+        expect(text).toContain('Both parents stay with you');
+        expect(text).not.toMatch(/signature|synthesis|lifecycle record|stable in/i);
+    });
+
     test('rejects missing, malformed, and future lifecycle data', () => {
         expect(isCreatureFusionEligible(null, now)).toBe(false);
         expect(isCreatureFusionEligible({}, now)).toBe(false);
@@ -387,8 +451,9 @@ describe('Fusion Pod maturity requirements', () => {
         );
 
         expect(source).toContain(
-            'Two stable life patterns form a new lineage. Both creatures remain with you.'
+            'Create new life together. Both parents stay with you.'
         );
+        expect(source).toContain('Choose two adult creatures to see their shared traits.');
         expect(source).toContain('previewAutoSelect');
         expect(source).toContain("'generation_failed'");
         expect(source).toContain('enterDeterministicRandomScope');

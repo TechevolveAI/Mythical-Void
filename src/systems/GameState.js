@@ -3,6 +3,24 @@
  * Handles player progression, world state, creature data, and persistence
  */
 
+const LOCAL_SAVE_ERROR_OWNER = Symbol('localSaveErrorOwner');
+const preparedDraftWrites = new WeakSet();
+const autoSaveDeferrals = new WeakMap();
+const preparedSaveOperations = new WeakMap();
+const retiredSaveOperation = () => Object.assign(new Error('This operation no longer owns the active progress.'), { code: 'save_context_changed' });
+
+function assertHatchIdentityReadable(state) {
+    const creature = state?.creature;
+    // Preserve the hatch entry's existing selection rule. An unresolved input
+    // is not evidence that a surviving identity can be discarded or regenerated.
+    const identity = creature?.genes || creature?.genetics;
+    if (creature?.hatched && (!identity || !identity.id)) {
+        throw Object.assign(new Error('The saved creature identity could not be verified safely.'), {
+            code: 'save_unreadable'
+        });
+    }
+}
+
 const OPENING_MILESTONES = Object.freeze([
     'not_started',
     'hatch_started',
@@ -307,6 +325,12 @@ class GameStateManager {
         this.state = this.createInitialState();
         this.eventListeners = new Map();
         this.autoSaveInterval = null;
+        // A lease permits this instance to save while its indexed cloud write is in flight.
+        // Reconstructed instances have no lease and must stop at the durable journal.
+        this.cloudWriteLease = null;
+        this.cloudRecoveryRequired = false;
+        this.cloudRecoveryEvidenceLimited = false;
+        this.saveAdmission = { status: 'ready', epoch: 0, reason: null, source: null };
 
         // Storage mode tracking
         this.storageMode = 'localStorage'; // 'localStorage', 'sessionStorage', or 'memory'
@@ -1009,6 +1033,7 @@ class GameStateManager {
         
         // Load existing save data
         this.load();
+        if (this.getSaveAdmission().status === 'held') return false;
         
         // Update session data
         this.state.session.sessionStart = Date.now();
@@ -1123,12 +1148,14 @@ class GameStateManager {
 
             console.log(`[GameState] ${path} changed:`, oldValue, '->', value);
         } catch (error) {
-            console.error('[GameState] Failed to set value at path:', path, error);
+            this.reportStateMutationError(error, path);
+        }
+    }
 
-            // Emit error event
-            if (typeof window !== 'undefined' && window.ErrorHandler) {
-                window.ErrorHandler.handleError(error, 'GameState.set', 'warning');
-            }
+    reportStateMutationError(error, path) {
+        console.error('[GameState] Failed to set value at path:', path, error);
+        if (typeof window !== 'undefined' && window.ErrorHandler) {
+            window.ErrorHandler.handleError(error, 'GameState.set', 'warning');
         }
     }
 
@@ -1249,6 +1276,404 @@ class GameStateManager {
     isUnlocked(type, item) {
         const unlocks = this.get(`unlocks.${type}`) || [];
         return unlocks.includes(item);
+    }
+
+    canCommitHatchSave() {
+        if (this.storageMode === 'memory' || this.cloudWriteLease) return false;
+        try {
+            this.assertSaveAdmission();
+            this.assertCloudRecoveryClear();
+            return true;
+        } catch (error) { return false; }
+    }
+
+    getHatchActiveIdentity() {
+        return JSON.stringify({ genes: this.get('creature.genes'), genetics: this.get('creature.genetics'),
+            dna: this.get('creature.dna'), hatched: this.get('creature.hatched'),
+            hatchTime: this.get('creature.hatchTime'), activeIndex: this.get('activeCreatureIndex') });
+    }
+
+    /** Publish a hatch draft only after its exact local bytes are verified. */
+    commitHatchSaveDraft(staged, options = {}) {
+        const { isCurrentCampaign = () => true, isCurrentResult = () => true,
+            isCurrentUpload = () => false, notifications = [], onPublished, onNotification, draftGuard } = options;
+        const failed = reason => ({ success: false, reason });
+        // Trusted internal publisher only: no async, generator, constructor or returned work.
+        if (onPublished !== undefined && (typeof onPublished !== 'function' ||
+            Object.prototype.toString.call(onPublished) !== '[object Function]' ||
+            /^\s*class\b/.test(Function.prototype.toString.call(onPublished)))) {
+            return failed('hatch_save_unavailable');
+        }
+        if (onNotification !== undefined && (!onPublished || typeof onNotification !== 'function' ||
+            Object.prototype.toString.call(onNotification) !== '[object Function]' ||
+            /^\s*class\b/.test(Function.prototype.toString.call(onNotification)))) return failed('hatch_save_unavailable');
+        // Optional internal prepared-data fence. Existing callers omit it. The
+        // capability must be fixed and synchronous; no returned work is adopted.
+        if (draftGuard !== undefined) {
+            try {
+                const keys = ['root', 'isCurrent', 'sealAccounting'];
+                if (!draftGuard || typeof draftGuard !== 'object' || !Object.isFrozen(draftGuard) ||
+                    Reflect.ownKeys(draftGuard).length !== keys.length || keys.some(key => {
+                        const field = Object.getOwnPropertyDescriptor(draftGuard, key);
+                        return !field || !Object.hasOwn(field, 'value') ||
+                            (key === 'root' ? field.value !== staged : typeof field.value !== 'function' ||
+                                Object.prototype.toString.call(field.value) !== '[object Function]' ||
+                                /^\s*class\b/.test(Function.prototype.toString.call(field.value)));
+                    }) || preparedDraftWrites.has(draftGuard)) return failed('hatch_save_unavailable');
+            } catch { return failed('hatch_save_unavailable'); }
+        }
+        const draftCurrent = () => {
+            if (!draftGuard) return true;
+            const returned = draftGuard.isCurrent();
+            if (returned === true) return true;
+            try { Promise.prototype.then.call(returned, undefined, () => {}); } catch { /* Not a native promise. */ }
+            return false;
+        };
+        if (draftGuard) {
+            preparedDraftWrites.add(draftGuard);
+            try {
+                if (!draftCurrent()) { preparedDraftWrites.delete(draftGuard); return failed('hatch_context_changed'); }
+            } catch { preparedDraftWrites.delete(draftGuard); return failed('hatch_context_changed'); }
+        }
+        let canCommit;
+        try { canCommit = this.canCommitHatchSave(); }
+        catch (error) { if (draftGuard) preparedDraftWrites.delete(draftGuard); throw error; }
+        if (!canCommit) {
+            if (draftGuard) preparedDraftWrites.delete(draftGuard);
+            return failed('hatch_save_unavailable');
+        }
+        let originalRaw, serialized, localWrite, writeAttempted = false;
+        let adoptedForPublication = false, publicationReader;
+        const owner = this.state;
+        const epoch = this.saveAdmission.epoch;
+        const ownsCampaign = () => this.saveAdmission.status === 'ready' &&
+            this.saveAdmission.epoch === epoch && isCurrentCampaign();
+        const publicationFailed = () => {
+            // Adoption may already be durable. Protect only its original reader, never roll back or replay.
+            try {
+                if (isCurrentCampaign()) publicationReader?.hold({ code: 'commit_failed' }, 'local_write');
+            } catch (error) { /* A retired reader cannot authorise further error effects. */ }
+            return failed('hatch_context_changed');
+        };
+        try {
+            this.assertSaveAdmission();
+            this.assertCloudRecoveryClear();
+            if (!ownsCampaign() || !draftCurrent()) return failed('hatch_context_changed');
+            originalRaw = localStorage.getItem(this.saveKey);
+            const originalSnapshot = JSON.stringify(this.createSaveSnapshot());
+            localWrite = this.captureLocalSaveWrite(originalSnapshot);
+            if (!staged || staged === owner) return failed('hatch_save_unavailable');
+            const accounting = () => {
+                const value = (node, key) => {
+                    const field = node && Object.getOwnPropertyDescriptor(node, key);
+                    if (!field || !Object.hasOwn(field, 'value')) throw Error('PREPARED_ACCOUNTING_UNAVAILABLE');
+                    return field.value;
+                };
+                const player = value(staged, 'player'), session = value(staged, 'session');
+                return Object.freeze({ playTime: value(player, 'playTime'), lastPlayed: value(player, 'lastPlayed'),
+                    sessionStart: value(session, 'sessionStart'), savedAt: value(staged, 'savedAt') });
+            };
+            if (draftGuard && (staged.version !== GAME_VERSION || !draftCurrent())) return failed('hatch_context_changed');
+            const beforeAccounting = draftGuard ? accounting() : null;
+            const snapshot = this.createSaveSnapshot({ state: staged, updatePlayTime: true });
+            if (draftGuard) {
+                const returned = draftGuard.sealAccounting(Object.freeze({ before: beforeAccounting, after: accounting() }));
+                if (returned !== undefined) {
+                    try { Promise.prototype.then.call(returned, undefined, () => {}); } catch { /* Not a native promise. */ }
+                    throw Error('The prepared accounting seal must complete synchronously without returning work');
+                }
+                if (!ownsCampaign() || !draftCurrent()) return failed('hatch_context_changed');
+            }
+            this.validateSaveDataStructure(snapshot, { requireCoreState: true });
+            this.prepareSaveCandidate(snapshot);
+            serialized = JSON.stringify(snapshot);
+            const ownsBeforeWrite = () => ownsCampaign() && draftCurrent() && !this.cloudWriteLease && localWrite.isCurrentOwner();
+            if (draftGuard && !ownsBeforeWrite()) return failed('hatch_context_changed');
+            if (originalRaw && originalRaw !== serialized &&
+                !this.createLocalSaveBackup(originalRaw, 'before_local_save')) {
+                throw new Error('Recovery copy could not be created');
+            }
+            // Backup subscribers can synchronously change progress, campaign or cloud ownership.
+            this.assertSaveAdmission();
+            this.assertCloudRecoveryClear();
+            if (!ownsBeforeWrite()) {
+                return failed('hatch_context_changed');
+            }
+            localWrite.assertCurrent(originalRaw);
+            writeAttempted = true;
+            try {
+                localStorage.setItem(this.saveKey, serialized);
+            } catch (error) {
+                // An exception alone is not non-commit evidence. Accept only exact verified bytes.
+                if (localStorage.getItem(this.saveKey) !== serialized) throw error;
+            }
+            this.assertSaveAdmission();
+            this.assertCloudRecoveryClear();
+            if (!ownsBeforeWrite()) {
+                throw new Error('The hatch save could not be verified');
+            }
+            localWrite.assertCurrent(serialized);
+            if (onPublished && !ownsBeforeWrite()) return failed('hatch_context_changed');
+            this.state = staged;
+            if (onPublished) {
+                adoptedForPublication = true;
+                publicationReader = this.captureSaveAdmissionOwner({ raw: serialized });
+            }
+            const publishedReader = this.captureLocalSaveWrite(serialized);
+            const protectCurrentReader = () => {
+                // Changed live progress/owners are successors, not this reader's mismatch.
+                if (ownsCampaign() && publishedReader.isCurrentOwner()) publishedReader.assertCurrent(serialized);
+            };
+            const isCurrent = () => {
+                try {
+                    this.assertSaveAdmission();
+                    this.assertCloudRecoveryClear();
+                    protectCurrentReader();
+                    const durable = JSON.parse(localStorage.getItem(this.saveKey));
+                    return ownsCampaign() && draftCurrent() && !this.cloudWriteLease && this.state === staged &&
+                        isCurrentResult(this.state, durable, serialized);
+                } catch (error) { return false; }
+            };
+            const mayNotify = () => !onPublished ? isCurrent() :
+                ownsCampaign() && publicationReader.isCurrent() && isCurrent() &&
+                publicationReader.isCurrent() && ownsCampaign();
+            if (onPublished) {
+                if (!mayNotify()) return publicationFailed();
+                const returned = onPublished();
+                if (returned !== undefined) {
+                    // Observe only native promise rejection; never call an arbitrary thenable or await work.
+                    try { Promise.prototype.then.call(returned, undefined, () => {}); } catch (error) { /* Not a native promise. */ }
+                    throw new Error('The hatch publisher must complete synchronously without returning work');
+                }
+                if (!mayNotify()) return publicationFailed();
+            }
+            for (const notification of notifications) {
+                if (!mayNotify()) return onPublished ? publicationFailed() : failed('hatch_context_changed');
+                if (onNotification) {
+                    const returned = onNotification(notification);
+                    if (returned !== undefined) {
+                        try { Promise.prototype.then.call(returned, undefined, () => {}); } catch (error) { /* Not a native promise. */ }
+                        throw new Error('Prepared notifications must dispatch synchronously without returning work');
+                    }
+                } else this.emit(notification.event, notification.data);
+                if (onNotification && !mayNotify()) return publicationFailed();
+            }
+            if (!mayNotify()) return onPublished ? publicationFailed() : failed('hatch_context_changed');
+            this.emit('saved', snapshot);
+            if (!mayNotify()) return onPublished ? publicationFailed() : failed('hatch_context_changed');
+            const isDurableCurrent = () => {
+                try {
+                    this.assertSaveAdmission();
+                    protectCurrentReader();
+                    const lease = this.cloudWriteLease;
+                    if (lease) {
+                        const { pending } = this.inspectCloudRecovery();
+                        if (lease.kind !== 'upload' || lease.admissionEpoch !== epoch ||
+                            !lease.isCurrentCampaign?.() || !isCurrentUpload(lease) ||
+                            pending.length !== 1 || pending[0].id !== lease.id || pending[0].payload !== lease.snapshot ||
+                            !isCurrentResult(this.state, JSON.parse(lease.snapshot), serialized)) return false;
+                    }
+                    return ownsCampaign() && draftCurrent() && this.state === staged &&
+                        isCurrentResult(this.state, JSON.parse(localStorage.getItem(this.saveKey)), serialized);
+                } catch (error) { return false; }
+            };
+            return { success: true, isCurrent: isDurableCurrent };
+        } catch (error) {
+            if (adoptedForPublication) return publicationFailed();
+            const ownsError = () => isCurrentCampaign() && (localWrite
+                ? localWrite.isCurrentOwner()
+                : this.state === owner && ownsCampaign());
+            // A failed old write must not hold or notify its successor as its own error.
+            if (!ownsError()) return failed('hatch_context_changed');
+            if (writeAttempted) localWrite?.protectUnverifiedWrite();
+            if (!ownsError()) return failed('hatch_context_changed');
+            this.emit('saveError', { type: 'unknown', error });
+            return failed('hatch_save_unavailable');
+        } finally {
+            if (draftGuard) preparedDraftWrites.delete(draftGuard);
+        }
+    }
+
+    /** Stage only the existing reveal markers; retain untouched service-owned branches. */
+    prepareLivingFormProgressDraft(action) {
+        if (!['portrait', 'continue'].includes(action)) throw new Error('Unknown reveal progress');
+        const clone = value => JSON.parse(JSON.stringify(value));
+        const notifications = [];
+        const draft = { state: { ...this.state, player: { ...this.state.player }, session: { ...this.state.session },
+            tutorial: clone(this.state.tutorial) },
+            emit: (event, data) => notifications.push({ event, data: clone(data) }),
+            reportStateMutationError: error => { throw error; } };
+        for (const method of ['get', 'set', 'recordOpeningMilestone', 'recordOpeningPortraitStatus']) {
+            draft[method] = GameStateManager.prototype[method];
+        }
+        if (action === 'portrait') {
+            draft.set('tutorial.livingFormSeen', true);
+            draft.recordOpeningPortraitStatus('ready');
+        } else {
+            draft.set('tutorial.livingFormPending', false);
+            draft.recordOpeningMilestone('sanctuary_entered');
+        }
+        return { state: draft.state, notifications };
+    }
+
+    /** Qualify only an uncollected ordinary hatch, without allocating or repairing data. */
+    canPrepareCreatureNaming(name) {
+        const creature = this.get('creature'), creatures = this.get('creatures');
+        if (typeof name !== 'string' || !name.trim() || !creature?.hatched || creature.named === true ||
+            typeof creature.genes?.id !== 'string' || !creature.genes.id.trim() ||
+            !Array.isArray(creatures) || creatures.length >= (this.get('maxCreatures') || 8) ||
+            creature.hatchTransaction != null) return false;
+        const allowed = new Set(['id', 'hatched', 'hatchTransaction', 'hatchTime', 'name', 'named', 'level', 'experience',
+            'stats', 'traits', 'genes', 'genetics', 'dna', 'colors', 'powerHistory', 'agencyHistory', 'portraits',
+            'identityArchive', 'care', 'lifecycle', 'mood', 'bond', 'personality', 'personalityState', 'textureName',
+            'species', 'rarity', 'cosmicElement', 'descriptiveName', 'spawnPosition']);
+        if (Object.keys(creature).some(key => !allowed.has(key))) return false;
+        if (creature.genes.rarity && !['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].includes(creature.genes.rarity)) return false;
+        if (!creature.care || typeof creature.care !== 'object' || Array.isArray(creature.care) ||
+            !Array.isArray(creature.care.careHistory) || !creature.care.dailyCare ||
+            typeof creature.care.dailyCare !== 'object' || Array.isArray(creature.care.dailyCare) ||
+            !creature.mood || typeof creature.mood !== 'object' || Array.isArray(creature.mood) ||
+            !Array.isArray(creature.mood.moodHistory) ||
+            !Array.isArray(creature.traits) || !creature.colors || typeof creature.colors !== 'object' ||
+            Array.isArray(creature.colors)) return false;
+        return !creatures.some(record => !record || typeof record !== 'object' ||
+            (creature.id && record.id === creature.id) || record.genes?.id === creature.genes.id ||
+            (creature.textureName && record.textureName === creature.textureName && record.name === name.trim()));
+    }
+
+    /** Prepare the unchanged ordinary naming domain on detached data, never a live writer. */
+    prepareCreatureNamingDraft(name, soulData, achievements = null, quests = null) {
+        if (!this.canPrepareCreatureNaming(name)) throw new Error('This naming case needs review');
+        const clone = value => JSON.parse(JSON.stringify(value));
+        const notifications = [];
+        const draft = { state: clone(this.state),
+            emit: (event, data) => {
+                notifications.push({ kind: 'state', event, data: data === undefined ? undefined : clone(data) });
+                if (quests && event === 'creatureAddedToCollection') {
+                    quests.prepareNamingCollectionDraft(draft, { size: draft.state.creatures.length, rarity: data.creature.rarity },
+                        packet => notifications.push(packet));
+                }
+            },
+            reportStateMutationError: error => { throw error; } };
+        for (const method of ['get', 'set', 'createInitialState', 'deepMerge', 'clonePortableValue',
+            'createEmptyPortraitState', 'addCreatureToCollection', 'switchActiveCreature', 'syncFusionDiscovery',
+            'recordOpeningMilestone', 'recordOpeningPortraitStatus']) draft[method] = GameStateManager.prototype[method];
+        draft.set('creature.name', name.trim()); draft.set('creature.named', true);
+        draft.set('tutorial.livingFormPending', true);
+        draft.recordOpeningMilestone('creature_named'); draft.recordOpeningPortraitStatus('pending');
+        const added = draft.addCreatureToCollection();
+        if (!added?.success || added.reason !== 'added') throw new Error('The selected creature was not collected');
+        let preparedAchievements = null;
+        if (achievements) {
+            const genes = draft.get('creature.genes');
+            preparedAchievements = achievements.prepareHatchEventDraft(draft.state, {
+                hatchId: genes.id, rarity: genes.rarity || 'common', species: genes.species || 'unknown'
+            });
+            draft.state = preparedAchievements.state;
+            notifications.push(...preparedAchievements.events.filter(packet => packet.kind !== 'save-request'));
+        }
+        draft.set('creature.soulData', clone(soulData));
+        const packets = clone(notifications.filter(packet => packet.kind !== 'save-request'));
+        const stateEvents = new Set(['stateChanged', 'openingJourneyAdvanced', 'openingPortraitStatusChanged',
+            'creatureSwitched', 'creatureAddedToCollection', 'fusionPodDiscovered', 'fusionPodStabilized', 'breedingUnlocked']);
+        if (packets.some(packet => packet.kind === 'state'
+            ? !(stateEvents.has(packet.event) || /^changed:[a-zA-Z][a-zA-Z0-9.]*$/.test(packet.event))
+            : packet.kind === 'achievement' ? packet.event !== 'achievement:unlocked'
+                : packet.kind !== 'quest' || !['questCompleted', 'questProgressUpdated'].includes(packet.event))) {
+            throw new Error('The prepared naming notifications are unavailable');
+        }
+        return Object.freeze({ state: draft.state, notifications: Object.freeze(packets.map(packet => Object.freeze(packet))),
+            achievements: preparedAchievements, creatureId: added.creature.id, index: added.index });
+    }
+
+    /** Store the unchanged v1 reservation and one-egg decrement together. */
+    reserveInventoryEggForHatching(slot, spawnPosition, options = {}) {
+        const { expectedItem, isCurrentCampaign = () => true } = options;
+        if (!this.canCommitHatchSave()) return { success: false, reason: 'hatch_save_unavailable' };
+        if (this.get('creature.hatchTransaction')?.status === 'reserved') return { success: false, reason: 'hatch_already_reserved' };
+        const item = this.get('inventory.items')?.[slot];
+        const quantity = item?.quantity === undefined ? 1 : item.quantity;
+        if (!Number.isInteger(slot) || slot < 0 || item?.type !== 'egg' ||
+            JSON.stringify(item) !== JSON.stringify(expectedItem) || !Number.isInteger(quantity) || quantity < 1) {
+            return { success: false, reason: 'egg_not_found' };
+        }
+        const staged = JSON.parse(JSON.stringify(this.state));
+        const transaction = {
+            schemaVersion: 1, status: 'reserved', eggType: item.eggType || 'cosmic',
+            eggItemId: item.id, inventorySlot: slot,
+            spawnPosition: {
+                x: Number.isFinite(Number(spawnPosition?.x)) ? Number(spawnPosition.x) : 400,
+                y: Number.isFinite(Number(spawnPosition?.y)) ? Number(spawnPosition.y) : 300
+            }, reservedAt: Date.now()
+        };
+        staged.creature.hatchTransaction = transaction;
+        if (quantity > 1) staged.inventory.items[slot].quantity -= 1;
+        else staged.inventory.items.splice(slot, 1);
+        staged.inventory.items.forEach((entry, index) => { entry.slot = index; });
+        const reservationBytes = JSON.stringify(transaction);
+        const result = this.commitHatchSaveDraft(staged, { isCurrentCampaign,
+            isCurrentResult: (live, durable) => JSON.stringify(live.creature?.hatchTransaction) === reservationBytes &&
+                JSON.stringify(durable?.creature?.hatchTransaction) === reservationBytes &&
+                JSON.stringify(live.inventory) === JSON.stringify(durable?.inventory) });
+        return result.success ? { ...result, transaction } : result;
+    }
+
+    commitCreatureHatch(profile, options = {}) {
+        if (!this.canCommitHatchSave()) return { success: false, reason: 'hatch_save_unavailable' };
+        const { isCurrentCampaign = () => true, isCurrentUpload = () => false,
+            isInventoryHatch = false, expectedReservation = null } = options;
+        if (!profile?.genetics?.id || !isCurrentCampaign()) return { success: false, reason: 'hatch_context_changed' };
+        const identity = JSON.stringify(profile.genetics);
+        const alreadyHatched = this.get('creature.hatched') === true &&
+            this.get('creature.hatchTransaction') === null && JSON.stringify(this.get('creature.genes')) === identity &&
+            JSON.stringify(this.get('creature.genetics')) === identity &&
+            (!Object.hasOwn(profile, 'dna') || JSON.stringify(this.get('creature.dna')) === JSON.stringify(profile.dna));
+        if (!alreadyHatched && options.expectedActiveIdentity !== undefined &&
+            this.getHatchActiveIdentity() !== options.expectedActiveIdentity) return { success: false, reason: 'hatch_context_changed' };
+        if (!alreadyHatched && JSON.stringify(this.get('creature.hatchTransaction')) !== JSON.stringify(expectedReservation)) {
+            return { success: false, reason: 'hatch_context_changed' };
+        }
+
+        // This domain-only draft has no inherited owner, persistence or service access.
+        const notifications = [];
+        const draft = { state: JSON.parse(JSON.stringify(this.state)),
+            emit: (event, data) => notifications.push({ event, data }),
+            reportStateMutationError: error => { throw error; } };
+        for (const method of ['get', 'set', 'unlock', 'updateCreature', 'checkBreedingShrineUnlock',
+            'syncFusionDiscovery', 'initializeCareSystem', 'completeHatching', 'recordOpeningMilestone']) {
+            draft[method] = GameStateManager.prototype[method];
+        }
+        if (isInventoryHatch && !alreadyHatched) {
+            draft.state.creature = this.createInitialState().creature;
+            draft.state.creature.spawnPosition = profile.spawnPosition || expectedReservation?.spawnPosition || null;
+            draft.state.tutorial.livingFormPending = false;
+            draft.state.tutorial.livingFormSeen = false;
+        }
+        const genetics = JSON.parse(identity);
+        draft.set('creature.genetics', genetics);
+        draft.set('creature.genes', genetics);
+        for (const key of ['dna', 'personalityState']) {
+            if (Object.hasOwn(profile, key) && profile[key] !== undefined) draft.set(`creature.${key}`, JSON.parse(JSON.stringify(profile[key])));
+        }
+        draft.set('creature.textureName', profile.textureName);
+        draft.set('creature.species', genetics.species);
+        draft.set('creature.personality', genetics.personality.core);
+        draft.set('creature.rarity', genetics.rarity);
+        draft.set('creature.cosmicElement', genetics.cosmicAffinity.element);
+        draft.set('creature.descriptiveName', profile.descriptiveName);
+        for (const key of ['pitySystem', 'rerollSystem']) {
+            if (profile[key]) draft.set(key, JSON.parse(JSON.stringify(profile[key])));
+        }
+        if (!draft.completeHatching()) return { success: false, reason: 'hatch_save_unavailable' };
+        draft.recordOpeningMilestone('creature_hatched');
+        draft.set('creature.hatchTransaction', null);
+        const dna = JSON.stringify(draft.state.creature.dna);
+        return this.commitHatchSaveDraft(draft.state, { isCurrentCampaign, isCurrentUpload, notifications,
+            isCurrentResult: (live, durable) => live.creature?.hatched === true && durable?.creature?.hatched === true &&
+                live.creature?.hatchTransaction === null && durable?.creature?.hatchTransaction === null &&
+                JSON.stringify(live.creature?.genes) === identity && JSON.stringify(durable?.creature?.genes) === identity &&
+                JSON.stringify(live.creature?.genetics) === identity && JSON.stringify(durable?.creature?.genetics) === identity &&
+                JSON.stringify(live.creature?.dna) === dna && JSON.stringify(durable?.creature?.dna) === dna });
     }
 
     /**
@@ -1487,6 +1912,13 @@ class GameStateManager {
             console.warn(`[GameState] Creature "${creature.name}" already exists in collection, skipping duplicate`);
             this.emit('duplicateCreature', { creature });
             return { success: false, reason: 'duplicate', creature };
+        }
+
+        if (!creatureData) {
+            for (const field of ['bond', 'powerHistory', 'agencyHistory', 'care', 'mood', 'traits', 'colors']) {
+                const value = this.get(`creature.${field}`);
+                if (value !== undefined) creature[field] = this.clonePortableValue(value);
+            }
         }
 
         creatures.push(creature);
@@ -3078,6 +3510,9 @@ class GameStateManager {
     }
 
     async finalizeFusionTransaction(operationId, offspringCreatures) {
+        const cloudSave = typeof globalThis !== 'undefined' ? globalThis.CloudSave : null;
+        const isCurrentCampaign = cloudSave?.captureCampaignGuard?.() || (() => true);
+        const cancelled = () => ({ success: false, cancelled: true, reason: 'campaign_changed' });
         const pending = this.get('breedingShrine.pendingFusion');
         const offspring = Array.isArray(offspringCreatures)
             ? offspringCreatures
@@ -3113,12 +3548,9 @@ class GameStateManager {
                 transaction.authorityReservation,
                 transaction.authorityExecution?.receipt,
                 stagedNames.names,
-                {
-                    cloudSave: typeof globalThis !== 'undefined'
-                        ? globalThis.CloudSave
-                        : null
-                }
+                { cloudSave, isCurrentCampaign }
             );
+            if (!isCurrentCampaign()) return cancelled();
             const collection = this.getCreatureCollection();
             const committedOffspring = transaction.offspringIds.map(id => (
                 collection.find(creature => creature?.id === id)
@@ -3168,6 +3600,7 @@ class GameStateManager {
                 revision: finalization.revision
             };
         } catch (error) {
+            if (!isCurrentCampaign() || error?.code === 'cloud_campaign_changed') return cancelled();
             console.warn('[GameState] Server Fusion finalization deferred:', error);
             return {
                 success: false,
@@ -3585,11 +4018,18 @@ class GameStateManager {
             return false;
         }
 
+        let write = null, writeAttempted = false;
+        let admissionOwner = this.captureSaveAdmissionOwner();
         try {
+            this.assertSaveAdmission(admissionOwner);
             const saveData = this.createSaveSnapshot({ updatePlayTime: true });
+            // Snapshot time accounting is local and emits no notifications.
+            admissionOwner = admissionOwner.afterSnapshot();
             this.validateSaveDataStructure(saveData, { requireCoreState: true });
+            this.prepareSaveCandidate(saveData);
 
             const serialized = JSON.stringify(saveData);
+            write = this.captureLocalSaveWrite(serialized);
 
             // Check quota before saving
             const quota = this.getStorageQuota();
@@ -3597,23 +4037,34 @@ class GameStateManager {
                 console.warn('[GameState] Storage quota nearly full:', quota.percentUsed.toFixed(1) + '%');
             }
 
-            const currentRaw = localStorage.getItem(this.saveKey);
+            const currentRaw = write.raw;
             if (currentRaw && currentRaw !== serialized) {
                 const backup = this.createLocalSaveBackup(
                     currentRaw,
                     'before_local_save'
                 );
                 if (!backup) {
-                    throw new Error('Recovery copy could not be created');
+                    const error = new Error('Recovery copy could not be created');
+                    error.code = 'commit_failed';
+                    throw error;
                 }
             }
+            this.assertSaveAdmission();
+            write.assertCurrent();
+            writeAttempted = true;
             localStorage.setItem(this.saveKey, serialized);
+            write.assertCurrent(serialized);
 
             this.emit('saved', saveData);
             console.log('[GameState] Game saved successfully');
 
             return true;
         } catch (error) {
+            if (error.code === 'save_context_changed') return false;
+            if (!write && !admissionOwner.isCurrent()) return false;
+            if (write && !write.isCurrentOwner()) return false;
+            if (writeAttempted) write?.protectUnverifiedWrite();
+            if (write && !write.isCurrentOwner()) return false;
             // Handle specific quota exceeded error
             if (error.name === 'QuotaExceededError' ||
                 error.code === 22 ||
@@ -3621,8 +4072,10 @@ class GameStateManager {
 
                 console.error('[GameState] Storage quota exceeded!');
                 this.storageMode = 'memory';
-                this.showStorageWarning('Storage full - progress will not be saved. Try clearing browser data.');
                 this.stopAutoSave(); // Disable auto-save to prevent spam
+                const warningOwner = this.captureSaveAdmissionOwner();
+                this.showStorageWarning('Storage full - new progress cannot be saved. Free device space, but do not clear this game\'s browser data.');
+                if (!warningOwner.isCurrent()) return false;
 
                 this.emit('saveError', {
                     type: 'quota_exceeded',
@@ -3630,12 +4083,117 @@ class GameStateManager {
                     mode: this.storageMode
                 });
             } else {
+                if (['version_mismatch', 'save_would_lose_history', 'commit_failed', 'save_unreadable'].includes(error.code)) {
+                    const errorOwner = write ? this.captureSaveAdmissionOwner() : admissionOwner;
+                    if (!errorOwner.hold(error, 'local_write')) return false;
+                }
                 console.error('[GameState] Save failed:', error);
                 this.emit('saveError', { type: 'unknown', error });
             }
 
             return false;
         }
+    }
+
+    /** Error effects belong to the reader that began admission, not a nested successor. */
+    captureSaveAdmissionOwner(observation = {}) {
+        const state = this.state, snapshot = JSON.stringify(state), mode = this.storageMode;
+        const key = this.saveKey, lease = this.cloudWriteLease;
+        const game = typeof window === 'undefined' ? undefined : window.GameState;
+        const cloud = typeof window === 'undefined' ? undefined : window.CloudSave;
+        // Cloud's campaign guard calls admission itself. Observe its owner fields
+        // here instead of recursively asking it for admission.
+        const cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+        let admission = this.saveAdmission;
+        let observed = Object.hasOwn(observation, 'raw'), raw = observation.raw;
+        const owns = () => {
+            try {
+                return this.state === state && JSON.stringify(state) === snapshot &&
+                    this.storageMode === mode && this.saveKey === key && this.cloudWriteLease === lease &&
+                    this.saveAdmission === admission &&
+                    (typeof window === 'undefined' || (window.GameState === game && window.CloudSave === cloud)) &&
+                    cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser;
+            } catch (error) { return false; }
+        };
+        const sameRaw = () => {
+            if (!owns()) return false;
+            try {
+                const matching = !observed || localStorage.getItem(key) === raw;
+                return owns() && matching;
+            }
+            catch (error) { return false; }
+        };
+        const retired = () => Object.assign(new Error('This check no longer owns the active progress.'), {
+            code: 'save_context_changed'
+        });
+        const guard = {
+            isCurrent: () => owns() && sameRaw(),
+            hold: (error, source) => {
+                if (!owns()) return false;
+                const matchingRaw = sameRaw();
+                if (!owns()) return false;
+                const held = this.holdSaveAdmission(matchingRaw ? error : { code: 'commit_failed' }, source);
+                const previous = admission;
+                admission = held;
+                if (!owns()) { admission = previous; return false; }
+                return matchingRaw && sameRaw() && owns();
+            },
+            observeRaw: value => {
+                if (!owns()) throw retired();
+                if (!observed) { raw = value; observed = true; }
+                guard.assertCurrent();
+            },
+            assertCurrent: () => {
+                if (guard.isCurrent()) return;
+                guard.hold({ code: 'commit_failed' }, 'local');
+                throw retired();
+            },
+            afterSnapshot: () => this.captureSaveAdmissionOwner(observed ? { raw } : {})
+        };
+        return guard;
+    }
+
+    /** Fence synchronous backup/storage callbacks without changing the save format. */
+    captureLocalSaveWrite(snapshot = JSON.stringify(this.createSaveSnapshot())) {
+        const state = this.state, mode = this.storageMode;
+        let admission = this.saveAdmission;
+        const lease = this.cloudWriteLease, key = this.saveKey;
+        const raw = localStorage.getItem(key);
+        const owns = () => {
+            try {
+                return this.state === state && this.saveAdmission === admission && this.storageMode === mode &&
+                    this.saveKey === key && this.cloudWriteLease === lease &&
+                    (typeof lease?.isCurrentCampaign !== 'function' || lease.isCurrentCampaign()) &&
+                    JSON.stringify(this.createSaveSnapshot()) === snapshot;
+            } catch (error) { return false; }
+        };
+        return {
+            raw,
+            isCurrentOwner: owns,
+            assertCurrent: (expectedRaw = raw) => {
+                if (owns()) {
+                    if (localStorage.getItem(key) === expectedRaw) return;
+                    const error = new Error('The active save could not be verified.');
+                    error.code = 'commit_failed';
+                    this.holdSaveAdmission(error, 'local_write');
+                    throw error;
+                }
+                const error = new Error('This write no longer owns the active progress.');
+                error.code = 'save_context_changed';
+                throw error;
+            },
+            protectUnverifiedWrite: () => {
+                if (!owns()) return;
+                try { if (localStorage.getItem(key) === raw) return; } catch (error) { /* Outcome is unreadable. */ }
+                const held = this.holdSaveAdmission({ code: 'commit_failed' }, 'local_write');
+                // Recognise only this exact hold for error handling, never for another write.
+                if (this.saveAdmission === held) {
+                    const previous = admission;
+                    admission = held;
+                    if (!owns()) admission = previous;
+                }
+            }
+        };
     }
 
     /**
@@ -3782,14 +4340,40 @@ class GameStateManager {
             throw error;
         }
 
+        const fusionHistories = [
+            { path: 'breedingShrine.completedOperationIds', limit: MAX_FUSION_HISTORY,
+                pattern: /^fusion_[A-Za-z0-9_-]{1,160}$/ },
+            { path: 'breedingShrine.sharedFusion.completedOperationIds', limit: 25,
+                pattern: /^fusion_shared_[A-Za-z0-9_-]{1,160}$/ }
+        ].map(history => {
+            const ids = readStatePath(parsed, history.path);
+            return { ...history, validIds: [...new Set(Array.isArray(ids)
+                ? ids.filter(id => typeof id === 'string' && history.pattern.test(id))
+                : [])] };
+        });
+        const refuseHistoryLoss = () => {
+            const error = new Error('This build cannot preserve all completed Fusion operations.');
+            error.code = 'save_would_lose_history';
+            throw error;
+        };
+        // Check both contracts before migration, including before optional shared services load.
+        if (fusionHistories.some(history => history.validIds.length > history.limit)) refuseHistoryLoss();
+        assertHatchIdentityReadable(parsed);
+
         const clonedSave = JSON.parse(JSON.stringify(parsed));
         const migrated = this.migrateSaveData(clonedSave, saveVersion);
         this.validateSaveDataStructure(migrated);
+        // Completed shared operations are idempotency evidence, not disposable UI history.
+        if (fusionHistories.some(history => {
+            const retained = readStatePath(migrated, history.path);
+            return history.validIds.some(id => !Array.isArray(retained) || !retained.includes(id));
+        })) refuseHistoryLoss();
 
         const preparedState = this.deepMerge(this.createInitialState(), migrated);
         preparedState.version = GAME_VERSION;
         preparedState.savedAt = Number(migrated.savedAt) || Date.now();
         this.validateSaveDataStructure(preparedState, { requireCoreState: true });
+        assertHatchIdentityReadable(preparedState);
 
         const snapshot = JSON.parse(JSON.stringify(preparedState));
         snapshot.session = {
@@ -3808,20 +4392,322 @@ class GameStateManager {
         };
     }
 
-    readLocalSaveBackupIndex() {
-        if (this.storageMode === 'memory') return [];
+    getSaveAdmission() {
+        return { ...this.saveAdmission };
+    }
+
+    holdSaveAdmission(error, source = 'local') {
+        if (this.saveAdmission.status !== 'held') {
+            this.saveAdmission = {
+                status: 'held', epoch: this.saveAdmission.epoch + 1,
+                reason: error?.code || 'save_unreadable', source
+            };
+            const held = this.saveAdmission;
+            this.stopAutoSave();
+            this.emit('saveAdmissionChanged', this.getSaveAdmission());
+            return held;
+        }
+        return this.saveAdmission;
+    }
+
+    releaseSaveAdmission(operation = null) {
+        const issued = operation && preparedSaveOperations.get(operation);
+        if (operation && (issued?.owner !== this || issued.phase !== 'adopting' || this.state !== issued.staged)) {
+            throw retiredSaveOperation();
+        }
+        this.saveAdmission = {
+            status: 'ready', epoch: this.saveAdmission.epoch + 1, reason: null, source: null
+        };
+        if (issued) {
+            // Issue the exact writer-owned transition before admission observers run.
+            issued.phase = 'published';
+            issued.root = this.state;
+            issued.admission = this.saveAdmission;
+            issued.snapshot = JSON.stringify(this.state);
+            issued.transition = Object.freeze({ state: this.state, admission: this.saveAdmission });
+        }
+        this.emit('saveAdmissionChanged', this.getSaveAdmission());
+    }
+
+    createPreparedSaveOperation(runtimeCurrent) {
+        if (typeof runtimeCurrent !== 'function' || Object.prototype.toString.call(runtimeCurrent) !== '[object Function]' ||
+            /^\s*class\b/.test(Function.prototype.toString.call(runtimeCurrent))) throw Error('Unsupported save operation');
+        const source = this.captureSaveAdmissionOwner(), owner = this;
+        const game = typeof window === 'undefined' ? undefined : window.GameState;
+        const cloud = typeof window === 'undefined' ? undefined : window.CloudSave, user = cloud?.currentUser?.id;
+        const key = this.saveKey, mode = this.storageMode, lease = this.cloudWriteLease;
+        const record = { owner, phase: 'source', prepared: null, rawReadable: mode === 'memory', raw: null };
+        if (mode !== 'memory') {
+            try { record.raw = localStorage.getItem(key); record.rawReadable = true; }
+            catch { if (!source.isCurrent()) throw retiredSaveOperation(); }
+        }
+        const base = () => owner.state === record.root && owner.saveAdmission === record.admission &&
+            owner.saveKey === key && owner.storageMode === mode && owner.cloudWriteLease === lease &&
+            JSON.stringify(record.root) === record.snapshot &&
+            (typeof window === 'undefined' || window.GameState === game && window.CloudSave === cloud) && cloud?.currentUser?.id === user;
+        const current = () => {
+            try {
+                const owns = () => record.phase === 'source' ? source.isCurrent() : record.phase === 'published' && base();
+                if (!owns()) return false;
+                const runtime = runtimeCurrent();
+                if (runtime !== true) {
+                    try { Promise.prototype.then.call(runtime, undefined, () => {}); } catch { /* Not a native promise. */ }
+                    return false;
+                }
+                if (!owns()) return false;
+                if (!record.writerActive && record.rawReadable && mode !== 'memory' && localStorage.getItem(key) !== record.raw) return false;
+                if (record.phase === 'published' && record.rawReadable && mode !== 'memory' && localStorage.getItem(key) !== record.raw) return false;
+                return owns();
+            } catch { return false; }
+        };
+        const operation = Object.freeze({ isCurrent: current, getTransition: () => current() ? record.transition || null : null,
+            bindPrepared: prepared => {
+                if (record.phase !== 'source' || record.prepared || !current() || !prepared ||
+                    typeof prepared.serialized !== 'string' || !prepared.state || !prepared.snapshot) throw retiredSaveOperation();
+                record.prepared = prepared;
+                const stateBytes = JSON.stringify(prepared.state), snapshotBytes = JSON.stringify(prepared.snapshot), serialized = prepared.serialized;
+                record.dataCurrent = () => prepared.serialized === serialized && JSON.stringify(prepared.state) === stateBytes &&
+                    JSON.stringify(prepared.snapshot) === snapshotBytes;
+            } });
+        record.current = current;
+        preparedSaveOperations.set(operation, record);
+        if (!current()) throw retiredSaveOperation();
+        return operation;
+    }
+
+    assertSaveAdmission(owner = this.captureSaveAdmissionOwner()) {
+        if (this.saveAdmission.status === 'held') {
+            const error = new Error('Progress is protected. Resolve the saved-game warning first.');
+            error.code = 'save_admission_held';
+            throw error;
+        }
+        // Re-evaluate the durable bytes as another tab may have replaced them.
         try {
-            const parsed = JSON.parse(
-                localStorage.getItem(this.saveBackupIndexKey) || '[]'
-            );
-            return Array.isArray(parsed) ? parsed : [];
+            this.assertCloudRecoveryClear({ allowOwned: true });
+            const raw = this.storageMode !== 'memory' && localStorage.getItem(this.saveKey);
+            if (this.storageMode !== 'memory') owner.observeRaw(raw);
+            if (raw) this.prepareSaveCandidate(raw);
+            assertHatchIdentityReadable(this.state);
+            owner.assertCurrent();
         } catch (error) {
-            return [];
+            if (!owner.hold(error, 'local')) {
+                throw Object.assign(new Error('The admission check was retired.'), { code: 'save_context_changed' });
+            }
+            throw error;
+        }
+        return true;
+    }
+
+    canPersistSave() {
+        try {
+            return this.assertSaveAdmission();
+        } catch (error) {
+            return false;
+        }
+    }
+
+    validateExternalSaveAdmission(saveData, source = 'cloud') {
+        const owner = this.captureSaveAdmissionOwner();
+        try {
+            this.assertSaveAdmission(owner);
+            this.prepareSaveCandidate(saveData);
+            owner.assertCurrent();
+            return true;
+        } catch (error) {
+            if (error.code === 'save_context_changed' || !owner.isCurrent()) return false;
+            if (this.saveAdmission.status !== 'held') {
+                // Retain remote evidence on the existing backup surface before holding.
+                this.createLocalSaveBackup(saveData, `unsupported_${source}`);
+                if (!owner.hold(error, source)) return false;
+            }
+            return false;
+        }
+    }
+
+    isProtectedSaveBackup(entry) {
+        if (entry?.reason?.startsWith('cloud_write_') && entry.reason !== 'cloud_write_confirmed') return true;
+        try {
+            const envelope = JSON.parse(localStorage.getItem(`${this.saveBackupKeyPrefix}${entry.id}`));
+            this.prepareSaveCandidate(envelope.payload);
+            return false;
+        } catch (error) {
+            return true;
+        }
+    }
+
+    readLocalSaveBackupIndex() {
+        const raw = localStorage.getItem(this.saveBackupIndexKey);
+        const entries = raw === null ? [] : JSON.parse(raw);
+        if (!Array.isArray(entries) || entries.some((entry, i) => (
+            !entry || typeof entry.id !== 'string' || !/^\d+(?:-\d+)?$/.test(entry.id) ||
+            typeof entry.reason !== 'string' || !Number.isFinite(entry.createdAt) ||
+            !(entry.sourceVersion === null || typeof entry.sourceVersion === 'string') ||
+            !(entry.sourceSavedAt === null || Number.isFinite(entry.sourceSavedAt)) ||
+            entries.findIndex(other => other?.id === entry.id) !== i
+        ))) {
+            throw this.cloudRecoveryError('Recovery index needs review.', 'cloud_recovery_damaged');
+        }
+        return entries;
+    }
+
+    cloudRecoveryError(message, code = 'cloud_result_uncertain') {
+        return Object.assign(new Error(message), { code });
+    }
+
+    // Inspect envelopes as well as the index: a crash can leave an unindexed reservation.
+    // Missing/corrupt evidence is not permission to start a replacement journal.
+    inspectCloudRecovery() {
+        const entries = this.readLocalSaveBackupIndex();
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key?.startsWith(this.saveBackupKeyPrefix) && key !== this.saveBackupIndexKey) keys.push(key);
+        }
+        if (keys.length !== entries.length) {
+            throw this.cloudRecoveryError('Recovery copies and index differ.', 'cloud_recovery_damaged');
+        }
+        const pending = [];
+        for (const entry of entries) {
+            const key = `${this.saveBackupKeyPrefix}${entry.id}`;
+            const raw = localStorage.getItem(key);
+            if (!keys.includes(key) || !raw) {
+                throw this.cloudRecoveryError('A recovery copy is missing.', 'cloud_recovery_damaged');
+            }
+            let envelope;
+            try { envelope = JSON.parse(raw); } catch (error) {
+                throw this.cloudRecoveryError('A recovery copy cannot be read.', 'cloud_recovery_damaged');
+            }
+            if (envelope?.schemaVersion !== 1 || envelope.id !== entry.id ||
+                envelope.reason !== entry.reason || envelope.createdAt !== entry.createdAt ||
+                envelope.sourceVersion !== entry.sourceVersion || envelope.sourceSavedAt !== entry.sourceSavedAt ||
+                typeof envelope.payload !== 'string') {
+                throw this.cloudRecoveryError('Recovery metadata differs.', 'cloud_recovery_damaged');
+            }
+            if (entry.reason.startsWith('cloud_write_') && entry.reason !== 'cloud_write_confirmed') {
+                pending.push({ ...entry, payload: envelope.payload });
+            }
+        }
+        return { entries, pending };
+    }
+
+    assertCloudRecoveryClear({ allowOwned = false } = {}) {
+        if (this.storageMode === 'memory' && this.cloudRecoveryRequired) {
+            throw this.cloudRecoveryError('Cloud recovery storage is unavailable.');
+        }
+        const { pending } = this.inspectCloudRecovery();
+        if (this.cloudRecoveryRequired && pending.length === 0) {
+            throw this.cloudRecoveryError('The cloud reservation is missing.', 'cloud_recovery_damaged');
+        }
+        if (pending.length && !(allowOwned && pending.length === 1 &&
+            pending[0].id === this.cloudWriteLease?.id)) {
+            throw this.cloudRecoveryError('A cloud result has not been confirmed. Recovery copies are protected.');
+        }
+    }
+
+    getCloudRecoveryStatus() {
+        try {
+            const { pending } = this.inspectCloudRecovery();
+            return { pending: this.cloudRecoveryRequired || pending.length > 0, damaged: false,
+                evidenceLimited: this.cloudRecoveryEvidenceLimited };
+        } catch (error) {
+            return { pending: true, damaged: true, evidenceLimited: true };
+        }
+    }
+
+    beginCloudWrite(kind, snapshot, isCurrentCampaign = null) {
+        this.assertSaveAdmission();
+        this.assertCloudRecoveryClear();
+        if (this.storageMode === 'memory' || !['upload', 'mutation'].includes(kind)) {
+            throw this.cloudRecoveryError('Durable cloud recovery is unavailable.', 'cloud_recovery_unavailable');
+        }
+        this.prepareSaveCandidate(snapshot);
+        const { entries } = this.inspectCloudRecovery();
+        // Keep a second slot available for a returned full-state result, not just the request.
+        if (entries.filter(entry => this.isProtectedSaveBackup(entry)).length > SAVE_BACKUP_LIMIT - 2) {
+            throw this.cloudRecoveryError('Protected recovery copies need review before cloud changes.', 'cloud_recovery_full');
+        }
+        const payload = JSON.stringify(snapshot);
+        const activeRaw = localStorage.getItem(this.saveKey);
+        const backup = this.createLocalSaveBackup(payload, `cloud_write_pending_${kind}`, { recovery: true });
+        if (!backup) throw this.cloudRecoveryError('The cloud recovery reservation could not be saved.', 'cloud_recovery_unavailable');
+        try {
+            const { pending } = this.inspectCloudRecovery();
+            if (pending.length !== 1 || pending[0].id !== backup.id || pending[0].payload !== payload ||
+                localStorage.getItem(this.saveKey) !== activeRaw) {
+                throw this.cloudRecoveryError('The cloud recovery reservation could not be verified.', 'cloud_recovery_damaged');
+            }
+            this.cloudWriteLease = Object.freeze({ id: backup.id, activeRaw,
+                kind, admissionEpoch: this.saveAdmission.epoch, snapshot: payload, isCurrentCampaign });
+            this.cloudRecoveryRequired = true;
+            return this.cloudWriteLease;
+        } catch (error) {
+            this.holdSaveAdmission(error, 'cloud_recovery');
+            throw error;
+        }
+    }
+
+    finishCloudWrite(lease) {
+        if (!lease || lease !== this.cloudWriteLease) throw this.cloudRecoveryError('Cloud recovery ownership changed.');
+        try {
+            const { entries, pending } = this.inspectCloudRecovery();
+            if (pending.length !== 1 || pending[0].id !== lease.id) throw this.cloudRecoveryError('Cloud recovery evidence changed.');
+            const key = `${this.saveBackupKeyPrefix}${lease.id}`;
+            const envelope = JSON.parse(localStorage.getItem(key));
+            const resolved = { ...envelope, reason: 'cloud_write_confirmed' };
+            const serialized = JSON.stringify(resolved);
+            // Active result (if any) is already committed. A crash between these two writes
+            // leaves mismatching metadata and therefore a hold, never a false confirmation.
+            localStorage.setItem(key, serialized);
+            if (localStorage.getItem(key) !== serialized) throw this.cloudRecoveryError('Recovery confirmation did not persist.');
+            const next = entries.map(entry => entry.id === lease.id
+                ? { ...entry, reason: 'cloud_write_confirmed' } : entry);
+            localStorage.setItem(this.saveBackupIndexKey, JSON.stringify(next));
+            if (this.inspectCloudRecovery().pending.length) throw this.cloudRecoveryError('Recovery confirmation is incomplete.');
+            this.cloudWriteLease = null;
+            this.cloudRecoveryRequired = false;
+            return true;
+        } catch (error) {
+            this.cloudWriteLease = null;
+            this.holdSaveAdmission(error, 'cloud_recovery');
+            throw error;
+        }
+    }
+
+    cloudWriteIsCurrent(lease, expectedRaw = lease?.activeRaw) {
+        return Boolean(lease && lease === this.cloudWriteLease &&
+            localStorage.getItem(this.saveKey) === expectedRaw);
+    }
+
+    protectCloudWrite(lease, result = null) {
+        // Never clear a marker on timeout, owner change, local restore or New Game.
+        // A late full-state result is evidence, not permission to replace newer progress.
+        try {
+            if (lease && lease === this.cloudWriteLease) {
+                const snapshot = JSON.stringify(this.createSaveSnapshot());
+                if (snapshot !== localStorage.getItem(this.saveKey)) {
+                    if (!this.createLocalSaveBackup(snapshot, 'cloud_write_local', { recovery: true })) {
+                        this.cloudRecoveryEvidenceLimited = true;
+                    }
+                }
+                if (result && !this.createLocalSaveBackup(result, 'cloud_write_result', { recovery: true })) {
+                    this.cloudRecoveryEvidenceLimited = true;
+                }
+            }
+        } catch (error) {
+            // Even when evidence allocation fails, keep the existing reservation and active bytes.
+            this.cloudRecoveryEvidenceLimited = true;
+        } finally {
+            this.cloudWriteLease = null;
+            this.cloudRecoveryRequired = true;
+            this.holdSaveAdmission(this.cloudRecoveryError('The cloud outcome needs review.',
+                this.cloudRecoveryEvidenceLimited ? 'cloud_recovery_evidence_limited' : 'cloud_result_uncertain'), 'cloud_recovery');
         }
     }
 
     getLocalSaveBackups() {
-        return this.readLocalSaveBackupIndex()
+        let entries;
+        try { entries = this.inspectCloudRecovery().entries; } catch (error) { return []; }
+        return entries
             .filter(entry => (
                 entry?.id && localStorage.getItem(`${this.saveBackupKeyPrefix}${entry.id}`)
             ))
@@ -3829,7 +4715,8 @@ class GameStateManager {
             .map(entry => ({ ...entry }));
     }
 
-    createLocalSaveBackup(saveData, reason = 'manual_safety_copy') {
+    createLocalSaveBackup(saveData, reason = 'manual_safety_copy', options = {}) {
+        if (!options.recovery && !this.canPersistSave()) return null;
         if (this.storageMode === 'memory' || saveData === null || saveData === undefined) {
             return null;
         }
@@ -3874,19 +4761,24 @@ class GameStateManager {
         };
 
         try {
-            const previousIndex = this.readLocalSaveBackupIndex()
+            const previousIndex = this.inspectCloudRecovery().entries
                 .filter(entry => (
                     entry?.id &&
                     localStorage.getItem(`${this.saveBackupKeyPrefix}${entry.id}`)
                 ));
-            const retainedPrevious = previousIndex.slice(0, SAVE_BACKUP_LIMIT - 1);
-            previousIndex.slice(SAVE_BACKUP_LIMIT - 1).forEach(entry => {
-                localStorage.removeItem(`${this.saveBackupKeyPrefix}${entry.id}`);
+            const existing = previousIndex.find(entry => {
+                try {
+                    return JSON.parse(localStorage.getItem(`${this.saveBackupKeyPrefix}${entry.id}`)).payload === payload;
+                } catch (error) { return false; }
             });
-            localStorage.setItem(
-                this.saveBackupIndexKey,
-                JSON.stringify(retainedPrevious)
-            );
+            if (!reason.startsWith('cloud_write_') && existing && this.isProtectedSaveBackup(existing)) return { ...existing };
+            const protectedPrevious = previousIndex.filter(entry => this.isProtectedSaveBackup(entry));
+            if (protectedPrevious.length >= SAVE_BACKUP_LIMIT) return null;
+            const retainedPrevious = [
+                ...protectedPrevious,
+                ...previousIndex.filter(entry => !protectedPrevious.includes(entry))
+            ].slice(0, SAVE_BACKUP_LIMIT - 1);
+            // Allocate and index first. A failed allocation must not delete an older copy.
             localStorage.setItem(backupKey, JSON.stringify(envelope));
             const nextIndex = [metadata, ...retainedPrevious]
                 .filter((entry, index, entries) => (
@@ -3894,13 +4786,23 @@ class GameStateManager {
                 ));
             const retained = nextIndex.slice(0, SAVE_BACKUP_LIMIT);
             localStorage.setItem(this.saveBackupIndexKey, JSON.stringify(retained));
+            previousIndex.filter(entry => !retained.some(item => item.id === entry.id))
+                .forEach(entry => {
+                    try { localStorage.removeItem(`${this.saveBackupKeyPrefix}${entry.id}`); }
+                    catch (error) { console.warn('[GameState] Obsolete recovery copy retained:', error); }
+                });
             this.emit('saveBackupCreated', metadata);
             return { ...metadata };
         } catch (error) {
-            try {
-                localStorage.removeItem(backupKey);
-            } catch (cleanupError) {
-                console.warn('[GameState] Could not clean up incomplete backup:', cleanupError);
+            if (reason.startsWith('cloud_write_')) {
+                // Retain even an orphaned reservation: a restart must detect partial allocation.
+                this.holdSaveAdmission(this.cloudRecoveryError('Cloud recovery allocation needs review.', 'cloud_recovery_damaged'), 'cloud_recovery');
+            } else {
+                try {
+                    localStorage.removeItem(backupKey);
+                } catch (cleanupError) {
+                    console.warn('[GameState] Could not clean up incomplete backup:', cleanupError);
+                }
             }
             console.warn('[GameState] Could not create recovery copy:', error);
             return null;
@@ -3908,12 +4810,58 @@ class GameStateManager {
     }
 
     commitPreparedSave(prepared, options = {}) {
+        const operation = options.continuation;
+        const issued = operation == null ? null : preparedSaveOperations.get(operation);
+        if (operation != null && (issued?.owner !== this || options.recovery || options.cloudWriteLease != null)) {
+            throw Object.assign(new Error('Unsupported prepared-save continuation'), { code: 'unsupported_save_operation' });
+        }
+        const assertOperation = () => {
+            if (issued && (issued.phase !== 'source' || !issued.current() || !issued.dataCurrent?.())) throw retiredSaveOperation();
+        };
+        assertOperation();
+        if (issued) {
+            if (issued.prepared !== prepared) throw retiredSaveOperation();
+            if (options.persist !== false && this.storageMode !== 'memory' && !issued.rawReadable) {
+                throw Object.assign(new Error('Storage is unreadable'), { code: 'commit_failed' });
+            }
+        }
+        const admissionOwner = this.captureSaveAdmissionOwner();
         const {
             source = 'local',
             persist = true,
-            backupReason = `before_${source}_restore`
+            preserveSession = true,
+            backupReason = `before_${source}_restore`,
+            recovery = false,
+            cloudWriteLease = null
         } = options;
-        const currentSession = this.state.session || {};
+        if (recovery) this.assertCloudRecoveryClear();
+        if (!recovery) this.assertSaveAdmission();
+        const ownedCloudCommit = cloudWriteLease !== null;
+        const assertOwnedCloudCommit = (expectedRaw = cloudWriteLease?.activeRaw) => {
+            if (ownedCloudCommit && (recovery || !persist || cloudWriteLease !== this.cloudWriteLease ||
+                cloudWriteLease.kind !== 'mutation' || typeof cloudWriteLease.isCurrentCampaign !== 'function' ||
+                !cloudWriteLease.isCurrentCampaign() ||
+                cloudWriteLease.admissionEpoch !== this.saveAdmission.epoch ||
+                !this.cloudWriteIsCurrent(cloudWriteLease, expectedRaw) ||
+                JSON.stringify(this.createSaveSnapshot()) !== cloudWriteLease.snapshot)) {
+                throw this.cloudRecoveryError('Cloud result no longer owns this game.');
+            }
+        };
+        assertOwnedCloudCommit();
+        assertOperation();
+        try {
+            // Completion writers use this method directly, not necessarily prepareSaveCandidate.
+            this.prepareSaveCandidate(prepared.serialized);
+            this.prepareSaveCandidate(prepared.state);
+        } catch (error) {
+            assertOperation();
+            if (!admissionOwner.hold(error, source)) {
+                throw Object.assign(new Error('The prepared check was retired.'), { code: 'save_context_changed' });
+            }
+            throw error;
+        }
+        assertOperation();
+        const currentSession = preserveSession ? (this.state.session || {}) : {};
         const preparedSession = prepared.state.session || {};
         const preparedCreature = prepared.state.creature || {};
         const savedJourneyHasStarted = preparedSession.gameStarted === true ||
@@ -3933,26 +4881,81 @@ class GameStateManager {
         };
 
         if (persist && this.storageMode !== 'memory') {
+            let localWrite = null, writeAttempted = false;
             try {
-                const currentRaw = localStorage.getItem(this.saveKey);
+                if (!ownedCloudCommit) localWrite = this.captureLocalSaveWrite();
+                const currentRaw = localWrite ? localWrite.raw : localStorage.getItem(this.saveKey);
+                if (issued) {
+                    assertOperation();
+                    if (issued.rawReadable && currentRaw !== issued.raw) throw retiredSaveOperation();
+                    issued.writerActive = true;
+                }
                 if (currentRaw && currentRaw !== prepared.serialized) {
-                    const backup = this.createLocalSaveBackup(currentRaw, backupReason);
+                    const backup = this.createLocalSaveBackup(currentRaw, backupReason, { recovery });
                     if (!backup) {
                         throw new Error('Recovery copy could not be created');
                     }
                 }
+                // Backup notifications can synchronously save or retire this owner.
+                assertOwnedCloudCommit();
+                assertOperation();
+                if (localWrite) {
+                    localWrite.assertCurrent();
+                    if (recovery) this.assertCloudRecoveryClear();
+                    else this.assertSaveAdmission();
+                    localWrite.assertCurrent();
+                }
+                writeAttempted = true;
                 localStorage.setItem(this.saveKey, prepared.serialized);
+                assertOwnedCloudCommit(prepared.serialized);
+                localWrite?.assertCurrent(prepared.serialized);
+                assertOperation();
             } catch (error) {
+                const assertErrorOwner = () => {
+                    assertOperation();
+                    if (!localWrite || localWrite.isCurrentOwner()) return;
+                    const retired = new Error('This write no longer owns the active progress.');
+                    retired.code = 'save_context_changed';
+                    retired.cause = error;
+                    throw retired;
+                };
+                assertErrorOwner();
+                if (writeAttempted) localWrite?.protectUnverifiedWrite();
+                assertErrorOwner();
+                if (localWrite) {
+                    // Only this verified error owner may report the existing
+                    // uncertain-write hold to its caller after the write fails.
+                    const errorReader = this.captureSaveAdmissionOwner();
+                    let errorRaw = localWrite.raw;
+                    try {
+                        const observedRaw = localStorage.getItem(this.saveKey);
+                        // These are the two already-known outcomes, not arbitrary
+                        // replacement bytes and not positive write acknowledgement.
+                        if (observedRaw === prepared.serialized) errorRaw = prepared.serialized;
+                    } catch (readError) { /* Keep the original expectation if unreadable. */ }
+                    if (!errorReader.isCurrent()) {
+                        throw Object.assign(new Error('The write error was retired.'), { code: 'save_context_changed' });
+                    }
+                    error[LOCAL_SAVE_ERROR_OWNER] = this.captureSaveAdmissionOwner({ raw: errorRaw });
+                }
                 error.code = error.code || 'commit_failed';
+                if (issued) issued.writerActive = false;
                 throw error;
             }
         }
 
+        assertOperation();
+        if (issued) { issued.phase = 'adopting'; issued.staged = stagedState; if (persist) issued.raw = prepared.serialized; }
         this.state = stagedState;
+        // Imports/recovery retire their callers. An exact owned server commit is
+        // still the same campaign, so its already-validated completion can continue.
+        if (!ownedCloudCommit) this.releaseSaveAdmission(operation);
+        if (issued && !issued.current()) throw retiredSaveOperation();
         return true;
     }
 
     quarantineInvalidLocalSave(saveData, reason) {
+        this.assertSaveAdmission();
         const backup = this.createLocalSaveBackup(saveData, reason);
         if (backup) {
             localStorage.removeItem(this.saveKey);
@@ -3965,24 +4968,32 @@ class GameStateManager {
      * Load game state from localStorage with error handling
      */
     load() {
+        const owner = this.captureSaveAdmissionOwner();
         // Skip loading in memory-only mode
         if (this.storageMode === 'memory') {
+            try { this.assertCloudRecoveryClear(); } catch (error) {
+                if (!owner.hold(error, 'cloud_recovery')) return false;
+            }
+            if (!owner.isCurrent()) return false;
             console.warn('[GameState] Running in memory-only mode, load skipped');
             return false;
         }
 
-        const saveData = localStorage.getItem(this.saveKey);
-        if (!saveData) {
-            console.log('[GameState] No save data found, using defaults');
-            return false;
-        }
-
         try {
+            this.assertCloudRecoveryClear();
+            const saveData = localStorage.getItem(this.saveKey);
+            owner.observeRaw(saveData);
+            if (!saveData) {
+                console.log('[GameState] No save data found, using defaults');
+                return false;
+            }
             const prepared = this.prepareSaveCandidate(saveData);
+            owner.assertCurrent();
             this.commitPreparedSave(prepared, {
                 source: 'migration',
                 persist: prepared.serialized !== saveData,
-                backupReason: 'before_automatic_migration'
+                backupReason: 'before_automatic_migration',
+                recovery: true
             });
 
             this.emit('loaded', this.state);
@@ -3991,28 +5002,31 @@ class GameStateManager {
             );
             return true;
         } catch (error) {
+            if (error.code === 'save_context_changed') {
+                return false;
+            }
+            const errorOwner = error[LOCAL_SAVE_ERROR_OWNER] || owner;
+            if (!errorOwner.hold(error, 'local')) return false;
             if (error.code === 'commit_failed') {
                 console.error('[GameState] Migrated save could not be committed:', error);
                 this.showStorageWarning(
-                    'Progress could not be updated safely. The previous save was retained.'
+                    'The saved update could not be confirmed. Progress is paused while you review the recovery copies.'
                 );
+                if (!errorOwner.isCurrent()) return false;
                 this.emit('loadError', { type: 'commit_failed', error });
                 return false;
             }
-            const type = error.code === 'version_mismatch'
-                ? 'version_mismatch'
+            const type = ['version_mismatch', 'save_would_lose_history'].includes(error.code)
+                ? error.code
                 : error instanceof SyntaxError
                     ? 'corrupted'
                     : 'migration_failed';
             console.error(`[GameState] Save load failed (${type}):`, error);
-            const backup = type === 'migration_failed'
-                ? this.createLocalSaveBackup(saveData, type)
-                : this.quarantineInvalidLocalSave(saveData, type);
-            const retainedMessage = backup
-                ? ' A recovery copy is available in Save Settings.'
-                : ' The original save was retained because a recovery copy could not be created.';
-            this.showStorageWarning(`Progress could not be loaded.${retainedMessage}`);
+            const backup = null;
+            this.showStorageWarning('Your saved game is protected. Resolve the saved-game warning before playing.');
+            if (!errorOwner.isCurrent()) return false;
             this.emit('loadError', { type, error, backupId: backup?.id || null });
+            if (!errorOwner.isCurrent()) return false;
             if (type === 'version_mismatch') {
                 this.emit('versionMismatch', {
                     oldVersion: error.saveVersion,
@@ -4033,6 +5047,10 @@ class GameStateManager {
         const { source = 'external', persist = true } = options;
 
         try {
+            if (this.cloudWriteLease) {
+                throw this.cloudRecoveryError('A cloud change is still in progress.');
+            }
+            if (!this.validateExternalSaveAdmission(saveData, source)) return false;
             const prepared = this.prepareSaveCandidate(saveData);
             this.commitPreparedSave(prepared, {
                 source,
@@ -4049,6 +5067,21 @@ class GameStateManager {
             this.emit('externalLoadError', { source, type: 'restore_failed', error });
             return false;
         }
+    }
+
+    applyCloudWriteResult(lease, saveData) {
+        this.assertSaveAdmission();
+        if (!lease || lease !== this.cloudWriteLease) {
+            throw this.cloudRecoveryError('Cloud result ownership is unavailable.');
+        }
+        const prepared = this.prepareSaveCandidate(saveData);
+        this.commitPreparedSave(prepared, {
+            source: 'cloud_server_mutation', persist: true,
+            backupReason: 'before_cloud_server_mutation_restore', cloudWriteLease: lease
+        });
+        this.emit('externalLoaded', { source: 'cloud_server_mutation', state: this.get() });
+        this.emit('loaded', this.state);
+        return { snapshot: prepared.snapshot, serialized: prepared.serialized };
     }
 
     restoreLocalSaveBackup(backupId) {
@@ -4068,7 +5101,8 @@ class GameStateManager {
             this.commitPreparedSave(prepared, {
                 source: 'local_backup',
                 persist: true,
-                backupReason: 'before_manual_backup_restore'
+                backupReason: 'before_manual_backup_restore',
+                recovery: true
             });
             this.emit('saveBackupRestored', { backupId, state: this.get() });
             this.emit('loaded', this.state);
@@ -5567,10 +6601,34 @@ class GameStateManager {
         }
     }
 
+    /** Replace the active campaign only after a durable, recoverable write. */
+    startFreshGame() {
+        if (this.storageMode === 'memory') {
+            throw new Error('A fresh game could not be saved. Your current game has not changed.');
+        }
+        const fresh = this.createInitialState();
+        fresh.settings = JSON.parse(JSON.stringify(this.state.settings || fresh.settings));
+        fresh.safety = JSON.parse(JSON.stringify(this.state.safety || fresh.safety));
+        fresh.creatureSkills = { skillLevels: {}, skillXP: {} };
+        fresh.game = { cloudSavePausedForNewGame: true };
+        fresh.savedAt = Math.max(Date.now(), (Number(this.state.savedAt) || 0) + 1);
+        const snapshot = this.createSaveSnapshot({ state: fresh });
+        this.validateSaveDataStructure(snapshot, { requireCoreState: true });
+        this.commitPreparedSave({ state: fresh, snapshot, serialized: JSON.stringify(snapshot) }, {
+            source: 'new_game', persist: true, preserveSession: false,
+            backupReason: 'before_new_game', recovery: true
+        });
+        this.stopAutoSave();
+        this.emit('reset', this.get());
+        return true;
+    }
+
     /**
      * Reset game state to defaults with error handling
      */
     reset(options = {}) {
+        this.assertCloudRecoveryClear();
+        this.assertSaveAdmission();
         const { preserveSessionDebug = true } = options;
 
         // Only try to remove from localStorage if not in memory-only mode
@@ -5588,6 +6646,7 @@ class GameStateManager {
         this.stopAutoSave();
         this.state = this.createInitialState();
         this.initialized = false;
+        this.releaseSaveAdmission();
 
         if (preserveSessionDebug && previousSession) {
             this.state.session.debugMode = !!previousSession.debugMode;
@@ -5601,15 +6660,44 @@ class GameStateManager {
      * Start automatic saving
      */
     startAutoSave(intervalMs = 30000) { // 30 seconds
+        if (!this.canPersistSave()) return false;
         if (this.autoSaveInterval) {
             clearInterval(this.autoSaveInterval);
         }
         
         this.autoSaveInterval = setInterval(() => {
+            const deferral = autoSaveDeferrals.get(this);
+            if (deferral?.isCurrent()) return;
+            if (deferral && autoSaveDeferrals.get(this) === deferral) autoSaveDeferrals.delete(this);
             this.save();
         }, intervalMs);
         
         console.log(`[GameState] Auto-save started (${intervalMs}ms interval)`);
+    }
+
+    /** Defer only interval saves while a trusted, original gameplay owner waits. */
+    deferAutoSave(isCurrent) {
+        if (typeof isCurrent !== 'function' || Object.prototype.toString.call(isCurrent) !== '[object Function]' ||
+            /^\s*class\b/.test(Function.prototype.toString.call(isCurrent))) throw Error('AUTOSAVE_OWNER_UNAVAILABLE');
+        const previous = autoSaveDeferrals.get(this);
+        if (previous?.isCurrent()) throw Error('AUTOSAVE_ALREADY_DEFERRED');
+        const valid = () => {
+            const returned = isCurrent();
+            if (returned === true) return true;
+            try { Promise.prototype.then.call(returned, undefined, () => {}); } catch { /* Not a native promise. */ }
+            return false;
+        };
+        let active = true;
+        const owned = { isCurrent: () => {
+            try { return active && autoSaveDeferrals.get(this) === owned && valid(); }
+            catch { return false; }
+        } };
+        if (!valid()) throw Error('AUTOSAVE_OWNER_RETIRED');
+        autoSaveDeferrals.set(this, owned);
+        return Object.freeze({ isCurrent: owned.isCurrent, release: () => {
+            active = false;
+            if (autoSaveDeferrals.get(this) === owned) autoSaveDeferrals.delete(this);
+        } });
     }
 
     /**

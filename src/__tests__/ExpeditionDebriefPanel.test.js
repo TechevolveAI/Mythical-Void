@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('eventemitter3');
 const TouchManager = require('phaser/src/input/touch/TouchManager');
+const { parse } = require('@babel/parser');
 
 function loadPanel() {
     const source = fs.readFileSync(path.join(__dirname, '../ui/ExpeditionDebriefPanel.js'), 'utf8')
@@ -97,10 +98,56 @@ describe('Expedition completion browser control', () => {
         panel.button.click();
         expect(panel.root).toBeNull();
     });
+
+    test.each(['append', 'visibility', 'listener'])(
+        'failed initial %s setup removes the partial dialog and owned listeners', failure => {
+            const visibility = jest.fn();
+            panel = new (loadPanel())({ onContinue: jest.fn(), onVisibilityChange: visibility });
+            const remove = jest.spyOn(window, 'removeEventListener');
+            if (failure === 'append') {
+                jest.spyOn(document.body, 'append').mockImplementationOnce(() => { throw Error('Synthetic append failure'); });
+            } else if (failure === 'visibility') {
+                visibility.mockImplementationOnce(() => { throw Error('Synthetic visibility failure'); });
+            } else {
+                const add = window.addEventListener.bind(window);
+                jest.spyOn(window, 'addEventListener').mockImplementationOnce((...args) => {
+                    add(...args); throw Error('Synthetic listener failure');
+                });
+            }
+            expect(() => panel.show(model)).toThrow('Synthetic');
+            expect(panel.root).toBeNull();
+            expect(document.querySelector('[role="dialog"]')).toBeNull();
+            expect(remove).toHaveBeenCalledWith('resize', panel.updateViewport);
+            expect(remove).toHaveBeenCalledWith('keydown', panel.onKeyDown, true);
+            expect(panel.show(model)).toBe(true);
+        }
+    );
+
+    test('a dialog retired during its visibility callback cannot register fresh listeners afterwards', () => {
+        const add = jest.spyOn(window, 'addEventListener');
+        panel = new (loadPanel())({ onContinue: jest.fn(), onVisibilityChange: visible => {
+            if (visible) panel.destroy();
+        } });
+        expect(panel.show(model)).toBe(false);
+        expect(panel.root).toBeNull();
+        expect(add).not.toHaveBeenCalledWith('resize', panel.updateViewport);
+        expect(add).not.toHaveBeenCalledWith('keydown', panel.onKeyDown, true);
+    });
+
+    test('cleanup notification failures cannot replace the initial setup error', () => {
+        const setupError = Error('Synthetic setup failure');
+        panel = new (loadPanel())({ onContinue: jest.fn(), onVisibilityChange: visible => {
+            throw visible ? setupError : Error('Synthetic cleanup notification failure');
+        } });
+        expect(() => panel.show(model)).toThrow(setupError);
+        expect(panel.root).toBeNull();
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+    });
 });
 
 describe('Hub debrief handoff behavior', () => {
     let Hub;
+    let Panel;
     let acknowledge;
     let getNext;
     let openScenes;
@@ -108,11 +155,12 @@ describe('Hub debrief handoff behavior', () => {
         openScenes = [];
         acknowledge = jest.fn();
         getNext = jest.fn(() => null);
+        Panel = loadPanel();
         const source = fs.readFileSync(path.join(__dirname, '../scenes/HubWorldScene.js'), 'utf8')
             .replace(/import[\s\S]*?;\s*/g, '')
             .replace('export default class ', 'class ');
         Hub = new Function('Phaser', 'acknowledgeProjectBeaconDebrief', 'getNextProjectBeaconDebrief', 'ExpeditionDebriefPanel', `${source}\nreturn HubWorldScene;`)(
-            { Scene: class {} }, acknowledge, getNext, loadPanel()
+            { Scene: class {} }, acknowledge, getNext, Panel
         );
     });
     afterEach(() => {
@@ -143,6 +191,7 @@ describe('Hub debrief handoff behavior', () => {
         });
         getNext.mockImplementation(() => queue[0] || null);
         acknowledge.mockImplementation((state, id) => {
+            if (!queue.some(entry => entry.id === id)) return false;
             expect(queue[0].id).toBe(id);
             queue.shift();
             return true;
@@ -158,7 +207,7 @@ describe('Hub debrief handoff behavior', () => {
             projectBeaconDebriefPanel: { destroy: jest.fn() },
             scene: { start: jest.fn() },
             focusProjectBeaconNextRoute: jest.fn(),
-            showPendingProjectBeaconDebrief: jest.fn()
+            showPendingProjectBeaconDebrief: jest.fn(() => true)
         });
         return scene;
     }
@@ -201,6 +250,84 @@ describe('Hub debrief handoff behavior', () => {
     });
 
     describe.each([true, false])('original input.enabled=%s', enabled => {
+        test.each(['throw-before-show', 'throw-after-show', 'not-opened'])(
+            'initial summary failure (%s) releases its own input lease and preserves the pending result', failure => {
+                jest.spyOn(console, 'warn').mockImplementation(() => {});
+                const { scene, input } = liveHub(enabled);
+                const pending = scene.getPendingProjectBeaconDebrief();
+                const show = Panel.prototype.show;
+                jest.spyOn(Panel.prototype, 'show').mockImplementationOnce(function (value) {
+                    if (failure === 'not-opened') return false;
+                    if (failure === 'throw-after-show') show.call(this, value);
+                    throw Error('Synthetic initial summary failure');
+                });
+                expect(scene.showPendingProjectBeaconDebrief()).toBe(false);
+                expect(scene.projectBeaconDebriefPanel).toBeNull();
+                expect(scene.isProjectBeaconDebriefOpen).toBe(false);
+                expect(scene.projectBeaconDebriefInputState).toBeNull();
+                expect(input.enabled).toBe(enabled);
+                expect(document.querySelector('[role="dialog"]')).toBeNull();
+                expect(acknowledge).not.toHaveBeenCalled();
+                expect(scene.getPendingProjectBeaconDebrief()).toBe(pending);
+                expect(scene.scene.start).not.toHaveBeenCalled();
+                expect(scene.showPendingProjectBeaconDebrief()).toBe(true);
+                expect(input.enabled).toBe(false);
+                scene.projectBeaconDebriefPanel.button.click();
+                expect(acknowledge).toHaveBeenCalledTimes(1);
+                expect(scene.scene.start).toHaveBeenCalledTimes(1);
+                expect(input.enabled).toBe(enabled);
+            }
+        );
+
+        test.each(['forest_core', 'crystal_core', 'dimensional_drive', 'hull_plating', 'aurora_reactor'])(
+            '%s failed Sanctuary launch retains the summary, blocks the Hub and permits retry', shipPartId => {
+                jest.spyOn(console, 'error').mockImplementation(() => {});
+                const { scene, input } = liveHub(enabled);
+                const next = scene.getPendingProjectBeaconDebrief;
+                scene.getPendingProjectBeaconDebrief = () => ({ ...next(), shipPartId });
+                scene.scene.start.mockImplementationOnce(() => { throw Error('Synthetic scene queue failure'); });
+                scene.showPendingProjectBeaconDebrief();
+                const panel = scene.projectBeaconDebriefPanel;
+                panel.button.click();
+                expect(scene.projectBeaconDebriefPanel).toBe(panel);
+                expect(scene.isProjectBeaconDebriefOpen).toBe(true);
+                expect(panel.root?.isConnected).toBe(true);
+                expect(panel.button.disabled).toBe(false);
+                expect(panel.error.hidden).toBe(false);
+                expect(input.enabled).toBe(false);
+                panel.button.click();
+                expect(scene.scene.start).toHaveBeenCalledTimes(2);
+                expect(scene.scene.start).toHaveBeenLastCalledWith('GameScene', {
+                    biome: 'nebula', shipReconstructionHandoff: true,
+                    shipReconstructionNextGateLabel: 'Crystal Caves'
+                });
+                expect(scene.projectBeaconDebriefPanel).toBeNull();
+                expect(scene.isProjectBeaconDebriefOpen).toBe(false);
+                expect(document.querySelector('[role="dialog"]')).toBeNull();
+                expect(input.enabled).toBe(enabled);
+                // The existing acknowledgement helper is idempotent. Retrying
+                // navigation must not invent another reward or another queue entry.
+                expect(getNext()).toBeNull();
+            }
+        );
+
+        test('a failed preview continuation remains retryable without acknowledging progress', () => {
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            const { scene, input } = liveHub(enabled);
+            scene.getPendingProjectBeaconDebrief = () => ({ ...model, isPreview: true });
+            const done = jest.fn().mockImplementationOnce(() => { throw Error('Synthetic continuation failure'); });
+            scene.showPendingProjectBeaconDebrief(done);
+            const panel = scene.projectBeaconDebriefPanel;
+            panel.button.click();
+            expect(panel.root?.isConnected).toBe(true);
+            expect(panel.error.hidden).toBe(false);
+            expect(input.enabled).toBe(false);
+            panel.button.click();
+            expect(done).toHaveBeenCalledTimes(2);
+            expect(input.enabled).toBe(enabled);
+            expect(acknowledge).not.toHaveBeenCalled();
+        });
+
         test('native completion restores the original state before synchronous navigation', () => {
             const { scene, input } = liveHub(enabled);
             scene.scene.start.mockImplementation(() => expect(input.enabled).toBe(enabled));
@@ -256,6 +383,176 @@ describe('Hub debrief handoff behavior', () => {
             expect(input.enabled).toBe(enabled);
             expect(acknowledge).not.toHaveBeenCalled();
         });
+    });
+
+    test('a reentrant scene launch cannot complete the same summary twice', () => {
+        const { scene } = liveHub();
+        const debrief = scene.getPendingProjectBeaconDebrief();
+        let reentrant;
+        scene.scene.start.mockImplementationOnce(() => { reentrant = scene.completeProjectBeaconDebrief(debrief); });
+        scene.showPendingProjectBeaconDebrief();
+        scene.projectBeaconDebriefPanel.button.click();
+        expect(reentrant).toBe(false);
+        expect(scene.scene.start).toHaveBeenCalledTimes(1);
+        expect(acknowledge).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(['init', 'shutdown'])('%s during failed initial setup cannot revive its dialog or input lease', method => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+        const { scene, input } = liveHub();
+        const show = Panel.prototype.show;
+        jest.spyOn(Panel.prototype, 'show').mockImplementationOnce(function (value) {
+            show.call(this, value);
+            scene[method]();
+            throw Error('Synthetic retired initial summary');
+        });
+        expect(scene.showPendingProjectBeaconDebrief()).toBe(false);
+        expect(scene.projectBeaconDebriefPanel).toBeNull();
+        expect(scene.projectBeaconDebriefInputState).toBeNull();
+        expect(scene.isProjectBeaconDebriefOpen).toBe(false);
+        expect(input.enabled).toBe(true);
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+        expect(acknowledge).not.toHaveBeenCalled();
+    });
+
+    test('a failed retired setup cannot remove a newer Hub summary or release its controls', () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+        const { scene, input } = liveHub();
+        const show = Panel.prototype.show;
+        let replacement;
+        jest.spyOn(Panel.prototype, 'show').mockImplementationOnce(function (value) {
+            show.call(this, value);
+            scene.init();
+            expect(scene.showPendingProjectBeaconDebrief()).toBe(true);
+            replacement = scene.projectBeaconDebriefPanel;
+            throw Error('Synthetic retired initial summary');
+        });
+        expect(scene.showPendingProjectBeaconDebrief()).toBe(false);
+        expect(scene.projectBeaconDebriefPanel).toBe(replacement);
+        expect(replacement.root.isConnected).toBe(true);
+        expect(input.enabled).toBe(false);
+        expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+        replacement.button.click();
+        expect(acknowledge).toHaveBeenCalledTimes(1);
+        expect(scene.scene.start).toHaveBeenCalledTimes(1);
+        expect(input.enabled).toBe(true);
+    });
+
+    test.each(['throw-before-show', 'throw-after-show', 'not-opened'])(
+        'queued summary replacement (%s) keeps the old control retryable and does not leave two dialogs', failure => {
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            const { scene, input, inputWrites } = liveHub(true, 2);
+            scene.showPendingProjectBeaconDebrief();
+            const panel = scene.projectBeaconDebriefPanel;
+            if (failure === 'throw-after-show') {
+                const prototype = panel.constructor.prototype;
+                const show = prototype.show;
+                jest.spyOn(prototype, 'show').mockImplementationOnce(function (model) {
+                    show.call(this, model);
+                    throw Error('Synthetic replacement setup failure');
+                });
+            } else {
+                const show = scene.showPendingProjectBeaconDebrief.bind(scene);
+                scene.showPendingProjectBeaconDebrief = jest.fn().mockImplementationOnce(() => {
+                    if (failure === 'not-opened') return false;
+                    throw Error('Synthetic replacement setup failure');
+                }).mockImplementation(show);
+            }
+            panel.button.click();
+            expect(scene.projectBeaconDebriefPanel).toBe(panel);
+            expect(panel.root?.isConnected).toBe(true);
+            expect(panel.root?.hidden).toBe(false);
+            expect(panel.error.hidden).toBe(false);
+            expect(panel.button.disabled).toBe(false);
+            expect(document.activeElement).toBe(panel.button);
+            expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+            expect(input.enabled).toBe(false);
+            expect(inputWrites).not.toContain(true);
+            panel.button.click();
+            const replacement = scene.projectBeaconDebriefPanel;
+            expect(replacement).not.toBe(panel);
+            expect(replacement.root.isConnected).toBe(true);
+            expect(panel.root).toBeNull();
+            expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+            expect(input.enabled).toBe(false);
+            replacement.button.click();
+            expect(scene.scene.start).toHaveBeenCalledTimes(1);
+            expect(input.enabled).toBe(true);
+            expect(document.querySelector('[role="dialog"]')).toBeNull();
+        }
+    );
+
+    test.each(['init', 'shutdown'])('%s during a failed launch cannot revive the old dialog or input lease', method => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+        const { scene, input } = liveHub();
+        scene.showPendingProjectBeaconDebrief();
+        const panel = scene.projectBeaconDebriefPanel;
+        scene.scene.start.mockImplementationOnce(() => { scene[method](); throw Error('Synthetic retired route failure'); });
+        panel.button.click();
+        expect(panel.root).toBeNull();
+        expect(scene.projectBeaconDebriefPanel).toBeNull();
+        expect(scene.projectBeaconDebriefInputState).toBeNull();
+        expect(scene.projectBeaconDebriefHandoff).toBeNull();
+        expect(input.enabled).toBe(true);
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+        panel.button.click();
+        expect(scene.scene.start).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(['init', 'shutdown'])('%s during failed summary replacement also retires its temporarily hidden predecessor', method => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+        const { scene, input } = liveHub(true, 2);
+        scene.showPendingProjectBeaconDebrief();
+        const panel = scene.projectBeaconDebriefPanel;
+        scene.showPendingProjectBeaconDebrief = jest.fn(() => {
+            scene[method]();
+            throw Error('Synthetic retired replacement');
+        });
+        panel.button.click();
+        expect(panel.root).toBeNull();
+        expect(scene.projectBeaconDebriefPanel).toBeNull();
+        expect(scene.projectBeaconDebriefInputState).toBeNull();
+        expect(scene.projectBeaconDebriefHandoff).toBeNull();
+        expect(input.enabled).toBe(true);
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    test('the installed Phaser accepts stop/start queue requests before the summary is retired', () => {
+        const source = fs.readFileSync(require.resolve('phaser/src/scene/ScenePlugin.js'), 'utf8');
+        let start;
+        const walk = node => {
+            if (!node || typeof node !== 'object') return;
+            if (node.type === 'ObjectProperty' && node.key?.name === 'start'
+                && node.value?.type === 'FunctionExpression') start = node.value;
+            for (const value of Object.values(node)) {
+                if (Array.isArray(value)) value.forEach(walk);
+                else if (value && typeof value === 'object') walk(value);
+            }
+        };
+        walk(parse(source, { sourceType: 'script' }));
+        expect(start).toBeDefined();
+        const actualStart = new Function(`return (${source.slice(start.start, start.end)});`)();
+        const { scene, input } = liveHub();
+        scene.showPendingProjectBeaconDebrief();
+        const panel = scene.projectBeaconDebriefPanel;
+        const plugin = { key: 'HubWorldScene', manager: { queueOp: jest.fn(() => {
+            expect(panel.root.isConnected).toBe(true);
+            expect(input.enabled).toBe(true);
+        }) } };
+        scene.scene.start = actualStart.bind(plugin);
+        panel.button.click();
+        expect(plugin.manager.queueOp.mock.calls).toEqual([
+            ['stop', 'HubWorldScene'], ['start', 'GameScene', {
+                biome: 'nebula', shipReconstructionHandoff: true,
+                shipReconstructionNextGateLabel: 'Crystal Caves'
+            }]
+        ]);
+        expect(panel.root).toBeNull();
+        expect(input.enabled).toBe(true);
     });
 
     test('real Phaser window touch delivery cannot activate hidden Hub controls through the dialog', () => {

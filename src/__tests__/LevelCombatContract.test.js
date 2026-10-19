@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { expectForestCompletionConnection, expectPeaksCompletionConnection, expectCrystalCompletionConnection, expectReefCompletionConnection, expectAuroraCompletionConnection } = require('./support/forestCompletionContract.cjs');
 
 const levelDirectory = path.join(__dirname, '../scenes/levels');
 
@@ -33,17 +34,20 @@ describe('playable level combat contracts', () => {
     ])('%s completes through the shared progression contract', (fileName, shipPartId) => {
         const source = readLevel(fileName);
 
-        expect(source).toContain('completeLevelProgression({');
-        expect(source).toContain(`shipPartId: '${shipPartId}'`);
+        if (fileName === 'MythicalForestLevel.js') expectForestCompletionConnection();
+        else if (fileName === 'VoidPeaksLevel.js') expectPeaksCompletionConnection();
+        else if (fileName === 'CrystalCavesLevel.js') expectCrystalCompletionConnection();
+        else if (fileName === 'ReefLevel.js') expectReefCompletionConnection();
+        else if (fileName === 'AuroraDepthsLevel.js') expectAuroraCompletionConnection();
+        else {
+            expect(source).toContain('completeLevelProgression({');
+            expect(source).toContain(`shipPartId: '${shipPartId}'`);
+        }
     });
 
     test('awards both authored creature-tech katana upgrades', () => {
-        expect(readLevel('CrystalCavesLevel.js')).toContain(
-            "katanaUpgradeId: 'crystal_edge'"
-        );
-        expect(readLevel('AuroraDepthsLevel.js')).toContain(
-            "katanaUpgradeId: 'aurora_guard'"
-        );
+        expectCrystalCompletionConnection();
+        expectAuroraCompletionConnection();
     });
 
     test('Forest registers authored enemies with the shared attack group', () => {

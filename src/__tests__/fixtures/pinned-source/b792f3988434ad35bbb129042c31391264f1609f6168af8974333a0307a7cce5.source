@@ -1,0 +1,5248 @@
+import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import ReefGuardianControl from '../controllers/ReefGuardianControl.js';
+import ReefVictorySequence from '../controllers/ReefVictorySequence.js';
+
+const NYXVORAL_TEXTURE = 'nyxvoralArtwork';
+const NYXVORAL_ASSET = '/game/guardians/nyxvoral.webp';
+const NYXVORAL_DISPLAY_WIDTH = 430;
+const NYXVORAL_MOBILE_DISPLAY_WIDTH = 176;
+const STELLAR_REEF_BACKGROUND_TEXTURE = 'stellarReefCosmicBackground';
+const STELLAR_REEF_BACKGROUND_ASSET =
+    '/game/levels/stellar-reef/cosmic-reef-background-v1.webp';
+const STELLAR_REEF_PLATFORM_TEXTURE = 'stellarReefLivingShelf';
+const STELLAR_REEF_PLATFORM_ASSET =
+    '/game/levels/stellar-reef/cosmic-reef-platform-v1.webp';
+
+const REEF_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
+    voidLunge: 2600,
+    dimensionalTear: 2200,
+    summonMinions: 3400
+});
+
+const REEF_GUARDIAN_ATTACK_CUES = Object.freeze({
+    voidLunge: 'VOID LUNGE // DODGE ACROSS ITS PATH',
+    dimensionalTear: 'DIMENSIONAL TEAR // LEAVE THE RIFT',
+    summonMinions: 'VOID ECHOES // CLEAR THE SWARM'
+});
+
+const REEF_GUARDIAN_PHASES = Object.freeze({
+    2: { label: 'CURRENT SHEAR // NEW PATTERN', color: 0xF2C94C },
+    3: { label: 'ROUTE COLLAPSE // HOLD THE LINE', color: 0xFF6B8A }
+});
+
+const REEF_GUARDIAN_ARENA = Object.freeze({
+    triggerX: 5200,
+    playerEntryX: 5500,
+    introFocusX: 5600,
+    bossX: 5700,
+    playerBottomOffset: 360,
+    bossBottomOffset: 500,
+    openingGraceMs: 3000,
+    contactDamage: 1,
+    mobileZoom: 1,
+    mobileCameraLeadRatio: 0.25,
+    mobileTeamGap: 160,
+    mobileTeamOffsetX: -30,
+    mobileTeamOffsetY: -155,
+    mobileBossOffsetX: -16,
+    desktopTeamGap: 172
+});
+
+const REEF_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-phase-lesson',
+        supportId: 'reef-opening-2',
+        lane: 'shared',
+        kind: 'phase',
+        health: 1,
+        altitude: 115
+    }),
+    Object.freeze({
+        beat: 'drift-relay-clear',
+        supportId: 'reef-drift-relay',
+        lane: 'shared',
+        kind: 'spore',
+        health: 1,
+        altitude: 95
+    }),
+    Object.freeze({
+        beat: 'main-current-charge',
+        supportId: 'reef-current-bridge',
+        lane: 'main',
+        kind: 'dart',
+        health: 2,
+        altitude: 90
+    }),
+    Object.freeze({
+        beat: 'star-trench-wraith',
+        supportId: 'reef-trench-2',
+        lane: 'optional',
+        kind: 'wraith',
+        health: 3,
+        altitude: 90
+    }),
+    Object.freeze({
+        beat: 'drive-approach-phase',
+        supportId: 'reef-drive-approach',
+        lane: 'shared',
+        kind: 'phase',
+        health: 1,
+        altitude: 115
+    }),
+    Object.freeze({
+        beat: 'traveler-relay-charge',
+        supportId: 'reef-traveler-relay',
+        lane: 'shared',
+        kind: 'dart',
+        health: 2,
+        altitude: 90
+    }),
+    Object.freeze({
+        beat: 'passage-bridge-clear',
+        supportId: 'reef-passage-bridge',
+        lane: 'shared',
+        kind: 'spore',
+        health: 1,
+        altitude: 95
+    }),
+    Object.freeze({
+        beat: 'guardian-current-wraith',
+        supportId: 'reef-passage-rise',
+        lane: 'shared',
+        kind: 'wraith',
+        health: 3,
+        altitude: 110
+    })
+]);
+
+/**
+ * ReefLevel - The Cosmic Abyss (Stellar Reef) underwater level
+ *
+ * Story: "The Stellar Reef exists between dimensions - a luminous void where cosmic
+ * energy flows like water. Ancient star-travelers built waypoints here, but the
+ * Void Incursion twisted this realm. The companion can still hear those waypoints,
+ * and synchronizes them into a route no human instrument could find alone.
+ *
+ * A piece of your crashed ship's Dimensional Drive lies somewhere in this realm.
+ * Recover it and stabilize Nyx'voral, the corrupted passage guardian."
+ *
+ * Objectives:
+ * - Primary: Synchronize the ancient waypoints and stabilize Nyx'voral
+ * - Critical: Recover the Dimensional Drive Fragment (ship part)
+ * - Secondary: Collect 5 Star Fragments
+ */
+class ReefLevel extends PlatformerLevelScene {
+    constructor() {
+        super({
+            key: 'ReefLevel',
+            levelId: 'reef_1',
+            biomeId: 'stellar_reef',
+            levelWidth: 6000,
+            levelHeight: 1200,
+            movement: {
+                gravityY: 150,
+                playerSpeed: 200,
+                jumpVelocity: -320,
+                playerAcceleration: 0.18,
+                playerDeceleration: 0.94,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
+        });
+
+        // Override physics for cosmic void swimming
+        // TUNED: More responsive swimming with noticeable gravity
+        this.swimDrag = 0.90;          // Faster velocity decay when not actively swimming
+        this.swimAcceleration = 0.20;  // How quickly swim velocity builds
+        this.usesVerticalJoystick = true;
+
+        // Swimming physics - player should noticeably sink when not swimming
+        this.sinkSpeed = 60;           // Faster sink rate
+        this.maxSinkSpeed = 180;       // Higher max sink speed
+
+        // Level-specific state
+        this.starFragmentsCollected = 0;
+        this.totalStarFragments = 5;
+        this.shipPartCollected = false;
+        this.reefRouteChoice = null;
+        this.reefCurrentEdgeReady = false;
+        this.reefCollectedFragmentMask = 0;
+        this.bossDefeated = false;
+        this.bossFightActive = false;
+
+        // Boss state - Nyx'voral the Void Serpent
+        this.boss = null;
+        this.bossHealth = 0;
+        this.bossMaxHealth = 15;
+        this.bossPhase = 1;
+        this.bossAttackTimer = null;
+        this.bossHealthBar = null;
+        this.bossNameText = null;
+        this.bossRouteText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer = null;
+        this.bossAttackLocked = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
+        this.bossAttackPreview = null;
+        this.bossMinions = [];
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
+        this.bossUsesArtwork = false;
+        this.bossArtworkPhase = 0;
+        this.bossTargetScale = 1;
+
+        // Cosmic enemy types
+        this.voidSpores = [];      // Replaces pufferfish - crystalline void organisms
+        this.plasmaDarts = [];     // Replaces barracuda - fast energy projectiles
+        this.phaseDrifters = [];   // Replaces jellyfish - ethereal phase beings
+        this.lureWraiths = [];     // Replaces anglerfish - void predators
+        this.reefEncounterRhythm = [];
+        this.reefProximityEnemies = [];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefEnemyActivationBounds = null;
+        this.reefEnemyActivationNextAt = 0;
+        this.reefEnemyAINextAt = 0;
+
+        // Collectibles
+        this.starFragments = [];
+        this.shipPart = null;
+        this.cosmicEggAwarded = false;
+
+        // Cosmic effects
+        this.nebulaParticles = [];
+        this.voidRifts = [];
+        this.starfieldLayer = null;
+        this.entryCosmicParticleLayer = null;
+        this.entryCosmicParticleTween = null;
+        this.cosmicDustLayer = null;
+        this.cosmicDustTimer = null;
+        this.cosmicDustParticles = [];
+        this.reefTrailLayer = null;
+        this.reefTrailParticles = [];
+        this.reefTrailNextAt = 0;
+
+        // Project Beacon expedition state
+        this.beaconAnchors = [];
+        this.beaconAnchorsActivated = 0;
+        this.reefRouteAligned = false;
+        this.creaturePassageWake = null;
+        this.creaturePassageWakeTween = null;
+        this.reefPassageCameraFocusUntil = 0;
+        this.bossGateHintUntil = 0;
+        this.routeHintUntil = 0;
+        this.levelEntryDismissing = false;
+        this.levelEntryKeyHandler = null;
+        this.abyssAscentCurrent = null;
+        this.activeReefAscentCurrent = null;
+        this.driftAscentCurrent = null;
+        this.travelerAscentCurrent = null;
+    }
+
+    preload() {
+        super.preload();
+        this.load.image(NYXVORAL_TEXTURE, NYXVORAL_ASSET);
+        this.load.image(
+            STELLAR_REEF_BACKGROUND_TEXTURE,
+            STELLAR_REEF_BACKGROUND_ASSET
+        );
+        this.load.image(
+            STELLAR_REEF_PLATFORM_TEXTURE,
+            STELLAR_REEF_PLATFORM_ASSET
+        );
+    }
+
+    init(data) {
+        this.reefVictory?.retire();
+        this.reefGuardianControl?.retire();
+        this.clearReefBossSummons();
+        this.clearReefBossLunge();
+        this.clearReefBossTears();
+        super.init(data);
+        this.testMode = data?.testMode || false;
+
+        // Reset level state
+        this.starFragmentsCollected = 0;
+        this.shipPartCollected = false;
+        this.reefRouteChoice = null;
+        this.reefCurrentEdgeReady = false;
+        this.reefCollectedFragmentMask = 0;
+        this.bossDefeated = false;
+        this.bossFightActive = false;
+        this.cosmicEggAwarded = false;
+
+        // Reset boss
+        this.boss = null;
+        this.bossHealth = 0;
+        this.bossPhase = 1;
+        this.bossAttackTimer = null;
+        this.bossHealthBar = null;
+        this.bossNameText = null;
+        this.bossRouteText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer = null;
+        this.bossAttackLocked = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
+        this.bossUsesArtwork = false;
+        this.bossArtworkPhase = 0;
+        this.bossTargetScale = 1;
+        this.bossAttackPreview = [
+            'voidLunge',
+            'dimensionalTear',
+            'summonMinions'
+        ].includes(data?.bossAttackPreview)
+            ? data.bossAttackPreview
+            : null;
+        this.bossMinions = [];
+
+        // Reset enemies
+        this.voidSpores = [];
+        this.plasmaDarts = [];
+        this.phaseDrifters = [];
+        this.lureWraiths = [];
+        this.reefEncounterRhythm = [];
+        this.reefProximityEnemies = [];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefEnemyActivationBounds = null;
+        this.reefEnemyActivationNextAt = 0;
+        this.reefEnemyAINextAt = 0;
+        this.nebulaParticles = [];
+        this.voidRifts = [];
+        this.starfieldLayer = null;
+        this.entryCosmicParticleLayer = null;
+        this.entryCosmicParticleTween = null;
+        this.cosmicDustLayer = null;
+        this.cosmicDustTimer = null;
+        this.cosmicDustParticles = [];
+        this.reefTrailLayer = null;
+        this.reefTrailParticles = [];
+        this.reefTrailNextAt = 0;
+
+        // Reset collectibles
+        this.starFragments = [];
+        this.shipPart = null;
+        this.beaconAnchors = [];
+        this.beaconAnchorsActivated = 0;
+        this.reefRouteAligned = false;
+        this.creaturePassageWake = null;
+        this.creaturePassageWakeTween = null;
+        this.reefPassageCameraFocusUntil = 0;
+        this.bossGateHintUntil = 0;
+        this.routeHintUntil = 0;
+        this.levelEntryDismissing = false;
+        this.clearLevelEntryKeyHandler();
+        this.virtualJoystickY = 0;
+        this.abyssAscentCurrent = null;
+        this.activeReefAscentCurrent = null;
+        this.driftAscentCurrent = null;
+        this.travelerAscentCurrent = null;
+
+        console.log('[ReefLevel] Cosmic Abyss state reset');
+    }
+
+    create() {
+        super.create();
+
+        if (this.prepareCurrentEcologyPreview()) return;
+
+        // Record level entry for achievements
+        if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('level_entered', { levelId: 'cosmicReef' });
+        }
+
+        // Track start time for speedrun achievements
+        this.levelStartTime = Date.now();
+        this.damageTaken = 0;
+
+        if (this.testMode) {
+            this.startTestMode();
+        } else {
+            this.showLevelEntry();
+        }
+    }
+
+    startTestMode() {
+        console.log("[ReefLevel] TEST MODE - Spawning Nyx'voral");
+
+        if (this.player) {
+            this.player.setPosition(
+                REEF_GUARDIAN_ARENA.playerEntryX,
+                this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset
+            );
+        }
+
+        this.showPlatformerMobileControls();
+
+        this.time.delayedCall(300, () => {
+            this.startBossFight();
+        });
+    }
+
+    setupPlatformerPhysics() {
+        this.physics.world.gravity.y = this.gravityY;
+        console.log(`[ReefLevel] Cosmic void physics: gravity.y = ${this.gravityY}`);
+    }
+
+    createPlayer() {
+        super.createPlayer();
+        // The Reef opens on a floating platform above the shared ground line.
+        // Spawn above its surface so the padded creature body cannot resolve
+        // underneath it and pin swimming input against the platform ceiling.
+        this.player.setPosition(200, this.levelHeight - 290);
+        this.player.setVelocity(0, 0);
+    }
+
+    /**
+     * Show cosmic level entry screen
+     */
+    showLevelEntry() {
+        this.levelEntryDismissing = false;
+        const layout = this.getLevelModalLayout({ maxWidth: 520, maxHeight: 540 });
+        const {
+            width, height, isCompact, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, contentLeft, contentRight, y, font, buttonPadding
+        } = layout;
+        const resume = this.getExpeditionResumePresentation();
+        const companionName = this.getCompanionName();
+        this.physics.pause();
+
+        // Deep cosmic overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x0A0015, 0.97);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(3000);
+
+        // Add floating stars to overlay
+        for (let i = 0; i < 50; i++) {
+            const starX = Math.random() * width;
+            const starY = Math.random() * height;
+            const starSize = 1 + Math.random() * 2;
+            const starAlpha = 0.3 + Math.random() * 0.7;
+            overlay.fillStyle(0xFFFFFF, starAlpha);
+            overlay.fillCircle(starX, starY, starSize);
+        }
+
+        // Panel
+        const panel = this.add.graphics();
+        panel.fillStyle(0x0D0020, 0.95);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        // Cosmic purple border with glow
+        panel.lineStyle(4, 0x9B30FF, 0.8);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.lineStyle(8, 0x9B30FF, 0.2);
+        panel.strokeRoundedRect(panelX - 4, panelY - 4, panelWidth + 8, panelHeight + 8, 24);
+        panel.setScrollFactor(0);
+        panel.setDepth(3001);
+
+        // Cosmic decorations
+        const leftDecoration = this.addCosmicDecoration(
+            panelX + (isCompact ? 28 : 40),
+            y(40)
+        );
+        const rightDecoration = this.addCosmicDecoration(
+            panelX + panelWidth - (isCompact ? 28 : 40),
+            y(40)
+        );
+
+        // Title
+        const title = this.add.text(width / 2, y(55), 'STELLAR REEF', {
+            fontSize: font(30, 24),
+            color: '#E066FF',
+            fontStyle: 'bold',
+            stroke: '#4B0082',
+            strokeThickness: isCompact ? 3 : 4,
+            align: 'center',
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Subtitle
+        const subtitle = this.add.text(width / 2, y(95),
+            `"${companionName} recognizes the old waypoints"`, {
+            fontSize: font(13, 12),
+            color: '#BA55D3',
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Story text
+        const storyText = this.add.text(width / 2, y(125),
+            'Ancient star-travelers crossed these living currents.\n' +
+            'The Void broke their route into scattered pieces.\n' +
+            'Your instruments hear noise. Your creature hears a path.', {
+            fontSize: font(12, 11),
+            color: '#9370DB',
+            align: 'center',
+            lineSpacing: isCompact ? 1 : 4,
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(3002);
+
+        // Divider with cosmic energy
+        const divider = this.add.graphics();
+        divider.lineStyle(2, 0x9B30FF, 0.6);
+        divider.lineBetween(contentLeft, y(235), contentRight, y(235));
+        // Add glow dots
+        for (let i = 0; i < 5; i++) {
+            const dotX = contentLeft + i * (contentWidth / 4);
+            divider.fillStyle(0xE066FF, 0.8);
+            divider.fillCircle(dotX, y(235), 3);
+        }
+        divider.setScrollFactor(0);
+        divider.setDepth(3002);
+
+        // Objectives header
+        const objHeader = this.add.text(
+            width / 2,
+            y(260),
+            resume
+                ? `PROJECT BEACON // RESUME ${resume.current}/${resume.total}`
+                : 'PROJECT BEACON // EXPEDITION 03',
+            {
+            fontSize: font(14, 12),
+            color: '#666688'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Primary objective
+        const mainObj = this.add.text(
+            width / 2,
+            y(295),
+            resume
+                ? `${resume.label} link restored`
+                : 'Swim through the three gold current markers',
+            {
+            fontSize: font(16, 14),
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Ship part objective (critical!)
+        const shipObj = this.add.text(width / 2, y(335), 'Find Wanderer-77\'s Dimensional Drive', {
+            fontSize: font(15, 13),
+            color: '#00FFFF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Secondary objectives
+        const relicObj = this.add.text(contentLeft, y(375), '[ OPTIONAL ] Collect Star Fragments (0/5)', {
+            fontSize: font(13, 12),
+            color: '#AAAACC',
+            wordWrap: { width: contentWidth }
+        }).setScrollFactor(0).setDepth(3002);
+
+        // Controls hint - mobile-aware
+        const isMobile = this.isMobile || (
+            'ontouchstart' in window && window.innerWidth < 768
+        );
+        const controlsHint = this.add.text(width / 2, y(420),
+            isMobile
+                ? 'JOYSTICK MOVES + DIVES\n↑ BUTTON SWIMS UP'
+                : 'ARROWS / WASD TO SWIM // SPACE ASCENDS', {
+            fontSize: isMobile ? font(13, 12) : font(11, 10),
+            color: '#9370DB',
+            align: 'center',
+            fontStyle: 'bold',
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Enter button
+        const enterBtn = this.add.text(
+            width / 2,
+            y(490),
+            resume ? '[ RESUME EXPEDITION ]' : '[ ENTER THE ABYSS ]',
+            {
+            fontSize: font(18, 16),
+            color: '#E066FF',
+            backgroundColor: '#1A0030',
+            padding: buttonPadding
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+
+        divider.setVisible(!isCompact);
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, storyText, objHeader, mainObj, shipObj, relicObj, controlsHint, enterBtn],
+            { gaps: [7, 7, 10, 7, 6, 6, 8, 12], topPadding: 16, bottomPadding: 16 }
+        );
+
+        enterBtn.on('pointerover', () => {
+            enterBtn.setColor('#FF88FF');
+            enterBtn.setScale(1.05);
+        });
+        enterBtn.on('pointerout', () => {
+            enterBtn.setColor('#E066FF');
+            enterBtn.setScale(1.0);
+        });
+
+        // Collect all elements for dismissal
+        const allElements = [
+            overlay,
+            panel,
+            leftDecoration,
+            rightDecoration,
+            title,
+            subtitle,
+            storyText,
+            divider,
+            objHeader,
+            mainObj,
+            shipObj,
+            relicObj,
+            controlsHint,
+            enterBtn
+        ];
+
+        // Dismiss function - used by button and tap anywhere
+        const dismissEntry = () => {
+            if (this.levelEntryDismissing) return;
+
+            this.levelEntryDismissing = true;
+            enterBtn.disableInteractive();
+            overlay.disableInteractive();
+            this.clearLevelEntryKeyHandler();
+            this.physics.resume();
+            this.startCosmicAmbience();
+            this.showPlatformerMobileControls();
+            this.createSwimIndicator();
+            const entryParticles = this.entryCosmicParticleLayer?.active
+                ? this.entryCosmicParticleLayer
+                : null;
+            this.entryCosmicParticleTween?.remove?.();
+            this.entryCosmicParticleTween = null;
+            this.tweens.add({
+                targets: [...allElements, entryParticles].filter(Boolean),
+                alpha: 0,
+                duration: 600,
+                onComplete: () => {
+                    allElements.forEach(el => {
+                        if (el && el.destroy) el.destroy();
+                    });
+                    entryParticles?.destroy?.();
+                    if (this.entryCosmicParticleLayer === entryParticles) {
+                        this.entryCosmicParticleLayer = null;
+                    }
+                }
+            });
+        };
+
+        enterBtn.on('pointerdown', dismissEntry);
+
+        // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', dismissEntry);
+
+        this.levelEntryKeyHandler = event => {
+            if (!['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            dismissEntry();
+        };
+        window.addEventListener('keydown', this.levelEntryKeyHandler);
+
+        // Animate cosmic particles around panel
+        this.createEntryCosmicParticles(panelX, panelY, panelWidth, panelHeight);
+    }
+
+    clearLevelEntryKeyHandler() {
+        if (!this.levelEntryKeyHandler) return;
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.levelEntryKeyHandler);
+        }
+        this.levelEntryKeyHandler = null;
+    }
+
+    getCompanionName() {
+        return String(
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
+    }
+
+    shouldAnimateReefDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
+    detachReefPhysicsBody(body) {
+        if (!body) return null;
+        body.setVisible?.(false);
+        body.reefPhysicsOnly = true;
+        if (body.displayList === this.children) {
+            this.children.remove(body);
+        }
+        return body;
+    }
+
+    /**
+     * Add cosmic decoration (rotating nebula orb)
+     */
+    addCosmicDecoration(x, y) {
+        const orb = this.add.graphics();
+        orb.setScrollFactor(0);
+        orb.setDepth(3002);
+
+        // Outer glow
+        orb.fillStyle(0x9B30FF, 0.2);
+        orb.fillCircle(x, y, 20);
+        // Inner core
+        orb.fillStyle(0xE066FF, 0.6);
+        orb.fillCircle(x, y, 10);
+        // Bright center
+        orb.fillStyle(0xFFFFFF, 0.8);
+        orb.fillCircle(x, y, 4);
+
+        // Orbit particles
+        for (let i = 0; i < 3; i++) {
+            const angle = (i / 3) * Math.PI * 2;
+            const orbX = x + Math.cos(angle) * 15;
+            const orbY = y + Math.sin(angle) * 15;
+            orb.fillStyle(0x00FFFF, 0.7);
+            orb.fillCircle(orbX, orbY, 2);
+        }
+        return orb;
+    }
+
+    /**
+     * Create cosmic particles for entry screen
+     */
+    createEntryCosmicParticles(panelX, panelY, panelWidth, panelHeight) {
+        const particleLayer = this.add.graphics();
+        particleLayer.setScrollFactor(0);
+        particleLayer.setDepth(2999);
+
+        for (let i = 0; i < 15; i++) {
+            const startX = panelX + Math.random() * panelWidth;
+            const startY = panelY + panelHeight + 20 + Math.random() * 80;
+            const colors = [0x9B30FF, 0xE066FF, 0x00FFFF, 0xFF69B4];
+            const color = Phaser.Utils.Array.GetRandom(colors);
+            particleLayer.fillStyle(color, 0.6);
+            particleLayer.fillCircle(startX, startY, 2 + Math.random() * 4);
+        }
+
+        this.entryCosmicParticleLayer = particleLayer;
+        this.entryCosmicParticleTween = this.tweens.add({
+            targets: particleLayer,
+            y: -panelHeight - 100,
+            x: (Math.random() - 0.5) * 40,
+            alpha: 0,
+            duration: 5200,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+                particleLayer.destroy();
+                if (this.entryCosmicParticleLayer === particleLayer) {
+                    this.entryCosmicParticleLayer = null;
+                    this.entryCosmicParticleTween = null;
+                }
+            }
+        });
+    }
+
+    /**
+     * Start cosmic ambient effects
+     */
+    startCosmicAmbience() {
+        console.log('[ReefLevel] Starting cosmic void ambience');
+
+        this.createStarfield();
+        this.createNebulaWisps();
+        this.createVoidRifts();
+        this.createCosmicDust();
+    }
+
+    /**
+     * Create parallax starfield background
+     */
+    createStarfield() {
+        const starfield = this.add.graphics();
+        starfield.setDepth(-900);
+        starfield.setScrollFactor(0.1); // Slow parallax
+
+        // Background nebula gradient
+        for (let i = 0; i < 10; i++) {
+            const t = i / 10;
+            const r = Math.floor(10 + t * 15);
+            const g = Math.floor(0 + t * 10);
+            const b = Math.floor(30 + t * 30);
+            const color = (r << 16) | (g << 8) | b;
+
+            starfield.fillStyle(color, 0.3);
+            starfield.fillRect(0, i * (this.levelHeight / 10), this.levelWidth, this.levelHeight / 10 + 5);
+        }
+
+        // Add stars
+        for (let i = 0; i < 200; i++) {
+            const x = Math.random() * this.levelWidth;
+            const y = Math.random() * this.levelHeight;
+            const size = Math.random() * 2;
+            const alpha = 0.3 + Math.random() * 0.7;
+
+            // Color variety - some blue, some white, some purple
+            const colors = [0xFFFFFF, 0xAABBFF, 0xFFAAFF, 0x88FFFF];
+            const color = Phaser.Utils.Array.GetRandom(colors);
+
+            starfield.fillStyle(color, alpha);
+            starfield.fillCircle(x, y, size);
+        }
+
+        this.starfieldLayer = starfield;
+    }
+
+    /**
+     * Create floating nebula wisps (like underwater currents but cosmic)
+     */
+    createNebulaWisps() {
+        const wispColors = [0x9B30FF, 0xE066FF, 0x00FFFF, 0xFF1493, 0x4169E1];
+
+        for (let layerIndex = 0; layerIndex < 2; layerIndex += 1) {
+            const wispLayer = this.add.graphics();
+            wispLayer.setDepth(-100 - layerIndex);
+
+            for (let i = layerIndex; i < 20; i += 2) {
+                const x = Math.random() * this.levelWidth;
+                const y = Math.random() * this.levelHeight;
+                const color = Phaser.Utils.Array.GetRandom(wispColors);
+                const size = 30 + Math.random() * 50;
+                wispLayer.fillStyle(color, 0.15);
+                wispLayer.fillCircle(x, y, size);
+                wispLayer.fillStyle(color, 0.25);
+                wispLayer.fillCircle(x, y, size * 0.6);
+                wispLayer.fillStyle(color, 0.4);
+                wispLayer.fillCircle(x, y, size * 0.3);
+            }
+
+            if (this.shouldAnimateReefDecorations()) {
+                this.tweens.add({
+                    targets: wispLayer,
+                    x: layerIndex === 0 ? 45 : -45,
+                    y: layerIndex === 0 ? -24 : 24,
+                    alpha: { from: 0.72, to: 1 },
+                    duration: 9000 + layerIndex * 1800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+            this.nebulaParticles.push(wispLayer);
+        }
+    }
+
+    /**
+     * Create dimensional void rifts (visual hazard indicators)
+     */
+    createVoidRifts() {
+        const riftPositions = [
+            { x: 800, y: 400 },
+            { x: 1800, y: 700 },
+            { x: 2800, y: 300 },
+            { x: 4000, y: 600 },
+        ];
+
+        const riftLayer = this.add.graphics();
+        riftLayer.setDepth(-50);
+
+        riftPositions.forEach(pos => {
+            // Draw swirling void rift
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const innerRadius = 30;
+
+                riftLayer.lineStyle(3, 0x9B30FF, 0.4 - i * 0.04);
+                riftLayer.beginPath();
+                riftLayer.arc(pos.x, pos.y, innerRadius + i * 6, angle, angle + 1.5);
+                riftLayer.strokePath();
+            }
+
+            // Center void
+            riftLayer.fillStyle(0x1A0030, 0.8);
+            riftLayer.fillCircle(pos.x, pos.y, 25);
+            riftLayer.fillStyle(0x000000, 0.9);
+            riftLayer.fillCircle(pos.x, pos.y, 15);
+        });
+
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: riftLayer,
+                alpha: { from: 0.68, to: 1 },
+                duration: 1800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+        this.voidRifts.push(riftLayer);
+    }
+
+    /**
+     * Create cosmic dust particles
+     */
+    createCosmicDust() {
+        this.cosmicDustLayer = this.add.graphics().setDepth(50);
+        this.cosmicDustParticles = [];
+        const particleLimit = this.shouldAnimateReefDecorations() ? 12 : 6;
+        this.cosmicDustTimer = this.time.addEvent({
+            delay: 240,
+            callback: () => {
+                if (
+                    Math.random() > 0.55 ||
+                    this.cosmicDustParticles.length >= particleLimit
+                ) return;
+
+                const x = this.cameras.main.scrollX + Math.random() * this.cameras.main.width;
+                const y = this.cameras.main.scrollY + this.cameras.main.height + 20;
+                const colors = [0xE066FF, 0x00FFFF, 0xFFFFFF, 0x9B30FF];
+                this.cosmicDustParticles.push({
+                    x,
+                    y,
+                    velocityX: (Math.random() - 0.5) * 22,
+                    velocityY: -(72 + Math.random() * 44),
+                    size: 1 + Math.random() * 2,
+                    color: Phaser.Utils.Array.GetRandom(colors),
+                    age: 0,
+                    duration: 3000 + Math.random() * 1600
+                });
+            },
+            loop: true
+        });
+    }
+
+    updateCosmicDust(delta) {
+        const layer = this.cosmicDustLayer;
+        if (!layer?.active || this.cosmicDustParticles.length === 0) return;
+
+        const elapsed = Math.min(50, Math.max(0, Number(delta) || 0));
+        const seconds = elapsed / 1000;
+        this.cosmicDustParticles = this.cosmicDustParticles.filter(particle => {
+            particle.age += elapsed;
+            particle.x += particle.velocityX * seconds;
+            particle.y += particle.velocityY * seconds;
+            return particle.age < particle.duration;
+        });
+
+        layer.clear();
+        this.cosmicDustParticles.forEach(particle => {
+            const alpha = 0.5 * (1 - (particle.age / particle.duration));
+            layer.fillStyle(particle.color, alpha);
+            layer.fillCircle(particle.x, particle.y, particle.size);
+        });
+    }
+
+    /**
+     * Override background for cosmic void
+     */
+    createBackground() {
+        // Deep void base
+        const bg = this.add.graphics();
+        bg.setDepth(-1000);
+
+        // Cosmic gradient - deep purple to void black
+        const steps = 15;
+        for (let i = 0; i < steps; i++) {
+            const t = i / steps;
+            const r = Math.floor(8 + t * 12);
+            const g = Math.floor(0 + t * 5);
+            const b = Math.floor(20 + t * 25);
+            const color = (r << 16) | (g << 8) | b;
+
+            bg.fillStyle(color, 1);
+            bg.fillRect(0, i * (this.levelHeight / steps), this.levelWidth, this.levelHeight / steps + 2);
+        }
+
+        if (this.textures.exists(STELLAR_REEF_BACKGROUND_TEXTURE)) {
+            const panelWidth = 2000;
+            const panelHeight = 1125;
+            this.reefPaintedBackground = [0, 1, 2].map(index => {
+                const panel = this.add.image(
+                    panelWidth * index + panelWidth / 2,
+                    this.levelHeight / 2,
+                    STELLAR_REEF_BACKGROUND_TEXTURE
+                );
+                panel.setDisplaySize(panelWidth, panelHeight);
+                panel.setFlipX(index % 2 === 1);
+                panel.setDepth(-950);
+                panel.setAlpha(0.78);
+                return panel;
+            });
+        } else {
+            this.createCosmicStructures();
+        }
+    }
+
+    /**
+     * Create distant cosmic structures (alien coral equivalent)
+     */
+    createCosmicStructures() {
+        const layer = this.add.graphics();
+        layer.setScrollFactor(0.3);
+        layer.setDepth(-700);
+
+        // Crystalline void formations
+        const formations = [
+            { x: 300, height: 350 },
+            { x: 900, height: 280 },
+            { x: 1500, height: 400 },
+            { x: 2200, height: 320 },
+            { x: 3000, height: 380 },
+            { x: 3800, height: 300 },
+            { x: 4600, height: 360 },
+        ];
+
+        formations.forEach(form => {
+            const baseY = this.levelHeight;
+
+            // Draw crystalline structure
+            const colors = [0x9B30FF, 0x4B0082, 0x1A0030];
+
+            // Main crystal spires
+            for (let i = 0; i < 4; i++) {
+                const spireX = form.x + (i - 1.5) * 30;
+                const spireHeight = form.height * (0.5 + Math.random() * 0.5);
+
+                // Crystal body
+                layer.fillStyle(colors[i % 3], 0.6);
+                layer.fillTriangle(
+                    spireX - 15, baseY,
+                    spireX + 15, baseY,
+                    spireX, baseY - spireHeight
+                );
+
+                // Inner glow
+                layer.fillStyle(0xE066FF, 0.3);
+                layer.fillTriangle(
+                    spireX - 8, baseY - 20,
+                    spireX + 8, baseY - 20,
+                    spireX, baseY - spireHeight + 20
+                );
+            }
+
+            // Glowing orbs around structure
+            for (let i = 0; i < 5; i++) {
+                const orbX = form.x + (Math.random() - 0.5) * 100;
+                const orbY = baseY - form.height * Math.random();
+                layer.fillStyle(0x00FFFF, 0.4);
+                layer.fillCircle(orbX, orbY, 5 + Math.random() * 8);
+            }
+        });
+    }
+
+    /**
+     * Create cosmic platforms (floating void crystals)
+     */
+    createPlatforms() {
+        this.platforms = this.physics.add.staticGroup();
+
+        const platformData = [
+            // Starting area
+            { id: 'reef-opening-1', x: 100, y: this.levelHeight - 150, width: 250, type: 'crystal' },
+            { id: 'reef-opening-2', x: 450, y: this.levelHeight - 300, width: 180, type: 'void' },
+            { id: 'reef-opening-3', x: 750, y: this.levelHeight - 450, width: 200, type: 'crystal' },
+
+            // Mid section
+            { id: 'reef-drift-rise', x: 1000, y: this.levelHeight - 600, width: 160, type: 'crystal' },
+            {
+                id: 'reef-drift-relay',
+                x: 1300,
+                y: this.levelHeight - 400,
+                width: 180,
+                type: 'void',
+                traversalLinks: ['reef-current-crown']
+            },
+            {
+                id: 'reef-current-crown',
+                x: 1600,
+                y: this.levelHeight - 700,
+                width: 220,
+                type: 'crystal',
+                oneWay: true
+            },
+            { id: 'reef-current-bridge', x: 1900, y: this.levelHeight - 500, width: 150, type: 'void' },
+
+            // Optional Star Trench - a finite resource detour that rejoins via the ascent current
+            { id: 'reef-trench-1', x: 1600, y: this.levelHeight - 170, width: 220, type: 'void' },
+            { id: 'reef-trench-2', x: 1940, y: this.levelHeight - 150, width: 220, type: 'crystal' },
+            {
+                id: 'reef-trench-3',
+                x: 2280,
+                y: this.levelHeight - 180,
+                width: 220,
+                type: 'void',
+                traversalLinks: ['reef-drive-step']
+            },
+
+            // Deep section - ship part area
+            { id: 'reef-drive-approach', x: 2200, y: this.levelHeight - 800, width: 200, type: 'crystal' },
+            {
+                id: 'reef-drive-step',
+                x: 2500,
+                y: this.levelHeight - 600,
+                width: 180,
+                type: 'void',
+                oneWay: true
+            },
+            { id: 'reef-drive-relic', x: 2800, y: this.levelHeight - 900, width: 250, type: 'relic' }, // Ship part here
+            {
+                id: 'reef-traveler-relay',
+                x: 3100,
+                y: this.levelHeight - 700,
+                width: 160,
+                type: 'crystal',
+                traversalLinks: ['reef-sky-rise']
+            },
+
+            // Pre-boss
+            {
+                id: 'reef-sky-rise',
+                x: 3400,
+                y: this.levelHeight - 1000,
+                width: 220,
+                type: 'crystal',
+                oneWay: true
+            },
+            { id: 'reef-sky-step', x: 3800, y: this.levelHeight - 800, width: 200, type: 'void' },
+            { id: 'reef-passage-rise', x: 4200, y: this.levelHeight - 600, width: 180, type: 'crystal' },
+
+            // Boss approach
+            { id: 'reef-passage-bridge', x: 4600, y: this.levelHeight - 500, width: 250, type: 'void' },
+            { id: 'reef-passage-vector', x: 5000, y: this.levelHeight - 400, width: 200, type: 'crystal' },
+
+            // Boss arena
+            { id: 'reef-guardian-arena', x: 5400, y: this.levelHeight - 300, width: 500, type: 'arena' },
+        ];
+
+        platformData.forEach(data => {
+            this.createCosmicPlatform(
+                data.id,
+                data.x,
+                data.y,
+                data.width,
+                data.type,
+                {
+                    oneWay: data.oneWay === true,
+                    traversalLinks: data.traversalLinks || []
+                }
+            );
+        });
+    }
+
+    /**
+     * Create a cosmic floating platform
+     */
+    createCosmicPlatform(id, x, y, width, type, {
+        oneWay = false,
+        traversalLinks = []
+    } = {}) {
+        const height = 35;
+        let platform;
+
+        if (this.textures.exists(STELLAR_REEF_PLATFORM_TEXTURE)) {
+            const visualWidth = width + 20;
+            const visualHeight = Math.max(58, visualWidth * (258 / 1024));
+            platform = this.add.image(
+                x + width / 2,
+                y,
+                STELLAR_REEF_PLATFORM_TEXTURE
+            );
+            platform.setOrigin(0.5, 0);
+            platform.setDisplaySize(visualWidth, visualHeight);
+            if (type === 'void') platform.setTint(0xB8D9EF);
+            if (type === 'relic') platform.setTint(0xFFE0A3);
+            if (type === 'arena') platform.setTint(0xD7A7C8);
+            platform.reefAuthoredTerrain = true;
+        } else {
+            platform = this.add.graphics();
+        }
+
+        if (platform.type === 'Graphics' && type === 'crystal') {
+            // Crystalline void platform - purple/magenta
+            platform.fillStyle(0x9B30FF, 0.7);
+            platform.fillRoundedRect(x, y, width, height, 8);
+
+            // Crystal facets
+            platform.fillStyle(0xE066FF, 0.5);
+            for (let i = 0; i < width / 25; i++) {
+                const facetX = x + 12 + i * 25;
+                platform.fillTriangle(
+                    facetX - 8,
+                    y + height - 5,
+                    facetX + 8,
+                    y + height - 5,
+                    facetX,
+                    y + 7
+                );
+            }
+
+            // Glow
+            platform.fillStyle(0x9B30FF, 0.15);
+            platform.fillRoundedRect(x - 8, y - 8, width + 16, height + 16, 12);
+
+        } else if (platform.type === 'Graphics' && type === 'void') {
+            // Void energy platform - cyan/blue
+            platform.fillStyle(0x0066AA, 0.6);
+            platform.fillRoundedRect(x, y, width, height, 10);
+
+            // Energy patterns
+            platform.lineStyle(2, 0x00FFFF, 0.6);
+            for (let i = 0; i < width / 30; i++) {
+                const lineX = x + 15 + i * 30;
+                platform.lineBetween(lineX, y + 5, lineX, y + height - 5);
+            }
+
+            // Outer glow
+            platform.fillStyle(0x00FFFF, 0.1);
+            platform.fillRoundedRect(x - 5, y - 5, width + 10, height + 10, 12);
+
+        } else if (platform.type === 'Graphics' && type === 'relic') {
+            // Special platform for ship part - golden
+            platform.fillStyle(0x4A3000, 0.8);
+            platform.fillRoundedRect(x, y, width, height, 10);
+
+            // Golden energy lines
+            platform.lineStyle(3, 0xFFD700, 0.7);
+            platform.strokeRoundedRect(x + 5, y + 5, width - 10, height - 10, 6);
+
+            // Pulsing glow
+            platform.fillStyle(0xFFD700, 0.2);
+            platform.fillRoundedRect(x - 10, y - 10, width + 20, height + 20, 15);
+
+        } else if (platform.type === 'Graphics' && type === 'arena') {
+            // Boss arena - ominous void
+            platform.fillStyle(0x1A0020, 0.95);
+            platform.fillRoundedRect(x, y, width, height + 30, 15);
+
+            // Red warning runes
+            platform.lineStyle(3, 0xFF0066, 0.6);
+            for (let i = 0; i < width / 60; i++) {
+                const runeX = x + 30 + i * 60;
+                platform.strokeCircle(runeX, y + 25, 12);
+                // Inner symbol
+                platform.lineBetween(runeX - 6, y + 25, runeX + 6, y + 25);
+                platform.lineBetween(runeX, y + 19, runeX, y + 31);
+            }
+
+            // Void energy border
+            platform.fillStyle(0xFF0066, 0.1);
+            platform.fillRoundedRect(x - 10, y - 10, width + 20, height + 50, 18);
+        }
+
+        platform.setDepth(50);
+
+        // Physics body
+        const body = this.platforms.create(x + width / 2, y + height / 2, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(width, height);
+        body.body.setOffset(-width / 2, -height / 2);
+        body.traversalId = id;
+        body.traversalLinks = [...traversalLinks];
+        body.platformType = oneWay ? 'one-way' : 'solid';
+        body.reefTerrainVisual = platform;
+        if (platform.reefAuthoredTerrain) {
+            platform.y += body.body.top - platform.getBounds().top;
+        }
+        if (oneWay) {
+            body.body.checkCollision.down = false;
+            body.body.checkCollision.left = false;
+            body.body.checkCollision.right = false;
+        }
+        return body;
+    }
+
+    createHUD() {
+        super.createHUD();
+        this.createCampaignObjectiveDisplay(
+            () => this.getReefObjectiveText(),
+            {
+                color: '#F4F8FF',
+                backgroundColor: 'rgba(10, 0, 21, 0.92)'
+            }
+        );
+    }
+
+    getReefObjectiveText() {
+        const routeStatus = this.getReefRouteStatusText();
+        const objective = (...lines) => lines.filter(Boolean).join('\n');
+
+        if (this.bossDefeated) {
+            return objective(
+                'STELLAR PASSAGE RESTORED',
+                "NYX'VORAL IS FREE",
+                routeStatus
+            );
+        }
+        if (this.bossFightActive) {
+            return objective(
+                "FREE NYX'VORAL FROM THE VOID",
+                'STRIKE WHEN ITS BODY FLASHES',
+                routeStatus
+            );
+        }
+        if (this.reefRouteAligned && this.shipPartCollected) {
+            return objective(
+                'THE PASSAGE IS OPEN',
+                "NYX'VORAL IS AWAKENING",
+                routeStatus
+            );
+        }
+        if (this.beaconAnchorsActivated >= 1 && !this.shipPartCollected) {
+            return objective(
+                'FIND THE DIMENSIONAL DRIVE',
+                this.getDriveCompassText(),
+                routeStatus
+            );
+        }
+
+        const nextWaypoint = [
+            'DRIFT CURRENT',
+            'TRAVELER CURRENT',
+            'PASSAGE CURRENT'
+        ][this.getNextOrderedRouteSignal?.()?.index ?? this.beaconAnchorsActivated] || 'PASSAGE CURRENT';
+        const current = Math.min(this.beaconAnchorsActivated + 1, 3);
+        const drive = this.shipPartCollected
+            ? 'DIMENSIONAL DRIVE // SECURED'
+            : 'HOLD JUMP TO SWIM UP';
+        const compass = this.getOrderedRouteCompassText();
+        const routeDirection = this.beaconAnchorsActivated === 0
+            ? 'SWIM RIGHT + UP // FOLLOW THE GOLD CURRENT'
+            : compass;
+        const title = this.isCompactObjectiveHUD
+            ? `GOLD MARKER ${current}/3`
+            : `GOLD MARKER ${current}/3 // ${nextWaypoint}`;
+        return objective(title, routeDirection || drive, routeStatus);
+    }
+
+    getReefRouteStatusText() {
+        if (this.reefRouteChoice === 'main') {
+            return this.reefCurrentEdgeReady
+                ? 'CURRENT BOOST // NEXT KATANA HIT +2 READY'
+                : 'CURRENT BOOST // CURRENT EDGE SPENT';
+        }
+        if (this.reefRouteChoice !== 'optional') return '';
+        return this.getOptionalRouteStatusText(
+            'reef_star_trench',
+            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+        );
+    }
+
+    getDriveCompassText() {
+        if (!this.player) return 'FOLLOW THE CYAN CURRENT';
+        const driveX = Number(this.shipPart?.x) || 2800;
+        const driveY = Number(this.shipPart?.y) || this.levelHeight - 950;
+        const dx = driveX - Number(this.player.x);
+        const dy = driveY - Number(this.player.y);
+        const distance = Math.max(0, Math.round(Math.hypot(dx, dy) / 50) * 50);
+        if (distance <= 180) return `CURRENT CLOSE // ${distance}m`;
+        const directions = [];
+        if (Math.abs(dx) > 90) directions.push(dx > 0 ? 'RIGHT' : 'LEFT');
+        if (Math.abs(dy) > 90) directions.push(dy > 0 ? 'DOWN' : 'UP');
+        return `DRIVE ${directions.join(' + ') || 'CLOSE'} // ${distance}m`;
+    }
+
+    /**
+     * Create level content - cosmic enemies, collectibles
+     */
+    createLevelContent() {
+        console.log('[ReefLevel] Creating cosmic abyss content');
+
+        this.enemies = this.physics.add.group();
+
+        // Place a deliberate sequence of readable encounters on the route.
+        this.createReefEncounterRhythm();
+
+        // Collectibles
+        this.spawnStarFragments();
+        this.spawnShipPart();
+
+        // Recovery points also carry the companion-led route discovery.
+        this.createBeaconWaypoints();
+        this.createOpeningSignalCurrent();
+        this.createReefRouteChoice();
+        this.createAbyssAscentCurrent();
+        this.createDriftAscentCurrent();
+        this.createTravelerAscentCurrent();
+
+        // Boss trigger
+        this.createBossTrigger();
+    }
+
+    retireReefPatrolsForNyxvoral() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefProximityEnemies = [];
+        this.reefEnemyActivationBounds = null;
+        const retirement = this.retireRouteEnemies(patrols);
+        this.voidSpores = [];
+        this.plasmaDarts = [];
+        this.phaseDrifters = [];
+        this.lureWraiths = [];
+        this.reefEncounterRhythm = [];
+        return retirement.enemyCount;
+    }
+
+    registerReefEnemyAI(enemy) {
+        if (!enemy) return null;
+        enemy.reefProximityActive = null;
+        return enemy;
+    }
+
+    startReefEnemyAIScheduler() {
+        this.reefEnemyAISchedulerActive = true;
+        this.reefEnemyActivationNextAt = 0;
+        this.reefEnemyAINextAt = 0;
+        this.updateReefEnemyActivation(true);
+    }
+
+    getReefEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 320 : 460;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setReefEnemyRenderAttached(enemy, attached) {
+        const displayList = this.children;
+        if (!enemy || !displayList) return 0;
+
+        const targets = [
+            enemy.graphics,
+            enemy.combatCue,
+            enemy.instructionLabel
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+        targets.forEach(target => {
+            const isAttached = target.displayList === displayList;
+            if (attached && !isAttached) {
+                displayList.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                displayList.remove(target);
+                changedCount += 1;
+            }
+        });
+        return changedCount;
+    }
+
+    setReefEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.reefProximityActive === nextState) return nextState;
+
+        enemy.reefProximityActive = nextState;
+        if (nextState) {
+            this.setReefEnemyRenderAttached(enemy, true);
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            enemy.graphics?.setVisible?.(true);
+        } else {
+            enemy.setVelocity?.(0, 0);
+            enemy.body.enable = false;
+            enemy.graphics?.setVisible?.(false);
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+            this.setReefEnemyRenderAttached(enemy, false);
+        }
+        return nextState;
+    }
+
+    updateReefEnemyActivation(force = false) {
+        if (!this.reefEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.reefEnemyActivationNextAt) {
+            return this.reefProximityEnemies.length;
+        }
+        this.reefEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getReefEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const inWindow =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            const attackActive = Boolean(
+                enemy.isCharging ||
+                enemy.isTelegraphing ||
+                enemy.isLunging
+            );
+            const shouldStayActive = inWindow || attackActive;
+            this.setReefEnemyProximityActive(enemy, shouldStayActive);
+            if (shouldStayActive) nearby.push(enemy);
+        });
+        this.reefProximityEnemies = nearby;
+        this.reefEnemyActivationBounds = bounds;
+        return nearby.length;
+    }
+
+    updateReefEnemyAI(time) {
+        if (!this.reefEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(time) || Number(this.time?.now) || 0;
+        if (now < this.reefEnemyAINextAt) return 0;
+        this.reefEnemyAINextAt = now + (this.isMobile ? 50 : 34);
+
+        let updatedCount = 0;
+        (this.reefProximityEnemies || []).forEach(enemy => {
+            if (!enemy?.active || enemy.reefProximityActive === false) return;
+            switch (enemy.enemyType) {
+                case 'voidSpore': {
+                    const wobble = Math.sin(now / 800 + enemy.phase) * 25;
+                    enemy.x = enemy.baseX + wobble;
+                    enemy.y = enemy.baseY +
+                        Math.sin(now / 600 + enemy.phase) * 15;
+                    this.updateEnemyGraphics(enemy);
+                    break;
+                }
+                case 'plasmaDart':
+                    this.updatePlasmaDartAI(enemy, now);
+                    break;
+                case 'phaseDrifter':
+                    this.updatePhaseDrifterAI(enemy, now);
+                    break;
+                case 'lureWraith':
+                    this.updateLureWraithAI(enemy, now);
+                    break;
+                default:
+                    return;
+            }
+            updatedCount += 1;
+        });
+        return updatedCount;
+    }
+
+    createBeaconWaypoints() {
+        const waypoints = [
+            {
+                id: 'reef_waypoint_1',
+                label: 'DRIFT CURRENT',
+                activationSupportIds: ['reef-drift-relay']
+            },
+            {
+                id: 'reef_waypoint_2',
+                label: 'TRAVELER CURRENT',
+                activationSupportIds: ['reef-traveler-relay']
+            },
+            {
+                id: 'reef_waypoint_3',
+                label: 'PASSAGE CURRENT',
+                activationSupportIds: ['reef-passage-vector']
+            }
+        ];
+
+        waypoints.forEach((waypoint, index) => {
+            const supportId = waypoint.activationSupportIds[0];
+            const support = this.getTraversalSupport(supportId);
+            const supportCheckpoint = this.getTraversalSupportCheckpoint(
+                supportId,
+                support?.x
+            );
+            const waypointX = supportCheckpoint.x;
+            const supportY = support?.body?.top || this.levelHeight - 80;
+            const waypointY = supportY - 60;
+            const visual = this.add.graphics();
+            visual.setDepth(180);
+            this.drawBeaconWaypoint(
+                visual,
+                waypointX,
+                waypointY,
+                supportY,
+                false
+            );
+
+            const label = this.add.text(
+                waypointX,
+                waypointY - 76,
+                `${index + 1} // GOLD MARKER\nSWIM THROUGH`,
+                {
+                fontSize: '11px',
+                color: '#667F94',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 3,
+                align: 'center'
+            }).setOrigin(0.5).setDepth(181);
+
+            const zone = this.createObjectiveTriggerZone(
+                waypointX,
+                waypointY,
+                { width: 150, height: 150 }
+            );
+
+            const anchor = {
+                ...waypoint,
+                x: waypointX,
+                y: waypointY,
+                supportY,
+                index,
+                visual,
+                label,
+                zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    supportId,
+                    0x8FE3CF,
+                    {
+                        depth: 179,
+                        animate: this.shouldAnimateReefDecorations()
+                    }
+                ),
+                respawnY: supportCheckpoint.y,
+                activated: false
+            };
+            this.physics.add.overlap(this.player, zone, () => {
+                this.activateBeaconWaypoint(anchor);
+            });
+            this.beaconAnchors.push(anchor);
+        });
+
+        this.refreshBeaconRouteReadability();
+    }
+
+    getTraversalAuditTargets() {
+        const trench = {
+                id: 'reef_star_trench',
+                label: 'STAR TRENCH RETURN',
+                x: 2250,
+                y: this.levelHeight - 220,
+                width: 180,
+                height: 180,
+                optional: true,
+                activationSupportIds: ['reef-trench-3']
+            };
+        const drive = {
+                id: 'dimensional_drive',
+                label: 'DIMENSIONAL DRIVE',
+                x: this.shipPart?.x || 2800,
+                y: this.shipPart?.y || this.levelHeight - 950,
+                body: this.shipPart?.body,
+                activationSupportIds: ['reef-drive-relic']
+            };
+        const guardian = {
+                id: 'reef_guardian_gate',
+                label: 'PASSAGE GUARDIAN',
+                x: this.bossTriggerZone?.x || REEF_GUARDIAN_ARENA.triggerX,
+                y: this.bossTriggerZone?.y || this.levelHeight / 2,
+                zone: this.bossTriggerZone
+            };
+        return [...this.beaconAnchors, trench, drive, guardian]
+            .sort((left, right) => Number(left.x) - Number(right.x));
+    }
+
+    drawBeaconWaypoint(
+        graphics,
+        x,
+        y,
+        supportY,
+        activated,
+        passageProgress = 0
+    ) {
+        graphics.clear();
+        const color = activated ? 0x8FE3CF : 0xF2C94C;
+        const core = color;
+        const opening = Phaser.Math.Clamp(Number(passageProgress) || 0, 0, 1);
+
+        // A current bloom grows from the shelf so the objective belongs to
+        // the Reef instead of reading as a navigation instrument.
+        graphics.fillStyle(color, activated ? 0.24 : 0.12);
+        graphics.fillEllipse(x, y, 66, 86);
+        graphics.fillStyle(core, activated ? 0.34 : 0.18);
+        graphics.fillEllipse(x - 12, y + 3, 24, 48);
+        graphics.fillEllipse(x + 13, y - 4, 20, 38);
+        graphics.fillStyle(core, activated ? 1 : 0.82);
+        graphics.fillCircle(x, y - 5, activated ? 10 : 8);
+        if (opening > 0) {
+            const spread = 18 + opening * 34;
+            const rise = 24 + opening * 36;
+            graphics.fillStyle(0x8FE3CF, 0.16 + opening * 0.16);
+            graphics.fillEllipse(x, y - 8, 78 + spread, 94 + rise);
+            graphics.fillStyle(0xF2C94C, 0.28 + opening * 0.28);
+            graphics.fillEllipse(x - spread * 0.42, y - rise * 0.38, 20, 50);
+            graphics.fillEllipse(x + spread * 0.45, y - rise * 0.28, 18, 42);
+            graphics.fillStyle(0xE8FFF7, 0.62 + opening * 0.28);
+            graphics.fillEllipse(x, y - rise * 0.72, 14, 24);
+        }
+        const stemDistance = Math.max(0, supportY - y - 34);
+        const stemCount = Math.max(2, Math.ceil(stemDistance / 18));
+        for (let index = 0; index < stemCount; index += 1) {
+            const progress = stemCount <= 1 ? 1 : index / (stemCount - 1);
+            const drift = Math.sin(progress * Math.PI * 2) * 5;
+            graphics.fillStyle(color, 0.3 + progress * 0.28);
+            graphics.fillCircle(
+                x + drift,
+                y + 36 + progress * stemDistance,
+                Math.max(2, 5 - progress * 2)
+            );
+        }
+    }
+
+    drawCreaturePassageWake(wake) {
+        const graphics = wake?.visual;
+        if (!graphics?.active) return false;
+
+        const progress = Phaser.Math.Clamp(Number(wake.progress) || 0, 0, 1);
+        const contactProgress = Phaser.Math.Clamp(progress / 0.22, 0, 1);
+        const travelProgress = Phaser.Math.Clamp((progress - 0.12) / 0.62, 0, 1);
+        const responseProgress = Phaser.Math.Clamp((progress - 0.58) / 0.42, 0, 1);
+        graphics.clear();
+
+        // The first shape remains attached to the creature's actual ground
+        // contact. The Current then grows as overlapping living tissue instead
+        // of a thin line or route marker.
+        graphics.fillStyle(0xF2C94C, 0.18 + contactProgress * 0.28);
+        graphics.fillEllipse(
+            wake.sourceX,
+            wake.sourceY - 3,
+            34 + contactProgress * 46,
+            10 + contactProgress * 12
+        );
+        graphics.fillStyle(0x8FE3CF, 0.18 + contactProgress * 0.34);
+        for (let step = 0; step <= 4; step += 1) {
+            const t = step / 4;
+            graphics.fillEllipse(
+                wake.sourceX + (wake.bloomX - wake.sourceX) * t,
+                wake.sourceY + (wake.bloomY - wake.sourceY) * t,
+                18 + contactProgress * 10,
+                12 + contactProgress * 8
+            );
+        }
+
+        const travelDistance = wake.travelDistance * travelProgress;
+        const segmentCount = Math.max(1, Math.ceil(travelDistance / 16));
+        for (let index = 0; index <= segmentCount; index += 1) {
+            const distance = Math.min(travelDistance, index * 16);
+            const wave = Math.sin((distance / 42) * Math.PI) * 11;
+            const taper = 1 - (distance / Math.max(1, wake.travelDistance)) * 0.38;
+            const x = wake.bloomX + distance;
+            const y = wake.bloomY + wave;
+            graphics.fillStyle(0x8FE3CF, 0.16 + taper * 0.2);
+            graphics.fillEllipse(x, y, 34 * taper, 24 * taper);
+            graphics.fillStyle(0xF2C94C, 0.42 + taper * 0.32);
+            graphics.fillEllipse(x, y, 15 * taper, 9 * taper);
+        }
+
+        if (responseProgress > 0) {
+            const destinationX = wake.bloomX + wake.travelDistance;
+            graphics.fillStyle(0x8FE3CF, 0.16 + responseProgress * 0.2);
+            graphics.fillEllipse(
+                destinationX,
+                wake.bloomY,
+                34 + responseProgress * 54,
+                28 + responseProgress * 64
+            );
+            graphics.fillStyle(0xF2C94C, 0.38 + responseProgress * 0.34);
+            graphics.fillEllipse(
+                destinationX - 16 * responseProgress,
+                wake.bloomY - 21 * responseProgress,
+                16,
+                38
+            );
+            graphics.fillEllipse(
+                destinationX + 18 * responseProgress,
+                wake.bloomY - 16 * responseProgress,
+                14,
+                32
+            );
+        }
+        return true;
+    }
+
+    playCreaturePassageOpening(anchor) {
+        const body = this.player?.body;
+        if (!anchor?.visual?.active || !body) return false;
+
+        this.clearCreaturePassageWake();
+        const wake = {
+            anchorId: anchor.id,
+            sourceX: body.center.x,
+            sourceY: body.bottom,
+            bloomX: anchor.x,
+            bloomY: anchor.y,
+            supportY: anchor.supportY,
+            travelDistance: this.isMobile ? 170 : 250,
+            progress: 0,
+            stage: 'contact',
+            settled: false,
+            visual: this.add.graphics().setDepth(184)
+        };
+        this.creaturePassageWake = wake;
+        this.reefPassageCameraFocusUntil = (Number(this.time?.now) || 0) + 1250;
+        anchor.visual.setAlpha(1);
+        this.drawCreaturePassageWake(wake);
+        this.showFloatingText(
+            `${this.getCompanionName()} PRESSES INTO THE CURRENT`,
+            wake.sourceX,
+            wake.sourceY - 100,
+            '#F2C94C'
+        );
+
+        this.creaturePassageWakeTween = this.tweens.add({
+            targets: wake,
+            progress: 1,
+            duration: 1050,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                const currentBody = this.player?.body;
+                if (currentBody && wake.progress < 0.72) {
+                    wake.sourceX = currentBody.center.x;
+                    wake.sourceY = currentBody.bottom;
+                }
+                wake.stage = wake.progress < 0.24
+                    ? 'contact'
+                    : (wake.progress < 0.78 ? 'travelling' : 'opening');
+                this.drawCreaturePassageWake(wake);
+                this.drawBeaconWaypoint(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    anchor.supportY,
+                    true,
+                    Phaser.Math.Clamp((wake.progress - 0.5) / 0.5, 0, 1)
+                );
+            },
+            onComplete: () => {
+                wake.stage = 'settled';
+                wake.settled = true;
+                wake.progress = 1;
+                anchor.passageOpen = true;
+                anchor.visual.setAlpha(0.78);
+                this.drawCreaturePassageWake(wake);
+                this.drawBeaconWaypoint(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    anchor.supportY,
+                    true,
+                    1
+                );
+                this.showFloatingText(
+                    'THE REEF OPENS A PATH',
+                    wake.bloomX + wake.travelDistance * 0.56,
+                    wake.bloomY - 70,
+                    '#D6EEF2'
+                );
+                this.creaturePassageWakeTween = null;
+                this.scheduleAutomaticReefGuardianAwakening();
+            }
+        });
+        return true;
+    }
+
+    getCreaturePassageWakeSnapshot() {
+        const wake = this.creaturePassageWake;
+        if (!wake) return null;
+        return {
+            anchorId: wake.anchorId,
+            stage: wake.stage,
+            progress: Number(wake.progress) || 0,
+            settled: wake.settled === true,
+            sourceX: wake.sourceX,
+            sourceY: wake.sourceY,
+            bloomX: wake.bloomX,
+            bloomY: wake.bloomY,
+            supportY: wake.supportY,
+            destinationX: wake.bloomX + wake.travelDistance,
+            visualActive: wake.visual?.active === true
+        };
+    }
+
+    clearCreaturePassageWake() {
+        this.creaturePassageWakeTween?.remove?.();
+        this.creaturePassageWakeTween = null;
+        this.creaturePassageWake?.visual?.destroy?.();
+        this.creaturePassageWake = null;
+    }
+
+    updateCameraLead() {
+        if (
+            this.player &&
+            (Number(this.time?.now) || 0) < this.reefPassageCameraFocusUntil
+        ) {
+            this.currentCameraLeadX = 0;
+            this.targetCameraLeadX = 0;
+            this.cameras.main.setFollowOffset(0, this.cameraBaseOffsetY);
+            return;
+        }
+        super.updateCameraLead();
+    }
+
+    activateBeaconWaypoint(anchor) {
+        if (!anchor || anchor.activated) return;
+
+        if (!this.canActivateOrderedRouteSignal(
+            anchor,
+            this.beaconAnchors,
+            this.beaconAnchorsActivated,
+            { hintOffsetY: -92 }
+        )) {
+            return;
+        }
+
+        anchor.activated = true;
+        anchor.zone?.destroy?.();
+        anchor.zone = null;
+        this.beaconAnchorsActivated++;
+        this.drawBeaconWaypoint(
+            anchor.visual,
+            anchor.x,
+            anchor.y,
+            anchor.supportY,
+            true
+        );
+        this.retireTraversalLandingGuide(anchor);
+        this.refreshBeaconRouteReadability();
+        if (anchor.index === 0) {
+            this.retireOpeningSignalCurrent();
+        }
+        const supportCheckpoint = this.getTraversalSupportCheckpoint(
+            anchor.activationSupportIds[0],
+            anchor.x
+        );
+        anchor.respawnY = supportCheckpoint.y;
+        this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {
+            persist: true,
+            checkpointId: anchor.id,
+            checkpointIndex: anchor.index
+        });
+
+        this.showFloatingText(
+            `GOLD CURRENT ${this.beaconAnchorsActivated}/3 OPEN`,
+            anchor.x,
+            anchor.y - 92,
+            '#8FE3CF'
+        );
+
+        const companionName = this.getCompanionName();
+        if (this.beaconAnchorsActivated === 1) {
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    `${companionName}: "This message did not come from Earth."`,
+                    anchor.x,
+                    anchor.y - 126,
+                    '#D6EEF2'
+                );
+            });
+        } else if (this.beaconAnchorsActivated === 2) {
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    `${companionName}: "It is a traveler relay. Someone crossed before us."`,
+                    anchor.x,
+                    anchor.y - 126,
+                    '#D6EEF2'
+                );
+            });
+        } else if (this.beaconAnchorsActivated === 3) {
+            this.reefRouteAligned = true;
+            this.retireCompletedReefRouteGuidance();
+            this.playCreaturePassageOpening(anchor);
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'reef_route_aligned'
+            });
+        }
+
+        window.AudioManager?.playAchievement?.();
+    }
+
+    refreshBeaconRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.beaconAnchors,
+            this.beaconAnchorsActivated,
+            {
+                futureColor: '#667F94'
+            }
+        );
+    }
+
+    retireCompletedReefRouteGuidance() {
+        if (!this.reefRouteAligned) return false;
+
+        this.beaconAnchors.forEach(anchor => {
+            anchor.guidanceTween?.remove?.();
+            anchor.guidanceTween = null;
+            anchor.label?.setVisible?.(false);
+            anchor.visual?.setAlpha?.(anchor.passageOpen ? 0.78 : 0.14);
+        });
+        return true;
+    }
+
+    createOpeningSignalCurrent() {
+        const firstWaypoint = this.beaconAnchors[0];
+        const destinationX = firstWaypoint?.x || 1250;
+        const destinationY = firstWaypoint?.y || 700;
+        const departureCue = {
+            x: 335,
+            y: this.levelHeight - 300
+        };
+        const visual = this.add.graphics().setDepth(114);
+        const drawCurrentPath = (width, color, alpha) => {
+            visual.lineStyle(width, color, alpha);
+            visual.beginPath();
+            visual.moveTo(300, this.levelHeight - 285);
+            visual.lineTo(560, this.levelHeight - 390);
+            visual.lineTo(830, this.levelHeight - 535);
+            visual.lineTo(1080, this.levelHeight - 505);
+            visual.lineTo(destinationX, destinationY);
+            visual.strokePath();
+        };
+        drawCurrentPath(24, 0x8FE3CF, 0.11);
+        drawCurrentPath(9, 0xF2C94C, 0.24);
+        drawCurrentPath(3, 0xD6EEF2, 0.34);
+
+        [
+            [departureCue.x, departureCue.y],
+            [430, this.levelHeight - 338],
+            [690, this.levelHeight - 465],
+            [950, this.levelHeight - 520],
+            [destinationX - 90, destinationY]
+        ].forEach(([x, y], index) => {
+            visual.fillStyle(0x8FE3CF, 0.16);
+            visual.fillCircle(x, y, 16 + (index % 2) * 3);
+            visual.fillStyle(0xF2C94C, 0.9);
+            visual.fillCircle(x, y, 6 + (index % 2) * 2);
+        });
+
+        const label = this.add.text(
+            520,
+            this.levelHeight - 430,
+            'FOLLOW THE GOLD CURRENT  →',
+            {
+                fontSize: '12px',
+                color: '#F2C94C',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(183);
+        label.setVisible(!(
+            this.isMobile || this.cameras.main.width <= 480
+        ));
+
+        const pulseTween = this.tweens.add({
+            targets: [visual, label],
+            alpha: { from: 0.62, to: 1 },
+            duration: 850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.openingSignalCurrent = {
+            visual,
+            label,
+            pulseTween,
+            departureCue,
+            retired: false
+        };
+    }
+
+    retireOpeningSignalCurrent() {
+        const current = this.openingSignalCurrent;
+        if (!current?.visual?.active || current.retired) return false;
+
+        current.retired = true;
+        current.pulseTween?.remove?.();
+        current.pulseTween = null;
+        current.label?.setText?.('GOLD CURRENT LINKED');
+        current.label?.setColor?.('#8FE3CF');
+        this.tweens.add({
+            targets: [current.visual, current.label].filter(Boolean),
+            alpha: 0.14,
+            duration: 420,
+            ease: 'Power2'
+        });
+        return true;
+    }
+
+    createReefRouteChoice() {
+        const mainRoute = this.add.text(1540, 735, '', {
+            fontSize: '12px',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            stroke: '#05030C',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        const optionalRoute = this.add.text(1580, 930, '', {
+            fontSize: '11px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#05030C',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
+
+        this.registerOptionalRouteReward({
+            id: 'reef_star_trench',
+            title: 'STAR TRENCH',
+            required: 2,
+            rewardLabel: 'FREE SUPER BLAST',
+            marker: optionalRoute,
+            returnLabel: 'STAR TRENCH RETURN ↑ // DRIFT ROUTE →',
+            choice: {
+                mainLabel: 'CURRENT BOOST →',
+                mainTradeoff: 'FAST + PATROLS\nEARNS: NEXT KATANA HIT +2',
+                challengeLabel: 'DEEP WATER + 2 RELICS',
+                mainMarker: mainRoute,
+                mainZone: {
+                    left: 1450, right: 2450,
+                    top: 480, bottom: 850
+                },
+                mainSupportIds: ['reef-current-bridge'],
+                optionalZone: {
+                    left: 1450, right: 2450,
+                    top: 850, bottom: this.levelHeight - 150
+                },
+                optionalSupportIds: ['reef-trench-1'],
+                rejoinZone: {
+                    left: 2500, right: 3500,
+                    top: 300, bottom: 900
+                },
+                rejoinSupportIds: ['reef-drive-step']
+            },
+            onMainSelected: () => this.selectReefRoute('main'),
+            onOptionalSelected: () => this.selectReefRoute('optional'),
+            onComplete: () => {
+                this.freeSpecialAttackCharges += 1;
+                this.refreshPersistedExpeditionRouteState();
+            }
+        });
+
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: [mainRoute, optionalRoute],
+                alpha: { from: 0.68, to: 1 },
+                duration: 900,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+    }
+
+    createAbyssAscentCurrent() {
+        const id = 'reef-star-trench-return';
+        const startX = 2460;
+        const width = 260;
+        const top = 540;
+        const bottom = this.levelHeight;
+        const currentHeight = bottom - top;
+        const zone = this.add.zone(
+            startX + width / 2,
+            top + currentHeight / 2,
+            width,
+            currentHeight
+        );
+        this.physics.add.existing(zone, true);
+
+        const visual = this.add.graphics();
+        visual.setDepth(115);
+        visual.fillStyle(0x00FFFF, 0.1);
+        visual.fillRoundedRect(startX, top, width, currentHeight, 28);
+        visual.lineStyle(3, 0x8FE3CF, 0.5);
+        visual.strokeRoundedRect(startX + 5, top + 5, width - 10, currentHeight - 10, 24);
+        for (let y = bottom - 80; y > top + 55; y -= 115) {
+            const x = startX + width / 2;
+            visual.lineBetween(x, y + 28, x, y - 28);
+            visual.lineBetween(x, y - 28, x - 13, y - 8);
+            visual.lineBetween(x, y - 28, x + 13, y - 8);
+        }
+
+        const label = this.add.text(
+            startX + width / 2,
+            bottom - 42,
+            'STAR TRENCH RETURN ↑',
+            {
+                fontSize: '11px',
+                color: '#00FFFF',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(183);
+
+        const pulseTween = this.shouldAnimateReefDecorations()
+            ? this.tweens.add({
+                targets: [visual, label],
+                alpha: { from: 0.48, to: 0.9 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1
+            })
+            : null;
+
+        const current = {
+            id,
+            destinationId: 'reef-drive-step',
+            zone,
+            visual,
+            label,
+            pulseTween,
+            x: startX,
+            top,
+            bottom,
+            width,
+            height: currentHeight,
+            activations: 0,
+            activeUntil: 0,
+            lastLiftAt: Number.NEGATIVE_INFINITY
+        };
+        this.abyssAscentCurrent = current;
+
+        this.physics.add.overlap(this.player, zone, () => {
+            this.activateReefAscentCurrent(current, 'vertical');
+        });
+    }
+
+    activateReefAscentCurrent(current, mode = 'forward') {
+        const body = this.player?.body;
+        if (!current || !body || this.activeReefAscentCurrent) return false;
+        if (this.isPlayerDead || this.isRespawning) return false;
+        if (this.isPlayerGroundedOnTraversalSupport(current.destinationId)) {
+            return false;
+        }
+        if (body.bottom < current.bottom - 180) return false;
+
+        const now = Number(this.time?.now) || Date.now();
+        if (now - current.lastLiftAt < 650) return false;
+        current.activations += 1;
+        current.lastLiftAt = now;
+        current.activeUntil = now + 3600;
+        this.activeReefAscentCurrent = {
+            id: current.id,
+            destinationId: current.destinationId,
+            mode,
+            phase: 'lift',
+            expiresAt: current.activeUntil
+        };
+        if (mode === 'forward') {
+            this.player.setVelocityX(Math.max(body.velocity.x, 105));
+        }
+        this.player.setVelocityY(Math.min(body.velocity.y, -220));
+        return true;
+    }
+
+    updateReefAscentCurrentGuidance() {
+        const active = this.activeReefAscentCurrent;
+        const body = this.player?.body;
+        if (!active || !body) return false;
+        if (this.isPlayerDead || this.isRespawning) {
+            this.activeReefAscentCurrent = null;
+            return false;
+        }
+
+        if (this.isPlayerSettledOnTraversalSupport(active.destinationId)) {
+            this.activeReefAscentCurrent = null;
+            return true;
+        }
+
+        const now = Number(this.time?.now) || 0;
+        const destination = this.getTraversalSupport(active.destinationId);
+        if (!destination?.body || now >= active.expiresAt) {
+            this.activeReefAscentCurrent = null;
+            return false;
+        }
+
+        const targetX = Phaser.Math.Clamp(
+            destination.x,
+            destination.body.left + 36,
+            destination.body.right - 36
+        );
+        const correction = Phaser.Math.Clamp(
+            (targetX - this.player.x) * 1.5,
+            active.mode === 'forward' ? -155 : -125,
+            active.mode === 'forward' ? 155 : 125
+        );
+        if (Math.abs(targetX - this.player.x) > 6) {
+            this.player.setVelocityX(correction);
+        } else {
+            this.player.setVelocityX(body.velocity.x * 0.4);
+        }
+
+        if (active.phase === 'lift') {
+            if (body.bottom > destination.body.top - 72) {
+                this.player.setVelocityY(Math.min(body.velocity.y, -220));
+            } else {
+                active.phase = 'settle';
+                this.player.setVelocityY(Math.max(body.velocity.y, 45));
+            }
+        } else if (body.velocity.y < 35) {
+            this.player.setVelocityY(35);
+        }
+        return true;
+    }
+
+    createDriftAscentCurrent() {
+        this.driftAscentCurrent = this.createForwardAscentCurrent({
+            id: 'reef-drift-ascent',
+            destinationId: 'reef-current-crown',
+            startX: 1440,
+            width: 340,
+            top: this.levelHeight - 830,
+            bottom: this.levelHeight - 360,
+            labelText: 'DRIFT CURRENT  ↗'
+        });
+    }
+
+    createTravelerAscentCurrent() {
+        this.travelerAscentCurrent = this.createForwardAscentCurrent({
+            id: 'reef-traveler-ascent',
+            destinationId: 'reef-sky-rise',
+            startX: 3240,
+            width: 340,
+            top: 70,
+            bottom: this.levelHeight - 650,
+            labelText: 'TRAVELER CURRENT  ↗'
+        });
+    }
+
+    createForwardAscentCurrent({
+        id,
+        destinationId,
+        startX,
+        width,
+        top,
+        bottom,
+        labelText
+    }) {
+        const currentHeight = bottom - top;
+        const zone = this.add.zone(
+            startX + width / 2,
+            top + currentHeight / 2,
+            width,
+            currentHeight
+        );
+        this.physics.add.existing(zone, true);
+
+        const visual = this.add.graphics().setDepth(115);
+        visual.fillStyle(0x8FE3CF, 0.08);
+        visual.fillRoundedRect(startX, top, width, currentHeight, 28);
+        visual.lineStyle(4, 0x8FE3CF, 0.56);
+        visual.beginPath();
+        visual.moveTo(startX + 35, bottom - 35);
+        visual.lineTo(startX + width - 70, top + 65);
+        visual.strokePath();
+        for (let offset = 0; offset < 4; offset += 1) {
+            const x = startX + 85 + offset * 62;
+            const y = bottom - 92 - offset * 78;
+            visual.fillStyle(0xF2C94C, 0.86);
+            visual.fillTriangle(x + 13, y - 13, x - 10, y - 7, x + 7, y + 10);
+        }
+
+        const label = this.add.text(
+            startX + width / 2,
+            bottom - 25,
+            labelText,
+            {
+                fontSize: '11px',
+                color: '#F2C94C',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(183);
+        const pulseTween = this.shouldAnimateReefDecorations()
+            ? this.tweens.add({
+                targets: [visual, label],
+                alpha: { from: 0.52, to: 0.94 },
+                duration: 850,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
+
+        const current = {
+            id,
+            destinationId,
+            zone,
+            visual,
+            label,
+            pulseTween,
+            x: startX,
+            top,
+            bottom,
+            width,
+            height: currentHeight,
+            activations: 0,
+            activeUntil: 0,
+            lastLiftAt: Number.NEGATIVE_INFINITY
+        };
+
+        this.physics.add.overlap(this.player, zone, () => {
+            this.activateReefAscentCurrent(current, 'forward');
+        });
+        return current;
+    }
+
+    destroyReefCurrent(current) {
+        current?.pulseTween?.remove?.();
+        current?.zone?.destroy?.();
+        current?.visual?.destroy?.();
+        current?.label?.destroy?.();
+    }
+
+    restoreExpeditionRouteState(resume) {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
+            signals: this.beaconAnchors,
+            countProperty: 'beaconAnchorsActivated',
+            readyProperty: 'reefRouteAligned',
+            drawSignal: anchor => {
+                this.drawBeaconWaypoint(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    anchor.supportY,
+                    true
+                );
+                this.retireTraversalLandingGuide(anchor);
+            },
+            onRestored: (_anchor, restoredCount) => {
+                if (restoredCount > 0) {
+                    this.retireOpeningSignalCurrent();
+                }
+                this.refreshBeaconRouteReadability();
+                this.syncCampaignObjectiveDisplay();
+            }
+        });
+        if (!signalsRestored) return false;
+        this.restoreReefRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 1
+        });
+        if (this.reefRouteAligned) {
+            const passageAnchor = this.beaconAnchors.at(-1);
+            if (passageAnchor) {
+                passageAnchor.passageOpen = true;
+                this.drawBeaconWaypoint(
+                    passageAnchor.visual,
+                    passageAnchor.x,
+                    passageAnchor.y,
+                    passageAnchor.supportY,
+                    true,
+                    1
+                );
+            }
+        }
+        this.retireCompletedReefRouteGuidance();
+        this.syncCampaignObjectiveDisplay();
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('reef_star_trench');
+        return {
+            reefRouteChoice: this.reefRouteChoice || '',
+            reefCurrentEdgeReady: this.reefRouteChoice === 'main'
+                ? this.reefCurrentEdgeReady === true
+                : false,
+            shipPartCollected: this.shipPartCollected === true,
+            reefFragmentMask: this.reefCollectedFragmentMask,
+            starTrenchProgress: Number(route?.progress) || 0,
+            starTrenchCompleted: route?.completed === true,
+            freeSpecialAttackCharges: this.freeSpecialAttackCharges
+        };
+    }
+
+    selectReefRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.reefRouteChoice && this.reefRouteChoice !== path) return false;
+
+        const firstSelection = !this.reefRouteChoice;
+        this.reefRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('reef_star_trench')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+        if (path === 'main' && !restoring && firstSelection) {
+            this.reefCurrentEdgeReady = true;
+            this.showFloatingText?.(
+                'CURRENT EDGE CHARGED // NEXT KATANA HIT +2',
+                this.player?.x || 1900,
+                (this.player?.y || this.levelHeight - 500) - 45,
+                '#8FE3CF'
+            );
+            window.FXLibrary?.stardustBurst?.(
+                this,
+                this.player?.x || 1900,
+                (this.player?.y || this.levelHeight - 500) - 20,
+                {
+                    count: 16,
+                    color: [0x8FE3CF, 0x00FFFF, 0xFFFFFF],
+                    duration: 760
+                }
+            );
+        }
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restoreReefRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.reefRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectReefRoute(path, { restoring: true, rejoined });
+        }
+        if (path === 'main') {
+            this.reefCurrentEdgeReady = routeState.reefCurrentEdgeReady !== false;
+        }
+
+        this.reefCollectedFragmentMask = Math.max(
+            0,
+            Math.floor(Number(routeState.reefFragmentMask) || 0)
+        );
+        this.retireCollectedReefFragments();
+
+        if (routeState.shipPartCollected === true) {
+            this.shipPartCollected = true;
+            this.dimensionalDriveFound = true;
+            this.clearShipPartPickup();
+        }
+
+        const route = this.optionalRouteRewards?.get?.('reef_star_trench');
+        if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.starTrenchProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.starTrenchCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            this.freeSpecialAttackCharges = Phaser.Math.Clamp(
+                Number(routeState.freeSpecialAttackCharges) || 0,
+                0,
+                10
+            );
+        }
+        return true;
+    }
+
+    onFreeSpecialAttackConsumed() {
+        this.refreshPersistedExpeditionRouteState();
+    }
+
+    consumeReefCurrentEdge() {
+        if (this.reefRouteChoice !== 'main' || !this.reefCurrentEdgeReady) {
+            return false;
+        }
+        this.reefCurrentEdgeReady = false;
+        this.showFloatingText?.(
+            'CURRENT EDGE +2',
+            this.player?.x || 0,
+            (this.player?.y || 0) - 65,
+            '#8FE3CF'
+        );
+        this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    createReefEncounterRhythm() {
+        const factories = {
+            spore: (x, y, encounter) => this.createVoidSpore(x, y, encounter),
+            dart: (x, y, encounter) => this.createPlasmaDart(x, y, encounter),
+            phase: (x, y, encounter) => this.createPhaseDrifter(x, y, encounter),
+            wraith: (x, y, encounter) => this.createLureWraith(x, y, encounter)
+        };
+        const collections = {
+            spore: this.voidSpores,
+            dart: this.plasmaDarts,
+            phase: this.phaseDrifters,
+            wraith: this.lureWraiths
+        };
+
+        this.reefEncounterRhythm = REEF_ENCOUNTER_PLAN.map(encounter => {
+            const placement = this.resolveReefEncounterPlacement(encounter);
+            const enemy = factories[encounter.kind](
+                placement.x,
+                placement.y,
+                encounter
+            );
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            enemy.encounterAirborne = true;
+            collections[encounter.kind].push(enemy);
+            this.enemies.add(enemy);
+            this.registerReefEnemyAI(enemy);
+            return enemy;
+        });
+
+        this.startReefEnemyAIScheduler();
+
+        return this.reefEncounterRhythm;
+    }
+
+    resolveReefEncounterPlacement(encounter) {
+        const support = this.getTraversalSupport(encounter.supportId);
+        if (!support?.body) {
+            throw new Error(
+                `[ReefLevel] Missing encounter support ${encounter.supportId}`
+            );
+        }
+
+        const bodyInset = {
+            spore: 38,
+            dart: 50,
+            phase: 34,
+            wraith: 74
+        }[encounter.kind] || 40;
+        const centerX = (support.body.left + support.body.right) / 2;
+        const x = Phaser.Math.Clamp(
+            centerX + (Number(encounter.offsetX) || 0),
+            support.body.left + bodyInset,
+            support.body.right - bodyInset
+        );
+        const y = Phaser.Math.Clamp(
+            support.body.top - (Number(encounter.altitude) || 90),
+            90,
+            this.levelHeight - 90
+        );
+        return { x, y };
+    }
+
+    /**
+     * Create a Void Spore - crystalline pulsing organism
+     */
+    createVoidSpore(x, y, { health = 1 } = {}) {
+        const spore = this.add.graphics();
+        spore.setDepth(200);
+
+        const size = 35;
+
+        // Outer crystal shell
+        spore.fillStyle(0x9B30FF, 0.4);
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const pointX = x + Math.cos(angle) * size;
+            const pointY = y + Math.sin(angle) * size;
+            spore.fillTriangle(x, y, pointX - 8, pointY - 8, pointX + 8, pointY + 8);
+        }
+
+        // Inner void core
+        spore.fillStyle(0x4B0082, 0.9);
+        spore.fillCircle(x, y, size * 0.5);
+
+        // Pulsing energy center
+        spore.fillStyle(0xE066FF, 0.8);
+        spore.fillCircle(x, y, size * 0.25);
+
+        // Bright core
+        spore.fillStyle(0xFFFFFF, 0.9);
+        spore.fillCircle(x, y, 5);
+
+        // Physics body
+        const body = this.physics.add.sprite(x, y, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(size * 2, size * 2);
+        body.body.setAllowGravity(false);
+
+        body.graphics = spore;
+        body.enemyType = 'voidSpore';
+        body.health = health;
+        body.baseX = x;
+        body.baseY = y;
+        body.phase = Math.random() * Math.PI * 2;
+
+        this.configureEnemyCombat(body, {
+            role: 'stompable',
+            maxHealth: health,
+            cueOffsetY: -48
+        });
+
+        return body;
+    }
+
+    /**
+     * Create a Plasma Dart - elongated energy projectile creature
+     */
+    createPlasmaDart(x, y, { health = 2 } = {}) {
+        const dart = this.add.graphics();
+        dart.setDepth(200);
+
+        const length = 70;
+        const height = 18;
+
+        // Energy trail
+        dart.fillStyle(0x00FFFF, 0.2);
+        dart.fillTriangle(x - length, y, x - length / 2, y - height, x - length / 2, y + height);
+
+        // Main body - elongated energy form
+        dart.fillStyle(0x00CCFF, 0.8);
+        dart.fillRoundedRect(x - length / 2, y - height / 2, length, height, 5);
+
+        // Energy core line
+        dart.fillStyle(0xFFFFFF, 0.9);
+        dart.fillRoundedRect(x - length / 3, y - 3, length / 2, 6, 3);
+
+        // Head - pointed and bright
+        dart.fillStyle(0x00FFFF, 1);
+        dart.fillTriangle(x + length / 2, y, x + length / 2 + 20, y, x + length / 2, y);
+        dart.fillCircle(x + length / 2, y, 8);
+
+        // Eye-like sensor
+        dart.fillStyle(0xFF0066, 1);
+        dart.fillCircle(x + length / 3, y, 4);
+
+        // Physics body
+        const body = this.physics.add.sprite(x, y, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(length + 20, height);
+        body.body.setAllowGravity(false);
+
+        body.graphics = dart;
+        body.enemyType = 'plasmaDart';
+        body.health = health;
+        body.baseX = x;
+        body.baseY = y;
+        body.isCharging = false;
+        body.isTelegraphing = false;
+        body.facingRight = true;
+
+        this.configureEnemyCombat(body, {
+            role: 'charger',
+            maxHealth: health,
+            cueOffsetY: -34
+        });
+
+        return body;
+    }
+
+    /**
+     * Create a Phase Drifter - ghostly dimensional being
+     */
+    createPhaseDrifter(x, y, { health = 1 } = {}) {
+        const drifter = this.add.graphics();
+        drifter.setDepth(200);
+
+        // Ethereal body - multiple translucent layers
+        drifter.fillStyle(0xE066FF, 0.15);
+        drifter.fillCircle(x, y, 45);
+
+        drifter.fillStyle(0xE066FF, 0.25);
+        drifter.fillCircle(x, y, 35);
+
+        drifter.fillStyle(0xE066FF, 0.4);
+        drifter.fillCircle(x, y, 25);
+
+        // Central form
+        drifter.fillStyle(0xFF69B4, 0.6);
+        drifter.fillCircle(x, y - 5, 15);
+
+        // Trailing tendrils (like a cosmic jellyfish but more ethereal)
+        drifter.lineStyle(3, 0xE066FF, 0.5);
+        for (let i = 0; i < 5; i++) {
+            const tendrilX = x - 15 + i * 8;
+            drifter.beginPath();
+            drifter.moveTo(tendrilX, y + 15);
+            // Approximate curve with line segments
+            drifter.lineTo(tendrilX + 5, y + 30);
+            drifter.lineTo(tendrilX + 8, y + 50);
+            drifter.lineTo(tendrilX, y + 70);
+            drifter.lineTo(tendrilX + 3, y + 90);
+            drifter.lineTo(tendrilX, y + 110);
+            drifter.strokePath();
+        }
+
+        // Eyes - hollow void eyes
+        drifter.fillStyle(0x000000, 0.9);
+        drifter.fillCircle(x - 8, y - 8, 5);
+        drifter.fillCircle(x + 8, y - 8, 5);
+        drifter.fillStyle(0xFFFFFF, 0.7);
+        drifter.fillCircle(x - 6, y - 9, 2);
+        drifter.fillCircle(x + 10, y - 9, 2);
+
+        // Physics body
+        const body = this.physics.add.sprite(x, y, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(60, 120);
+        body.body.setAllowGravity(false);
+
+        body.graphics = drifter;
+        body.enemyType = 'phaseDrifter';
+        body.health = health;
+        body.baseX = x;
+        body.baseY = y;
+        body.isPhased = false;
+        body.phaseTimer = 0;
+
+        this.configureEnemyCombat(body, {
+            role: 'phase',
+            maxHealth: health,
+            cueOffsetY: -70
+        });
+
+        return body;
+    }
+
+    /**
+     * Create a Lure Wraith - massive void predator with dimensional lure
+     */
+    createLureWraith(x, y, { health = 3 } = {}) {
+        const wraith = this.add.graphics();
+        wraith.setDepth(200);
+
+        const size = 55;
+
+        // Shadowy body mass
+        wraith.fillStyle(0x0A0015, 0.95);
+        wraith.fillCircle(x, y, size);
+
+        // Void texture patterns
+        wraith.fillStyle(0x1A0030, 0.8);
+        wraith.fillCircle(x - 15, y + 10, 20);
+        wraith.fillCircle(x + 20, y - 5, 18);
+
+        // Massive maw
+        wraith.fillStyle(0x000000, 1);
+        wraith.fillCircle(x + 35, y, 30);
+
+        // Teeth - crystalline void fangs
+        wraith.fillStyle(0x9B30FF, 0.9);
+        for (let i = 0; i < 10; i++) {
+            const angle = -0.6 + (i / 10) * 1.2;
+            const toothX = x + 35 + Math.cos(angle) * 25;
+            const toothY = y + Math.sin(angle) * 25;
+            wraith.fillTriangle(
+                toothX, toothY,
+                toothX + Math.cos(angle) * 15, toothY + Math.sin(angle) * 15,
+                toothX + 5, toothY + 5
+            );
+        }
+
+        // The Lure - hypnotic dimensional orb
+        const lureX = x + 70;
+        const lureY = y - 40;
+
+        // Lure tendril - approximate curve with line segments
+        wraith.lineStyle(4, 0x4B0082, 0.8);
+        wraith.beginPath();
+        wraith.moveTo(x + 20, y - 30);
+        wraith.lineTo(x + 35, y - 45);
+        wraith.lineTo(x + 50, y - 50);
+        wraith.lineTo(lureX, lureY);
+        wraith.strokePath();
+
+        // Lure orb - mesmerizing
+        wraith.fillStyle(0x00FF00, 0.3);
+        wraith.fillCircle(lureX, lureY, 20);
+        wraith.fillStyle(0x00FF00, 0.6);
+        wraith.fillCircle(lureX, lureY, 12);
+        wraith.fillStyle(0xFFFFFF, 0.9);
+        wraith.fillCircle(lureX, lureY, 5);
+
+        // Eye - single massive void eye
+        wraith.fillStyle(0xFF0066, 0.9);
+        wraith.fillCircle(x - 15, y - 15, 12);
+        wraith.fillStyle(0x000000, 1);
+        wraith.fillCircle(x - 13, y - 15, 6);
+
+        // Physics body
+        const body = this.physics.add.sprite(x, y, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(size * 2 + 30, size * 2);
+        body.body.setAllowGravity(false);
+
+        body.graphics = wraith;
+        body.enemyType = 'lureWraith';
+        body.health = health;
+        body.baseX = x;
+        body.baseY = y;
+        body.isLurking = true;
+        body.isLunging = false;
+        body.isTelegraphing = false;
+
+        this.configureEnemyCombat(body, {
+            role: 'armored',
+            maxHealth: health,
+            stompDamage: 1,
+            cueOffsetY: -76
+        });
+
+        return body;
+    }
+
+    /**
+     * Update enemies
+     */
+    updateEnemies(time) {
+        return this.updateReefEnemyAI(time);
+    }
+
+    updateEnemyGraphics(enemy) {
+        if (enemy.graphics) {
+            enemy.graphics.x = enemy.x - enemy.baseX;
+            enemy.graphics.y = enemy.y - enemy.baseY;
+        }
+    }
+
+    updatePlasmaDartAI(dart, time) {
+        const distToPlayer = Phaser.Math.Distance.Between(
+            dart.x, dart.y, this.player.x, this.player.y
+        );
+
+        if (dart.isCharging) {
+            if (time > dart.chargeTime + 1200) {
+                dart.isCharging = false;
+                dart.setVelocity(0, 0);
+            }
+        } else if (!dart.isTelegraphing) {
+            // Patrol
+            const patrol = Math.sin(time / 1500 + dart.baseX) * 120;
+            dart.x = dart.baseX + patrol;
+
+            // Check for charge
+            if (distToPlayer < 350 && Math.random() > 0.985) {
+                dart.isTelegraphing = true;
+                dart.setVelocity(0, 0);
+                this.telegraphEnemyAttack(dart, {
+                    duration: 420,
+                    color: 0x00FFFF,
+                    radius: 28,
+                    onComplete: () => {
+                        dart.isTelegraphing = false;
+                        dart.isCharging = true;
+                        dart.chargeTime = this.time.now;
+                        const angle = Phaser.Math.Angle.Between(
+                            dart.x,
+                            dart.y,
+                            this.player.x,
+                            this.player.y
+                        );
+                        dart.setVelocity(
+                            Math.cos(angle) * 500,
+                            Math.sin(angle) * 500
+                        );
+                        dart.facingRight = this.player.x > dart.x;
+                    }
+                });
+            }
+        }
+
+        this.updateEnemyGraphics(dart);
+    }
+
+    updatePhaseDrifterAI(drifter, time) {
+        // Gentle drift
+        const driftX = Math.sin(time / 2500 + drifter.baseX) * 30;
+        const driftY = Math.sin(time / 2000 + drifter.baseY) * 40;
+
+        drifter.x = drifter.baseX + driftX;
+        drifter.y = drifter.baseY + driftY;
+
+        // Phase in/out
+        if (time > drifter.phaseTimer + 4000) {
+            drifter.phaseTimer = time;
+            drifter.isPhased = !drifter.isPhased;
+            drifter.combatImmune = drifter.isPhased;
+            drifter.body.checkCollision.none = drifter.isPhased;
+            this.drawEnemyCombatCue(drifter);
+
+            if (drifter.graphics) {
+                this.tweens.add({
+                    targets: drifter.graphics,
+                    alpha: drifter.isPhased ? 0.2 : 1,
+                    duration: 500
+                });
+            }
+        }
+
+        this.updateEnemyGraphics(drifter);
+    }
+
+    updateLureWraithAI(wraith, time) {
+        const distToPlayer = Phaser.Math.Distance.Between(
+            wraith.x, wraith.y, this.player.x, this.player.y
+        );
+
+        if (wraith.isLurking && !wraith.isTelegraphing) {
+            if (distToPlayer < 250) {
+                wraith.isLurking = false;
+                wraith.isTelegraphing = true;
+                wraith.setVelocity(0, 0);
+                this.telegraphEnemyAttack(wraith, {
+                    duration: 520,
+                    color: 0xFF0066,
+                    radius: 48,
+                    onComplete: () => {
+                        if (
+                            !this.isEnemyPhysicsReady(wraith) ||
+                            !this.player?.active ||
+                            !this.player.body
+                        ) {
+                            wraith.isTelegraphing = false;
+                            return;
+                        }
+                        wraith.isTelegraphing = false;
+                        wraith.isLunging = true;
+                        const angle = Phaser.Math.Angle.Between(
+                            wraith.x,
+                            wraith.y,
+                            this.player.x,
+                            this.player.y
+                        );
+                        wraith.setVelocity(
+                            Math.cos(angle) * 350,
+                            Math.sin(angle) * 350
+                        );
+                        this.trackEnemyTimer(wraith, this.time.delayedCall(1200, () => {
+                            if (!this.isEnemyPhysicsReady(wraith)) return;
+                            wraith.isLunging = false;
+                            this.tweens.add({
+                                targets: wraith,
+                                x: wraith.baseX,
+                                y: wraith.baseY,
+                                duration: 2500,
+                                ease: 'Sine.easeInOut',
+                                onComplete: () => {
+                                    if (!this.isEnemyPhysicsReady(wraith)) return;
+                                    wraith.isLurking = true;
+                                    wraith.setVelocity(0, 0);
+                                }
+                            });
+                        }));
+                    }
+                });
+            }
+        }
+
+        this.updateEnemyGraphics(wraith);
+    }
+
+    /**
+     * Spawn Star Fragments
+     */
+    spawnStarFragments() {
+        const positions = [
+            { x: 500, y: this.levelHeight - 450 },
+            { x: 1300, y: this.levelHeight - 750 },
+            { x: 1750, y: this.levelHeight - 225, optionalRouteId: 'reef_star_trench' },
+            { x: 2250, y: this.levelHeight - 220, optionalRouteId: 'reef_star_trench' },
+            { x: 4100, y: this.levelHeight - 750 },
+        ];
+
+        positions.forEach((pos, index) => {
+            const fragment = this.createStarFragment(pos.x, pos.y, index);
+            fragment.optionalRouteId = pos.optionalRouteId || null;
+            this.starFragments.push(fragment);
+        });
+    }
+
+    createStarFragment(x, y, index) {
+        const fragment = this.add.graphics();
+        fragment.setDepth(250);
+
+        // Outer cosmic glow
+        fragment.fillStyle(0xFFD700, 0.2);
+        fragment.fillCircle(x, y, 30);
+
+        // Star shape
+        fragment.fillStyle(0xFFD700, 0.8);
+        for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+            const innerAngle = angle + Math.PI / 5;
+            const outerX = x + Math.cos(angle) * 18;
+            const outerY = y + Math.sin(angle) * 18;
+            const innerX = x + Math.cos(innerAngle) * 8;
+            const innerY = y + Math.sin(innerAngle) * 8;
+
+            fragment.fillTriangle(x, y, outerX, outerY, innerX, innerY);
+        }
+
+        // Bright center
+        fragment.fillStyle(0xFFFFFF, 0.9);
+        fragment.fillCircle(x, y, 6);
+
+        // Physics
+        const body = this.physics.add.sprite(x, y, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(40, 40);
+        body.body.setAllowGravity(false);
+        body.graphics = fragment;
+        body.fragmentIndex = index;
+
+        this.physics.add.overlap(this.player, body, () => this.collectStarFragment(body));
+
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: fragment,
+                alpha: 0.6,
+                scaleX: 1.15,
+                scaleY: 1.15,
+                duration: 1200,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        return body;
+    }
+
+    collectStarFragment(fragment) {
+        if (!fragment.active) return;
+
+        fragment.active = false;
+        const fragmentIndex = Math.max(0, Number(fragment.fragmentIndex) || 0);
+        this.reefCollectedFragmentMask |= (1 << fragmentIndex);
+        this.starFragmentsCollected++;
+
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, fragment.x, fragment.y, {
+                count: 20,
+                color: [0xFFD700, 0xFFFFFF, 0xE066FF],
+                duration: 1200
+            });
+        }
+
+        if (window.AudioManager) {
+            window.AudioManager.playCoinCollect();
+        }
+
+        const collectX = fragment.x;
+        const collectY = fragment.y;
+
+        if (fragment.optionalRouteId) {
+            this.recordOptionalRouteProgress(fragment.optionalRouteId, {
+                x: collectX,
+                y: collectY
+            });
+        }
+        this.refreshPersistedExpeditionRouteState();
+
+        fragment.graphics?.destroy();
+        fragment.destroy();
+
+        this.showFloatingText(`✧ Star Fragment ${this.starFragmentsCollected}/${this.totalStarFragments}`, collectX, collectY - 30, '#FFD700');
+
+        console.log(`[ReefLevel] Collected Star Fragment ${this.starFragmentsCollected}/${this.totalStarFragments}`);
+
+        // Award Cosmic Egg when all fragments collected
+        if (this.starFragmentsCollected >= this.totalStarFragments && !this.cosmicEggAwarded) {
+            this.cosmicEggAwarded = true;
+
+            this.time.delayedCall(500, () => {
+                this.showFloatingText('✨ All Star Fragments! 🥚 Cosmic Egg Earned!', collectX, collectY - 80, '#00FFFF');
+
+                if (window.InventoryManager) {
+                    window.InventoryManager.addItem({
+                        id: 'cosmic_egg_reef',
+                        name: 'Void Cosmic Egg',
+                        type: 'egg',
+                        rarity: 'rare',
+                        description: 'A mysterious egg infused with void energy from the Cosmic Abyss.',
+                        icon: '🥚🌌'
+                    });
+                }
+
+                if (window.AudioManager) {
+                    window.AudioManager.playAchievement();
+                }
+            });
+        }
+    }
+
+    retireCollectedReefFragments() {
+        let restoredCount = 0;
+        this.starFragments.forEach(fragment => {
+            const index = Math.max(0, Number(fragment?.fragmentIndex) || 0);
+            if ((this.reefCollectedFragmentMask & (1 << index)) === 0) return;
+            restoredCount++;
+            fragment.graphics?.destroy?.();
+            fragment.destroy?.();
+        });
+        this.starFragmentsCollected = restoredCount;
+        return restoredCount;
+    }
+
+    /**
+     * Spawn the Ship Part - Dimensional Drive Fragment
+     */
+    spawnShipPart() {
+        // Located on the special 'relic' platform
+        const x = 2800;
+        const y = this.levelHeight - 950;
+
+        const shipPart = this.add.graphics();
+        shipPart.setDepth(300);
+
+        // Technological artifact appearance
+        // Outer energy field
+        shipPart.fillStyle(0x00FFFF, 0.15);
+        shipPart.fillCircle(x, y, 45);
+
+        // Rotating energy rings
+        shipPart.lineStyle(3, 0x00FFFF, 0.6);
+        shipPart.strokeCircle(x, y, 35);
+        shipPart.lineStyle(2, 0x00FFFF, 0.4);
+        shipPart.strokeCircle(x, y, 40);
+
+        // Core device - hexagonal
+        shipPart.fillStyle(0x1A3A4A, 0.95);
+        const hexPoints = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            hexPoints.push({ x: x + Math.cos(angle) * 20, y: y + Math.sin(angle) * 20 });
+        }
+        shipPart.fillPoints(hexPoints, true);
+
+        // Inner glow
+        shipPart.fillStyle(0x00FFFF, 0.8);
+        shipPart.fillCircle(x, y, 10);
+
+        // Bright core
+        shipPart.fillStyle(0xFFFFFF, 1);
+        shipPart.fillCircle(x, y, 5);
+
+        // Label
+        const label = this.add.text(x, y - 60, '🔧 SHIP PART', {
+            fontSize: '14px',
+            color: '#00FFFF',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(301);
+
+        // Physics
+        const body = this.physics.add.sprite(x, y, null);
+        this.detachReefPhysicsBody(body);
+        body.body.setSize(60, 60);
+        body.body.setAllowGravity(false);
+        body.graphics = shipPart;
+        body.label = label;
+
+        this.physics.add.overlap(this.player, body, () => this.collectShipPart(body));
+
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: shipPart,
+                angle: 360,
+                duration: 8000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+            this.tweens.add({
+                targets: [shipPart, label],
+                alpha: 0.7,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 1500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        this.shipPart = body;
+    }
+
+    clearShipPartPickup() {
+        const part = this.shipPart;
+        if (!part) return false;
+        this.tweens?.killTweensOf?.(part.graphics);
+        this.tweens?.killTweensOf?.(part.label);
+        part.graphics?.destroy?.();
+        part.label?.destroy?.();
+        part.destroy?.();
+        this.shipPart = null;
+        return true;
+    }
+
+    collectShipPart(part) {
+        if (!part.active || this.shipPartCollected) return;
+
+        const collectX = part.x;
+        const collectY = part.y;
+        part.active = false;
+        this.shipPartCollected = true;
+
+        // Major celebration!
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, collectX, collectY, {
+                count: 40,
+                color: [0x00FFFF, 0xFFFFFF, 0x00FF00, 0xFFD700],
+                duration: 2000
+            });
+        }
+
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement();
+        }
+
+        part.graphics?.destroy();
+        part.label?.destroy();
+        part.destroy();
+        this.shipPart = null;
+
+        // Show big message
+        this.showFloatingText(
+            'DIMENSIONAL DRIVE SECURED',
+            collectX,
+            collectY - 50,
+            '#00FFFF'
+        );
+
+        // Note: Ship part is officially awarded via InventoryManager in showVictoryScreen()
+        // This pickup just marks it visually
+        this.dimensionalDriveFound = true;
+        this.refreshPersistedExpeditionRouteState();
+        this.scheduleAutomaticReefGuardianAwakening();
+
+        this.time.delayedCall(700, () => {
+            this.showFloatingText(
+                `${this.getCompanionName()}: "Earth built this. The Reef kept it alive."`,
+                collectX,
+                collectY - 82,
+                '#D6EEF2'
+            );
+        });
+
+        console.log('[ReefLevel] Dimensional drive pickup collected!');
+    }
+
+    /**
+     * Create boss trigger
+     */
+    createBossTrigger() {
+        const triggerZone = this.add.zone(
+            REEF_GUARDIAN_ARENA.triggerX,
+            this.levelHeight / 2,
+            100,
+            this.levelHeight
+        );
+        this.physics.add.existing(triggerZone, true);
+        this.bossTriggerZone = triggerZone;
+        this.createGuardianGateState({
+            x: REEF_GUARDIAN_ARENA.triggerX,
+            y: this.levelHeight - 470,
+            title: 'STELLAR PASSAGE',
+            getStatus: () => {
+                if (!this.reefRouteAligned) return 'SWIM THROUGH 3 GOLD MARKERS';
+                if (!this.shipPartCollected) return 'FIND DIMENSIONAL DRIVE';
+                return 'PASSAGE OPEN // GUARDIAN AWAKENING';
+            },
+            isReady: () => this.reefRouteAligned && this.shipPartCollected,
+            color: 0x9B30FF,
+            readyColor: 0x8FE3CF
+        });
+
+        this.physics.add.overlap(this.player, triggerZone, () => {
+            if (!this.bossFightActive && !this.bossDefeated) {
+                const missingRoute = !this.reefRouteAligned;
+                const missingDrive = !this.shipPartCollected;
+                if (missingRoute || missingDrive) {
+                    const now = this.time.now;
+                    if (now >= this.bossGateHintUntil) {
+                        const message = missingRoute
+                            ? 'The passage needs all three gold markers.'
+                            : 'Find Wanderer-77\'s Dimensional Drive first.';
+                        this.showFloatingText(
+                            message,
+                            this.player.x,
+                            this.player.y - 70,
+                            '#F2C94C'
+                        );
+                        window.FeedbackManager?.cameraFlash?.(this, 180, 242, 193, 78);
+                        this.bossGateHintUntil = now + 1800;
+                    }
+                    return;
+                }
+                this.enterReefGuardianEncounter();
+            }
+        });
+    }
+
+    scheduleAutomaticReefGuardianAwakening() {
+        if (
+            !this.reefRouteAligned ||
+            !this.shipPartCollected ||
+            this.bossFightActive ||
+            this.bossDefeated
+        ) {
+            return false;
+        }
+
+        this.scheduleGuardianTransition('reef-automatic-awakening', 850, () => {
+            if (!this.enterReefGuardianEncounter()) return;
+            this.showFloatingText(
+                'PASSAGE OPEN // NYX\'VORAL AWAKENS',
+                REEF_GUARDIAN_ARENA.playerEntryX,
+                this.levelHeight - 465,
+                '#F2C94C'
+            );
+        });
+        return true;
+    }
+
+    enterReefGuardianEncounter() {
+        if (
+            !this.reefRouteAligned ||
+            !this.shipPartCollected ||
+            this.bossFightActive ||
+            this.bossDefeated
+        ) {
+            return false;
+        }
+
+        const guardianEntered = this.beginGuardianEncounter({
+            id: 'nyxvoral',
+            title: "NYX'VORAL",
+            checkpoint: {
+                x: REEF_GUARDIAN_ARENA.playerEntryX,
+                y: this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset
+            },
+            start: () => this.startBossFight()
+        });
+        if (!guardianEntered) return false;
+
+        this.clearCreaturePassageWake();
+        this.retireCompletedReefRouteGuidance();
+        this.bossTriggerZone?.destroy?.();
+        this.bossTriggerZone = null;
+        return true;
+    }
+
+    /**
+     * Start boss fight with Nyx'voral
+     */
+    startBossFight() {
+        this.bossFightActive = true;
+        this.bossHealth = this.bossMaxHealth;
+        this.bossCombatReady = false;
+        this.bossAttackLocked = true;
+        this.retireReefPatrolsForNyxvoral();
+        this.physics.pause();
+        this.hidePlatformerMobileControls();
+        this.stageReefGuardianArenaEntry();
+
+        console.log('[ReefLevel] BOSS FIGHT: Nyx\'voral the Void Serpent!');
+
+        this.cameras.main.stopFollow();
+        this.cameras.main.pan(
+            REEF_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2,
+            1200
+        );
+
+        this.showBossIntro();
+    }
+
+    stageReefGuardianArenaEntry() {
+        if (!this.player) return false;
+
+        const x = Math.max(
+            Number(this.player.x) || 0,
+            REEF_GUARDIAN_ARENA.playerEntryX
+        );
+        const y = this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset;
+        // Preserve the custom body offset used by the full-size creature
+        // renderer. Arcade Body.reset() briefly treats the sprite origin as
+        // the body origin and can move the compact hitbox off the arena.
+        this.player.setPosition(x, y);
+        this.player.body?.updateFromGameObject?.();
+        const body = this.player.body;
+        const arena = this.getTraversalSupport?.('reef-guardian-arena');
+        if (body && arena?.body) {
+            this.player.x += x - body.center.x;
+            this.player.y += arena.body.top - body.bottom - 4;
+            body.updateFromGameObject?.();
+        }
+        this.player.setVelocity?.(0, 0);
+        this.player.facingRight = true;
+        const follower = this.astronautFollower;
+        const astronaut = follower?.sprite;
+        if (astronaut?.active) {
+            const isMobileArena = this.isMobile ||
+                this.cameras.main.width <= 480;
+            const teamGap = isMobileArena
+                ? REEF_GUARDIAN_ARENA.mobileTeamGap
+                : REEF_GUARDIAN_ARENA.desktopTeamGap;
+            const formationX = isMobileArena
+                ? REEF_GUARDIAN_ARENA.mobileTeamOffsetX
+                : -teamGap;
+            const formationY = isMobileArena
+                ? REEF_GUARDIAN_ARENA.mobileTeamOffsetY
+                : 2;
+            follower.followDistance = teamGap;
+            follower.setContextualFormation?.(
+                { x: formationX, y: formationY },
+                'reef_guardian_team'
+            );
+            follower.resetTrail?.();
+            astronaut.setPosition(
+                this.player.x + formationX,
+                this.player.y + formationY
+            );
+            follower.shadow?.setPosition?.(astronaut.x, astronaut.y + 34);
+        }
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        return true;
+    }
+
+    showBossIntro() {
+        const { width, height } = this.cameras.main;
+        const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+
+        // Void darkness
+        const darkness = this.add.graphics();
+        darkness.fillStyle(0x0A0015, 0.85);
+        darkness.fillRect(5000, 0, 1500, this.levelHeight);
+        darkness.setDepth(2000);
+
+        // Boss name with cosmic styling
+        const bossTitle = this.add.text(
+            REEF_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2 - 55,
+            'NYX\'VORAL', {
+            fontSize: isMobileLayout ? '38px' : '52px',
+            color: '#E066FF',
+            fontStyle: 'bold',
+            stroke: '#4B0082',
+            strokeThickness: 8
+        }).setOrigin(0.5).setDepth(2001).setAlpha(0);
+
+        const bossSubtitle = this.add.text(
+            REEF_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2 + 10,
+            'The passage guardian is trapped inside a broken route', {
+            fontSize: isMobileLayout ? '17px' : '24px',
+            color: '#BFA6FF',
+            align: 'center',
+            wordWrap: { width: isMobileLayout ? 330 : 620 },
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(2001).setAlpha(0);
+
+        let bossIntroSettled = false;
+        const finishBossIntro = () => {
+            if (bossIntroSettled || !this.bossFightActive || this.bossDefeated) {
+                return;
+            }
+            bossIntroSettled = true;
+            this.cancelGuardianTransition('reef-guardian-spawn');
+            this.cancelGuardianTransition('reef-guardian-fade');
+            this.tweens.killTweensOf([darkness, bossTitle, bossSubtitle]);
+            darkness.destroy();
+            bossTitle.destroy();
+            bossSubtitle.destroy();
+            if (!this.boss?.active) {
+                this.spawnNyxvoral();
+            }
+        };
+
+        // Animate intro
+        this.tweens.add({
+            targets: [bossTitle, bossSubtitle],
+            alpha: 1,
+            duration: 1200,
+            onComplete: () => {
+                this.scheduleGuardianTransition('reef-guardian-fade', 2500, () => {
+                    this.tweens.add({
+                        targets: [darkness, bossTitle, bossSubtitle],
+                        alpha: 0,
+                        duration: 600,
+                        onComplete: finishBossIntro
+                    });
+                });
+            }
+        });
+        this.scheduleGuardianTransition(
+            'reef-guardian-spawn',
+            5000,
+            finishBossIntro
+        );
+
+        if (window.AudioManager?.playBossMusic) {
+            window.AudioManager.playBossMusic();
+        }
+    }
+
+    /**
+     * Spawn Nyx'voral the Void Serpent
+     */
+    spawnNyxvoral() {
+        const isMobileArena = this.isMobile ||
+            this.cameras.main.width <= 480;
+        const bossX = REEF_GUARDIAN_ARENA.bossX +
+            (isMobileArena ? REEF_GUARDIAN_ARENA.mobileBossOffsetX : 0);
+        const bossY = this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset;
+
+        if (this.textures.exists(NYXVORAL_TEXTURE)) {
+            this.boss = this.add.image(bossX, bossY, NYXVORAL_TEXTURE);
+            const displayWidth = isMobileArena
+                ? NYXVORAL_MOBILE_DISPLAY_WIDTH
+                : NYXVORAL_DISPLAY_WIDTH;
+            this.bossTargetScale = displayWidth / this.boss.width;
+            this.boss.setScale(this.bossTargetScale);
+            this.bossUsesArtwork = true;
+            this.bossArtworkPhase = 1;
+        } else {
+            this.boss = this.add.graphics();
+            this.bossTargetScale = 1;
+            this.bossUsesArtwork = false;
+            this.drawNyxvoral(bossX, bossY, 1);
+        }
+        this.boss.setDepth(300);
+
+        this.bossBody = this.physics.add.sprite(bossX, bossY, null);
+        this.detachReefPhysicsBody(this.bossBody);
+        this.bossBody.body.setSize(280, 100);
+        this.bossBody.body.setAllowGravity(false);
+
+        this.getReefGuardianControl()?.installContact(() => {
+            this.takeDamage(REEF_GUARDIAN_ARENA.contactDamage);
+        });
+
+        this.createBossHealthBar();
+
+        // Return to a composed arena view before enabling physics or attacks.
+        this.scheduleGuardianTransition('reef-guardian-pan-start', 500, () => {
+            if (this.player && this.cameras.main) {
+                const camera = this.cameras.main;
+                let arenaEntrySettled = false;
+                const settleArenaEntry = () => {
+                    if (arenaEntrySettled) return;
+                    arenaEntrySettled = true;
+                    camera.off('camerapancomplete', settleArenaEntry);
+                    this.cancelGuardianTransition('reef-guardian-arena-pan');
+                    this.beginReefGuardianCombat(camera);
+                };
+                camera.once('camerapancomplete', settleArenaEntry);
+                camera.pan(
+                    this.player.x,
+                    this.player.y,
+                    1000,
+                    'Power2',
+                    true
+                );
+                this.scheduleGuardianTransition(
+                    'reef-guardian-arena-pan',
+                    1500,
+                    settleArenaEntry
+                );
+            }
+        });
+    }
+
+    beginReefGuardianCombat(camera = this.cameras.main) {
+        if (
+            this.bossCombatReady ||
+            !this.bossFightActive ||
+            !this.boss?.active ||
+            !this.player?.active
+        ) return false;
+
+        const control = this.getReefGuardianControl();
+        if (!control) return false;
+        this.bossCombatReady = true;
+        this.bossCombatReadyAt = this.time.now;
+        this.bossAttackLocked = false;
+        if (this.isMobile || camera.width <= 480) {
+            this.tweens.killTweensOf(camera);
+            camera.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);
+            this.cameraLeadAmount = Math.max(
+                this.cameraLeadAmount,
+                camera.width * REEF_GUARDIAN_ARENA.mobileCameraLeadRatio
+            );
+        }
+        camera.startFollow(this.player, true, 0.08, 0.1);
+        camera.setFollowOffset(
+            -this.cameraLeadAmount,
+            this.cameraBaseOffsetY
+        );
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        this.physics.resume();
+        this.showPlatformerMobileControls();
+        this.showBossAttackInstruction(
+            'DODGE THE FLASH // ATTACK WHEN IT PAUSES',
+            2200
+        );
+
+        control.afterReady('preview', REEF_GUARDIAN_ARENA.openingGraceMs, () => {
+            if (this.bossAttackPreview) {
+                this.bossAttack(this.bossAttackPreview);
+            } else {
+                try { this.bossAttack(); }
+                finally { if (control.isCurrent()) this.startBossAI(); }
+            }
+        });
+        console.log('[ReefLevel] Arena framed; controls and guardian combat enabled');
+        return true;
+    }
+
+    /**
+     * Draw Nyx'voral - cosmic void serpent
+     */
+    drawNyxvoral(x, y, phase) {
+        this.boss.clear();
+
+        const length = 300;
+        const bodyWidth = 60;
+
+        // Phase colors
+        const phaseColors = {
+            1: { body: 0x4B0082, accent: 0x9B30FF, glow: 0xE066FF },
+            2: { body: 0x800040, accent: 0xFF0066, glow: 0xFF69B4 },
+            3: { body: 0x000020, accent: 0xFF0000, glow: 0xFF4444 }
+        };
+
+        const colors = phaseColors[phase] || phaseColors[1];
+
+        // Serpentine body segments
+        const segments = 10;
+        for (let i = 0; i < segments; i++) {
+            const segWidth = bodyWidth * (1 - i * 0.06);
+            const wave = Math.sin(this.time.now / 250 + i * 0.6) * 30;
+
+            const segX = x - i * (length / segments);
+            const segY = y + wave;
+
+            // Body segment with cosmic pattern
+            this.boss.fillStyle(colors.body, 0.95);
+            this.boss.fillCircle(segX, segY, segWidth / 2);
+
+            // Void energy spine
+            this.boss.fillStyle(colors.accent, 0.6);
+            this.boss.fillCircle(segX, segY - segWidth / 3, 8);
+
+            // Small orbiting particles on some segments
+            if (i % 3 === 0) {
+                const orbAngle = this.time.now / 500 + i;
+                const orbX = segX + Math.cos(orbAngle) * (segWidth / 2 + 10);
+                const orbY = segY + Math.sin(orbAngle) * (segWidth / 2 + 10);
+                this.boss.fillStyle(colors.glow, 0.7);
+                this.boss.fillCircle(orbX, orbY, 4);
+            }
+        }
+
+        // Head - larger, more menacing
+        this.boss.fillStyle(colors.body, 1);
+        this.boss.fillCircle(x + 50, y, 45);
+
+        // Crown of void crystals
+        for (let i = 0; i < 5; i++) {
+            const crownAngle = -0.8 + (i / 4) * 0.8 - 0.4;
+            const crownX = x + 50 + Math.cos(crownAngle) * 40;
+            const crownY = y + Math.sin(crownAngle) * 40 - 10;
+            this.boss.fillStyle(colors.accent, 0.9);
+            this.boss.fillTriangle(
+                crownX - 5, crownY + 5,
+                crownX + 5, crownY + 5,
+                crownX, crownY - 20
+            );
+        }
+
+        // Massive maw
+        this.boss.fillStyle(0x000000, 1);
+        this.boss.fillCircle(x + 90, y, 35);
+
+        // Void energy teeth
+        this.boss.fillStyle(colors.glow, 0.9);
+        for (let i = 0; i < 8; i++) {
+            const angle = -0.5 + (i / 8) * 1;
+            const toothX = x + 90 + Math.cos(angle) * 30;
+            const toothY = y + Math.sin(angle) * 30;
+            this.boss.fillTriangle(
+                toothX, toothY,
+                toothX + Math.cos(angle) * 18, toothY + Math.sin(angle) * 18,
+                toothX + 6, toothY + 4
+            );
+        }
+
+        // Eyes - three void eyes
+        const eyePositions = [
+            { x: x + 30, y: y - 25 },
+            { x: x + 50, y: y - 30 },
+            { x: x + 70, y: y - 25 },
+        ];
+
+        eyePositions.forEach(eye => {
+            this.boss.fillStyle(colors.glow, 1);
+            this.boss.fillCircle(eye.x, eye.y, 10);
+            this.boss.fillStyle(0x000000, 1);
+            this.boss.fillCircle(eye.x + 2, eye.y, 5);
+        });
+
+        // Void aura
+        this.boss.fillStyle(colors.glow, 0.1);
+        this.boss.fillCircle(x + 20, y, 120);
+    }
+
+    createBossHealthBar() {
+        // Use SCREEN coordinates (center of camera view)
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+        const isMobileLayout = this.isMobile ||
+            this.forceMobileControls ||
+            this.platformerPreviewSize === 'mobile' ||
+            screenWidth <= 480 ||
+            screenHeight < 620;
+        const barWidth = isMobileLayout
+            ? Math.min(286, screenWidth - 96)
+            : Math.min(350, screenWidth - 60);
+        const barHeight = isMobileLayout ? 21 : 28;
+        const x = (screenWidth - barWidth) / 2;
+        const y = isMobileLayout ? 96 : 55;
+
+        // Boss UI container for all elements
+        this.bossUI = this.add.container(0, 0);
+        this.bossUI.setScrollFactor(0);
+        this.bossUI.setDepth(1500); // Higher depth for visibility
+
+        // Boss name with enhanced visibility
+        this.bossNameText = this.add.text(screenWidth / 2, y - 28, 'NYX\'VORAL // TRAPPED', {
+            fontSize: isMobileLayout ? '16px' : '24px',
+            color: '#A9F3E4',
+            fontStyle: 'bold',
+            stroke: '#2D0050',
+            strokeThickness: 5
+        }).setOrigin(0.5).setScrollFactor(0);
+        this.bossUI.add(this.bossNameText);
+
+        // Subtitle
+        this.bossSubtitle = this.add.text(screenWidth / 2, y - 8, 'CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED', {
+            fontSize: '11px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#D8FFF6',
+            fontStyle: 'bold',
+            stroke: '#160D24',
+            strokeThickness: 2,
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0);
+        this.bossUI.add(this.bossSubtitle);
+
+        // Health bar background with glow
+        this.bossHealthBg = this.add.graphics();
+        this.bossHealthBg.setScrollFactor(0);
+        // Glow layer
+        this.bossHealthBg.fillStyle(0x9B30FF, 0.2);
+        this.bossHealthBg.fillRoundedRect(x - 8, y - 3, barWidth + 16, barHeight + 16, 12);
+        // Main background
+        this.bossHealthBg.fillStyle(0x1A0030, 0.95);
+        this.bossHealthBg.fillRoundedRect(x - 3, y + 2, barWidth + 6, barHeight + 6, 8);
+        this.bossHealthBg.lineStyle(3, 0x9B30FF, 0.9);
+        this.bossHealthBg.strokeRoundedRect(x - 3, y + 2, barWidth + 6, barHeight + 6, 8);
+        this.bossUI.add(this.bossHealthBg);
+
+        // Health bar fill
+        this.bossHealthBar = this.add.graphics();
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossUI.add(this.bossHealthBar);
+
+        this.bossRouteText = this.add.text(
+            screenWidth / 2,
+            y + 19,
+            '',
+            {
+                fontSize: isMobileLayout ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                stroke: '#160D24',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5).setScrollFactor(0);
+        this.bossUI.add(this.bossRouteText);
+
+        // Store dimensions for updateBossHealthBar
+        this.bossBarConfig = { x, y: y + 5, width: barWidth, height: barHeight };
+
+        if (isMobileLayout) {
+            this.tweens.killTweensOf(this.cameras.main);
+            this.cameras.main.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);
+        } else {
+            this.tweens.add({
+                targets: this.cameras.main,
+                zoom: 0.9,
+                duration: 1000,
+                ease: 'Power2'
+            });
+        }
+
+        this.updateBossHealthBar();
+
+        // Start off-screen boss indicator updates
+        this.startBossIndicator();
+    }
+
+    updateBossHealthBar() {
+        if (!this.bossHealthBar || !this.bossBarConfig) return;
+
+        const { x, y, width, height } = this.bossBarConfig;
+        this.bossHealthBar.clear();
+
+        const healthPercent = this.bossHealth / this.bossMaxHealth;
+        const routeFracture = Math.max(0, Math.ceil(this.bossHealth));
+
+        // This meter tracks the broken route holding Nyx'voral, not guardian life.
+        this.bossHealthBar.fillStyle(0xE066FF, 1);
+        this.bossHealthBar.fillRoundedRect(x, y, width * healthPercent, height, 5);
+
+        // Inner highlight for depth
+        if (healthPercent > 0.1) {
+            this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
+            this.bossHealthBar.fillRoundedRect(x + 2, y + 2, (width * healthPercent) - 4, height / 3, 3);
+        }
+        this.bossRouteText?.setText(
+            routeFracture > 0
+                ? `BROKEN ROUTE // ${routeFracture}/${this.bossMaxHealth}`
+                : 'BROKEN ROUTE // RESTORED'
+        );
+    }
+
+    /**
+     * Off-screen boss indicator - shows arrow pointing to boss when off-screen
+     */
+    startBossIndicator() {
+        // Create indicator arrow
+        this.bossIndicator = this.add.graphics();
+        this.bossIndicator.setScrollFactor(0);
+        this.bossIndicator.setDepth(1499);
+        this.bossIndicator.setAlpha(0);
+
+        // Update indicator position every frame
+        this.bossIndicatorTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => this.updateBossIndicator(),
+            loop: true
+        });
+    }
+
+    updateBossIndicator() {
+        if (!this.boss || !this.bossIndicator || this.bossDefeated) return;
+
+        const camera = this.cameras.main;
+        const screenWidth = camera.width;
+        const screenHeight = camera.height;
+
+        // The serpent is drawn at absolute coordinates inside a graphics
+        // container that remains at (0, 0); navigation must follow its body.
+        const bossWorldX = this.bossBody?.x ?? this.boss.x;
+        const bossWorldY = this.bossBody?.y ?? this.boss.y;
+        const bossScreenX = bossWorldX - camera.scrollX;
+        const bossScreenY = bossWorldY - camera.scrollY;
+
+        // Check if boss is off-screen
+        const padding = 100;
+        const isOffScreen = bossScreenX < -padding || bossScreenX > screenWidth + padding ||
+                           bossScreenY < -padding || bossScreenY > screenHeight + padding;
+
+        if (isOffScreen && this.bossFightActive) {
+            // Show indicator pointing to boss
+            this.bossIndicator.setAlpha(0.9);
+            this.bossIndicator.clear();
+
+            // Calculate angle to boss
+            const playerScreenX = this.player.x - camera.scrollX;
+            const playerScreenY = this.player.y - camera.scrollY;
+            const angle = Math.atan2(bossScreenY - playerScreenY, bossScreenX - playerScreenX);
+
+            // Position indicator at edge of screen
+            const indicatorDist = Math.min(screenWidth, screenHeight) * 0.35;
+            let indicatorX = playerScreenX + Math.cos(angle) * indicatorDist;
+            let indicatorY = playerScreenY + Math.sin(angle) * indicatorDist;
+
+            // Clamp to screen bounds
+            indicatorX = Phaser.Math.Clamp(indicatorX, 50, screenWidth - 50);
+            indicatorY = Phaser.Math.Clamp(indicatorY, 100, screenHeight - 150);
+
+            // Draw arrow pointing to boss
+            this.bossIndicator.fillStyle(0xE066FF, 1);
+            const arrowSize = 20;
+
+            // Rotate arrow to point at boss
+            this.bossIndicator.save();
+            this.bossIndicator.translateCanvas(indicatorX, indicatorY);
+            this.bossIndicator.rotateCanvas(angle);
+
+            // Arrow shape
+            this.bossIndicator.fillTriangle(
+                arrowSize, 0,
+                -arrowSize / 2, -arrowSize / 2,
+                -arrowSize / 2, arrowSize / 2
+            );
+
+            // Pulsing circle behind
+            const pulseSize = 8 + Math.sin(this.time.now / 200) * 3;
+            this.bossIndicator.fillStyle(0xFF0066, 0.6);
+            this.bossIndicator.fillCircle(-arrowSize, 0, pulseSize);
+
+            this.bossIndicator.restore();
+        } else {
+            // Hide indicator when boss is on-screen
+            this.bossIndicator.setAlpha(0);
+        }
+    }
+
+    getReefGuardianControl() {
+        if (this.reefGuardianControl?.isCurrent()) return this.reefGuardianControl;
+        this.reefGuardianControl?.retire();
+        const control = new ReefGuardianControl(this);
+        if (control.isCurrent()) return control;
+        control.retire();
+        return null;
+    }
+
+    startBossAI() {
+        if (!this.bossCombatReady || !this.bossFightActive || this.bossDefeated) {
+            return null;
+        }
+        const control = this.getReefGuardianControl();
+        return control?.every('ai', 2500, () => { if (control.canAct()) this.bossAttack(); }) || null;
+    }
+
+    bossAttack(forcedAttack = null) {
+        if (
+            !this.bossFightActive ||
+            this.bossDefeated ||
+            !this.bossCombatReady ||
+            this.bossAttackLocked ||
+            this.time.now < this.bossRecoveryUntil
+        ) return;
+
+        const control = this.getReefGuardianControl();
+        if (!control?.canAct()) return;
+
+        const attacks = ['voidLunge', 'dimensionalTear', 'summonMinions'];
+        const attack = forcedAttack || Phaser.Utils.Array.GetRandom(attacks);
+        const attackWindow = REEF_GUARDIAN_ATTACK_WINDOWS[attack] || 2200;
+
+        console.log(`[ReefLevel] Nyx'voral attack: ${attack}`);
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
+        this.bossAttackLocked = true;
+        try {
+            control.after('unlock', attackWindow, () => { this.bossAttackLocked = false; });
+            this.showBossAttackInstruction(REEF_GUARDIAN_ATTACK_CUES[attack], attackWindow);
+            switch (attack) {
+                case 'voidLunge':
+                    this.bossVoidLunge();
+                    break;
+                case 'dimensionalTear':
+                    this.bossDimensionalTear();
+                    break;
+                case 'summonMinions':
+                    this.bossSummonMinions();
+                    break;
+            }
+        } catch (error) {
+            if (control.isCurrent()) {
+                control.cancel('unlock');
+                this.bossAttackLocked = false;
+                this.bossContactDamageArmed = false;
+            }
+            throw error;
+        }
+    }
+
+    createReefBossTelegraph({
+        x,
+        y,
+        radius = 50,
+        color = 0xE066FF,
+        duration = 600,
+        targetX = null,
+        targetY = null
+    }, owner = null) {
+        const telegraph = this.add.graphics();
+        owner?.objects.add(telegraph);
+        telegraph.setPosition(x, y)
+            .setDepth(395);
+        telegraph.lineStyle(4, color, 0.95);
+        telegraph.strokeCircle(0, 0, radius);
+        telegraph.fillStyle(color, 0.14);
+        telegraph.fillCircle(0, 0, radius);
+        if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
+            telegraph.lineStyle(3, color, 0.75);
+            telegraph.lineBetween(0, 0, targetX - x, targetY - y);
+        }
+        telegraph.setScale(0.6);
+        const tween = this.tweens.add({
+            targets: telegraph,
+            scale: 1.08,
+            alpha: 0.35,
+            duration,
+            ease: 'Sine.easeIn',
+            onComplete: () => telegraph.destroy()
+        });
+        owner?.tweens.add(tween);
+        return telegraph;
+    }
+
+    openReefBossRecovery(duration = 850) {
+        if (!this.bossFightActive || this.bossDefeated) return;
+        if (this.pendingBossPhase) {
+            const nextPhase = this.pendingBossPhase;
+            this.pendingBossPhase = null;
+            this.enterReefBossPhase(nextPhase);
+            return;
+        }
+        this.bossRecoveryUntil = Math.max(
+            this.bossRecoveryUntil,
+            this.time.now + duration
+        );
+        this.showBossAttackInstruction('CURRENT EXPOSED // STRIKE NOW', duration);
+        this.showFloatingText(
+            'CURRENT EXPOSED // BONUS DAMAGE',
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
+            (this.bossBody?.y || 700) - 110,
+            '#8FE3CF'
+        );
+    }
+
+    enterReefBossPhase(phase) {
+        if (phase <= this.bossPhase || this.bossPhaseTransitionActive) return;
+        const phaseData = REEF_GUARDIAN_PHASES[phase];
+        if (!phaseData) return;
+
+        const control = this.getReefGuardianControl();
+        if (!control) return;
+
+        control.clearHitFlash();
+        this.clearReefBossLunge();
+        this.clearReefBossTears();
+        this.pendingBossPhase = null;
+        this.bossPhase = phase;
+        this.bossPhaseTransitionActive = true;
+        this.bossAttackLocked = true;
+        control.cancel('unlock');
+        this.bossBody?.setVelocity?.(0, 0);
+        this.createReefBossTelegraph({
+            x: this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
+            y: this.bossBody?.y ||
+                this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset,
+            radius: 95,
+            color: phaseData.color,
+            duration: 900
+        }, control);
+        this.showFloatingText(
+            phaseData.label,
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
+            (this.bossBody?.y || 700) - 120,
+            `#${phaseData.color.toString(16).padStart(6, '0')}`
+        );
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.012);
+
+        if (this.bossAttackTimer) {
+            this.bossAttackTimer.delay = phase === 3 ? 1850 : 2200;
+        }
+        control.after('phase', 950, () => {
+            this.bossPhaseTransitionActive = false;
+            this.bossAttackLocked = false;
+            this.bossPhaseAdvanceLockedUntil = this.time.now + 1200;
+            this.openReefBossRecovery(950);
+        });
+    }
+
+    requestReefBossPhase(phase) {
+        if (
+            this.bossAttackLocked &&
+            this.time.now >= this.bossRecoveryUntil
+        ) {
+            this.pendingBossPhase = Math.max(
+                this.pendingBossPhase || 0,
+                phase
+            );
+            return;
+        }
+
+        this.enterReefBossPhase(phase);
+    }
+
+    showBossAttackInstruction(cue, duration = 2200) {
+        const subtitle = this.bossSubtitle;
+        if (!cue || !subtitle?.active) return;
+        const control = this.getReefGuardianControl();
+        if (!control) return;
+
+        control.cancel('instruction');
+        control.feedback(() => {
+            subtitle
+                .setText(cue)
+                .setColor('#FFD166')
+                .setScale(1.04);
+            control.replaceInstructionTween(this.tweens.add({
+                targets: subtitle,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 180,
+                ease: 'Sine.easeOut'
+            }));
+            if (this.bossAttackPreview) {
+                return;
+            }
+            control.after('instruction', Math.max(650, duration - 250), () => {
+                if (this.bossSubtitle !== subtitle || !subtitle.active) return;
+                control.feedback(() => subtitle
+                    .setText('CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED')
+                    .setColor('#D8FFF6'));
+            });
+        });
+    }
+
+    bossVoidLunge() {
+        this.clearReefBossLunge();
+        const boss = this.boss;
+        const body = this.bossBody;
+        const player = this.player;
+        const encounter = this.guardianEncounter;
+        const phase = this.bossPhase;
+        const sameEncounter = () => this.boss === boss && this.bossBody === body && this.player === player &&
+            this.guardianEncounter === encounter && this.bossPhase === phase && this.bossFightActive &&
+            !this.bossDefeated && !this.isPlayerDead && !this.levelCompletionActive &&
+            boss?.active && body?.active && body.body?.enable && player?.active && player.body?.enable &&
+            this.sys?.isActive?.() !== false;
+        if (!sameEncounter()) return;
+
+        const visual = this.reefGuardianControl;
+        const alpha = visual?.isCurrent() ? visual.baseAlpha : boss.alpha;
+        const lunge = { boss, body, player, retired: false, stage: 'windup',
+            alpha, windupAlpha: alpha, lastAlpha: boss.alpha, objects: new Set(), tweens: new Set() };
+        this.reefBossLunge = lunge;
+        const isCurrent = () => !lunge.retired && this.reefBossLunge === lunge && sameEncounter();
+        lunge.retire = () => this.clearReefBossLunge(lunge);
+        const guarded = (stage, action) => {
+            if (!isCurrent()) { lunge.retire(); return; }
+            if (lunge.stage !== stage) return;
+            try { action(); }
+            catch (error) { lunge.retire(); throw error; }
+        };
+        const onUpdate = () => { if (!isCurrent()) lunge.retire(); };
+        this.events.once('shutdown', lunge.retire);
+        [...new Set([boss, body, player])].forEach(actor => actor.once('destroy', lunge.retire));
+
+        // The authored creature artwork is larger than its compact gameplay
+        // hitbox. Aim at the body center so every rendered creature can be hit.
+        const targetX = player.body.center?.x ?? player.x;
+        const targetY = player.body.center?.y ?? player.y;
+        const homeX = REEF_GUARDIAN_ARENA.bossX;
+        const homeY = this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset;
+
+        try {
+            this.createReefBossTelegraph({
+                x: body.x, y: body.y, radius: 62, color: 0xFF6B8A,
+                duration: 650, targetX, targetY
+            }, lunge);
+
+            lunge.tweens.add(this.tweens.add({
+                targets: lunge, windupAlpha: 0.5, duration: 650, yoyo: true,
+                onUpdate: () => {
+                    onUpdate();
+                    if (!lunge.retired) {
+                        const control = this.reefGuardianControl;
+                        if (control?.isCurrent()) control.paintBossAlpha(lunge.windupAlpha);
+                        else boss.alpha = lunge.windupAlpha;
+                        lunge.lastAlpha = boss.alpha;
+                    }
+                },
+                onComplete: () => guarded('windup', () => {
+                    lunge.stage = 'outbound';
+                    this.bossContactDamageArmed = true;
+                    this.bossContactDamageConsumed = false;
+                    lunge.tweens.add(this.tweens.add({
+                        targets: body, x: targetX, y: targetY, duration: 360, ease: 'Power3', onUpdate,
+                        onComplete: () => guarded('outbound', () => {
+                            lunge.stage = 'return';
+                            lunge.tweens.add(this.tweens.add({
+                                targets: body, x: homeX, y: homeY, duration: 850, ease: 'Sine.easeInOut', onUpdate,
+                                onComplete: () => guarded('return', () => {
+                                    lunge.retire();
+                                    if (sameEncounter() && !this.reefBossLunge) this.openReefBossRecovery(750);
+                                })
+                            }));
+                        })
+                    }));
+                })
+            }));
+        } catch (error) { lunge.retire(); throw error; }
+    }
+
+    clearReefBossLunge(lunge = this.reefBossLunge) {
+        if (!lunge || lunge.retired) return;
+        lunge.retired = true;
+        const owned = this.reefBossLunge === lunge;
+        if (owned) {
+            this.reefBossLunge = null;
+            this.bossContactDamageArmed = false;
+        }
+        this.events.off('shutdown', lunge.retire);
+        [...new Set([lunge.boss, lunge.body, lunge.player])].forEach(actor => actor.off('destroy', lunge.retire));
+        lunge.tweens.forEach(tween => tween.stop());
+        lunge.objects.forEach(object => { if (object.active) object.destroy(); });
+        lunge.tweens.clear(); lunge.objects.clear();
+        const control = this.reefGuardianControl;
+        const ownsAlpha = lunge.boss.alpha === lunge.lastAlpha || (control?.isCurrent() &&
+            control.baseAlpha === lunge.windupAlpha && lunge.boss.alpha === control.lastAppliedAlpha);
+        if (owned && !this.reefBossLunge && !this.bossDefeated && this.boss === lunge.boss && lunge.boss.active && ownsAlpha) {
+            if (control?.isCurrent()) control.paintBossAlpha(lunge.alpha);
+            else lunge.boss.alpha = lunge.alpha;
+        }
+    }
+
+    bossDimensionalTear() {
+        const boss = this.boss;
+        const bossBody = this.bossBody;
+        const player = this.player;
+        const encounter = this.guardianEncounter;
+        const phase = this.bossPhase;
+        const owner = { retired: false, activated: false,
+            timers: new Set(), tweens: new Set(), objects: new Set() };
+        let tear = null, damageZone = null, overlap = null;
+        const actors = [...new Set([boss, bossBody, player])];
+        const sameEncounter = () => this.boss === boss && this.bossBody === bossBody && this.player === player &&
+            this.guardianEncounter === encounter && this.bossPhase === phase && this.bossFightActive &&
+            !this.bossDefeated && !this.isPlayerDead && !this.levelCompletionActive &&
+            boss?.active && bossBody?.active && bossBody.body?.enable && player?.active && player.body?.enable &&
+            this.sys?.isActive?.() !== false;
+        const isCurrent = () => !owner.retired && this.reefBossTears?.has(owner) && sameEncounter();
+        const onRetire = () => retire();
+        const onTearDestroyed = () => retire(tear);
+        const onZoneDestroyed = () => retire(damageZone);
+        const retire = (destroying = null) => {
+            if (owner.retired) return;
+            owner.retired = true;
+            this.reefBossTears?.delete(owner);
+            if (damageZone?.body) damageZone.body.enable = false;
+            this.events.off('shutdown', onRetire);
+            actors.forEach(actor => actor.off('destroy', onRetire));
+            tear?.off('destroy', onTearDestroyed);
+            damageZone?.off('destroy', onZoneDestroyed);
+            overlap?.destroy();
+            owner.timers.forEach(timer => timer.remove(false));
+            owner.tweens.forEach(tween => tween.stop());
+            owner.objects.forEach(object => {
+                if (object !== destroying && object.active) object.destroy();
+            });
+            owner.timers.clear(); owner.tweens.clear(); owner.objects.clear();
+        };
+        owner.retire = onRetire;
+        if (!sameEncounter()) return;
+        this.reefBossTears ||= new Set();
+        this.reefBossTears.add(owner);
+        this.events.once('shutdown', onRetire);
+        actors.forEach(actor => actor.once('destroy', onRetire));
+
+        try {
+            tear = this.add.graphics();
+            owner.objects.add(tear);
+            tear.once('destroy', onTearDestroyed);
+            tear.setDepth(400);
+            const tearX = player.x + (Math.random() - 0.5) * 100;
+            const tearY = player.y + (Math.random() - 0.5) * 100;
+            this.createReefBossTelegraph({
+                x: tearX, y: tearY, radius: 75, color: 0xE066FF, duration: 700
+            }, owner);
+            tear.fillStyle(0x9B30FF, 0.8);
+            tear.fillCircle(tearX, tearY, 10);
+            tear.setAlpha(0.15);
+            owner.tweens.add(this.tweens.add({ targets: tear, alpha: 0.9, duration: 700 }));
+            damageZone = this.add.zone(tearX, tearY, 150, 150);
+            owner.objects.add(damageZone);
+            damageZone.once('destroy', onZoneDestroyed);
+            this.physics.add.existing(damageZone, true);
+            damageZone.body.enable = false;
+            const canDamage = () => {
+                if (!isCurrent()) { retire(); return false; }
+                return Boolean(owner.activated && tear.active && damageZone.active && damageZone.body?.enable);
+            };
+            overlap = this.physics.add.overlap(player, damageZone, () => {
+                if (!canDamage()) return;
+                try { this.takeDamage(1); }
+                catch (error) { retire(); throw error; }
+            }, canDamage);
+            const warning = this.time.delayedCall(700, () => {
+                owner.timers.delete(warning);
+                if (owner.activated) return;
+                if (!isCurrent() || !tear.active || !damageZone.active || !damageZone.body) { retire(); return; }
+                owner.activated = true;
+                try {
+                    damageZone.body.enable = true;
+                    owner.tweens.add(this.tweens.add({
+                        targets: tear, scaleX: 15, scaleY: 15, alpha: 0, duration: 950
+                    }));
+                    // Retire the visible tear and collision together on the existing expiry clock.
+                    const expiry = this.time.delayedCall(950, () => {
+                        owner.timers.delete(expiry);
+                        if (!isCurrent()) { retire(); return; }
+                        retire();
+                        if (sameEncounter()) this.openReefBossRecovery(700);
+                    });
+                    owner.timers.add(expiry);
+                } catch (error) { retire(); throw error; }
+            });
+            owner.timers.add(warning);
+        } catch (error) { retire(); throw error; }
+    }
+
+    clearReefBossTears() {
+        [...(this.reefBossTears || [])].forEach(owner => owner.retire());
+    }
+
+    onPlayerDeath() {
+        if (this.isPlayerDead) return;
+        this.reefGuardianControl?.clearHitFlash();
+        this.clearReefBossSummons();
+        this.clearReefBossLunge();
+        this.clearReefBossTears();
+        return super.onPlayerDeath();
+    }
+
+    captureReefSummonEncounter() {
+        const boss = this.boss, body = this.bossBody, player = this.player;
+        const encounter = this.guardianEncounter;
+        return {
+            player, actors: [...new Set([boss, body, player])],
+            isCurrent: () => this.boss === boss && this.bossBody === body && this.player === player &&
+                this.guardianEncounter === encounter && this.bossFightActive && !this.bossDefeated &&
+                !this.isPlayerDead && !this.levelCompletionActive && boss?.active && body?.active &&
+                body.body?.enable && player?.active && player.body?.enable && this.sys?.isActive?.() !== false
+        };
+    }
+
+    bossSummonMinions() {
+        const encounter = this.captureReefSummonEncounter();
+        if (!encounter.isCurrent()) return;
+        const wave = { encounter, retired: false, remaining: 3, recoveryDone: false,
+            timers: new Set(), children: new Set(), objects: new Set(), tweens: new Set() };
+        this.reefBossSummons ||= new Set();
+        this.reefBossSummons.add(wave);
+        wave.isCurrent = () => !wave.retired && this.reefBossSummons?.has(wave) && encounter.isCurrent();
+        wave.retire = () => {
+            if (wave.retired) return;
+            wave.retired = true;
+            this.reefBossSummons?.delete(wave);
+            this.events.off('shutdown', wave.retire);
+            encounter.actors.forEach(actor => actor.off('destroy', wave.retire));
+            wave.timers.forEach(timer => timer.remove(false));
+            wave.tweens.forEach(tween => tween.stop());
+            [...wave.children].forEach(child => child.retire());
+            wave.objects.forEach(object => { if (object.active) object.destroy(); });
+            wave.timers.clear(); wave.tweens.clear(); wave.children.clear(); wave.objects.clear();
+        };
+        wave.finishIfEmpty = () => {
+            if (!wave.remaining && wave.recoveryDone && !wave.children.size) wave.retire();
+        };
+        const schedule = (delay, action) => {
+            let dispatched = false;
+            const timer = this.time.delayedCall(delay, () => {
+                wave.timers.delete(timer);
+                if (dispatched || wave.retired) return;
+                dispatched = true;
+                if (!wave.isCurrent()) { wave.retire(); return; }
+                try { action(); }
+                catch (error) { wave.retire(); throw error; }
+            });
+            wave.timers.add(timer);
+        };
+        this.events.once('shutdown', wave.retire);
+        encounter.actors.forEach(actor => actor.once('destroy', wave.retire));
+        const spawnX = this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX;
+        const spawnY = this.bossBody?.y ||
+            this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset;
+        try {
+            this.createReefBossTelegraph({
+                x: spawnX, y: spawnY, radius: 88, color: 0xF2C94C, duration: 700
+            }, wave);
+            for (let i = 0; i < 3; i++) {
+                schedule(700 + i * 220, () => {
+                    wave.remaining -= 1;
+                    const minion = this.createVoidMinion(
+                        REEF_GUARDIAN_ARENA.bossX + (Math.random() - 0.5) * 200,
+                        this.levelHeight - 400 + (Math.random() - 0.5) * 300,
+                        wave
+                    );
+                    if (!wave.isCurrent()) { wave.retire(); return; }
+                    if (minion?.active) this.bossMinions.push(minion);
+                    wave.finishIfEmpty();
+                });
+            }
+            schedule(1900, () => {
+                wave.recoveryDone = true;
+                this.openReefBossRecovery(800);
+                wave.finishIfEmpty();
+            });
+        } catch (error) { wave.retire(); throw error; }
+    }
+
+    clearReefBossSummons() {
+        [...(this.reefBossSummons || [])].forEach(wave => wave.retire());
+        [...(this.reefBossMinionWork || [])].forEach(child => child.retire());
+    }
+
+    createVoidMinion(x, y, wave = null) {
+        const encounter = wave?.encounter || this.captureReefSummonEncounter();
+        if (!encounter.isCurrent() || (wave && !wave.isCurrent())) return null;
+        const child = { retired: false, tween: null };
+        let minion = null, body = null;
+        const onBodyDestroyed = () => retire(body);
+        const onArtDestroyed = () => retire(minion);
+        const retire = (destroying = null) => {
+            if (child.retired) return;
+            child.retired = true;
+            this.reefBossMinionWork?.delete(child);
+            if (body?.body) body.body.enable = false;
+            this.events.off('shutdown', child.retire);
+            if (!wave) encounter.actors.forEach(actor => actor.off('destroy', child.retire));
+            body?.off('destroy', onBodyDestroyed);
+            minion?.off('destroy', onArtDestroyed);
+            child.tween?.stop();
+            if (body) {
+                this.disposeEnemyRuntime?.(body);
+                body.combatCue?.destroy?.();
+                body.instructionLabel?.destroy?.();
+                if (body.graphics === minion) body.graphics = null;
+                const index = this.bossMinions.indexOf(body);
+                if (index >= 0) this.bossMinions.splice(index, 1);
+            }
+            if (minion !== destroying && minion?.active) minion.destroy();
+            if (body !== destroying && body?.active) body.destroy();
+            wave?.children.delete(child);
+            wave?.finishIfEmpty();
+        };
+        child.retire = () => retire();
+        const isCurrent = () => !child.retired && encounter.isCurrent() && (!wave || wave.isCurrent());
+        this.reefBossMinionWork ||= new Set();
+        this.reefBossMinionWork.add(child);
+        wave?.children.add(child);
+        this.events.once('shutdown', child.retire);
+        if (!wave) encounter.actors.forEach(actor => actor.once('destroy', child.retire));
+        try {
+            minion = this.add.graphics();
+            minion.once('destroy', onArtDestroyed);
+            minion.setDepth(280);
+            minion.fillStyle(0x9B30FF, 0.6);
+            minion.fillCircle(x, y, 20);
+            minion.fillStyle(0xE066FF, 0.8);
+            minion.fillCircle(x, y, 12);
+            minion.fillStyle(0xFFFFFF, 0.9);
+            minion.fillCircle(x, y, 5);
+            body = this.physics.add.sprite(x, y, null);
+            body.once('destroy', onBodyDestroyed);
+            this.detachReefPhysicsBody(body);
+            body.body.setSize(40, 40);
+            body.body.setAllowGravity(false);
+            body.graphics = minion;
+            body.health = 1;
+            this.enemies.add(body);
+            this.configureEnemyCombat(body, {
+                role: 'stompable', maxHealth: 1, cueOffsetY: -32
+            });
+            if (!isCurrent()) { retire(); return null; }
+            child.tween = this.tweens.add({
+                targets: body, x: encounter.player.x, y: encounter.player.y, duration: 2500, ease: 'Linear',
+                onUpdate: () => {
+                    if (!isCurrent() || !body.active || !body.body?.enable || !minion.active) { retire(); return; }
+                    minion.x = body.x - x;
+                    minion.y = body.y - y;
+                },
+                onComplete: () => retire()
+            });
+            return body;
+        } catch (error) { retire(); throw error; }
+    }
+
+    updateBoss(time, delta) {
+        if (!this.boss || !this.bossBody) return;
+
+        const camera = this.cameras.main;
+        const compactArena = this.isMobile ||
+            this.forceMobileControls ||
+            this.platformerPreviewSize === 'mobile' ||
+            camera.width <= 480;
+        if (
+            compactArena &&
+            Math.abs(camera.zoom - REEF_GUARDIAN_ARENA.mobileZoom) > 0.001
+        ) {
+            this.tweens.killTweensOf(camera);
+            camera.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);
+        }
+
+        if (this.bossUsesArtwork) {
+            this.boss.setPosition(this.bossBody.x, this.bossBody.y);
+            if (this.bossArtworkPhase !== this.bossPhase) {
+                this.bossArtworkPhase = this.bossPhase;
+                if (this.bossPhase === 3) {
+                    this.boss.setTint(0xD86478);
+                } else if (this.bossPhase === 2) {
+                    this.boss.setTint(0xD88AB4);
+                } else {
+                    this.boss.clearTint();
+                }
+            }
+        } else {
+            this.drawNyxvoral(this.bossBody.x, this.bossBody.y, this.bossPhase);
+        }
+
+        const healthPercent = this.bossHealth / this.bossMaxHealth;
+
+        if (this.time.now < this.bossPhaseAdvanceLockedUntil) return;
+
+        if (healthPercent < 0.3 && this.bossPhase === 2) {
+            console.log('[ReefLevel] Nyx\'voral entering phase 3!');
+            this.requestReefBossPhase(3);
+        } else if (healthPercent < 0.6 && this.bossPhase === 1) {
+            console.log('[ReefLevel] Nyx\'voral entering phase 2!');
+            this.requestReefBossPhase(2);
+        }
+    }
+
+    performAttack() {
+        if (!this.player || this.levelCompletionActive || this.isPlayerDead) return;
+
+        console.log('[ReefLevel] Current-assisted katana strike');
+        const combatProfile = this.katanaCombatProfile || {};
+        const meleeDamage = Number(combatProfile.meleeDamage) || 2;
+        const currentLinkedDamage = meleeDamage + 1;
+        const getStrikeDamage = () => currentLinkedDamage + (
+            this.reefRouteChoice === 'main' && this.reefCurrentEdgeReady ? 2 : 0
+        );
+        const enemyMeleeRange = Number(combatProfile.enemyMeleeRange) || 70;
+        const bossMeleeRange = (Number(combatProfile.bossMeleeRange) || 80) + 40;
+        const slashColor = combatProfile.slashColor || 0xE040FB;
+        const slashGlowColor = combatProfile.slashGlowColor || 0x7B68EE;
+
+        const attackX = this.player.facingRight ? this.player.x + 70 : this.player.x - 70;
+        const attackY = this.player.y;
+        const astronautStrike = this.astronautFollower?.performKatanaStrike({
+            facingRight: this.player.facingRight,
+            targetX: attackX,
+            targetY: attackY,
+            slashColor,
+            slashGlowColor,
+            reefAmplified: true
+        }) === true;
+
+        if (!astronautStrike) {
+            const attack = this.add.graphics();
+            attack.setDepth(300);
+
+            // The Reef current amplifies the installed Earth-forged katana profile.
+            attack.fillStyle(slashGlowColor, 0.6);
+            attack.fillCircle(attackX, attackY, 50);
+            attack.fillStyle(slashColor, 0.82);
+            attack.fillCircle(attackX, attackY, 30);
+            attack.lineStyle(5, slashColor, 1);
+            attack.beginPath();
+            const startAngle = this.player.facingRight ? -Math.PI / 2 : Math.PI / 2;
+            attack.arc(attackX, attackY, 56, startAngle - 0.55, startAngle + 1.05, false);
+            attack.strokePath();
+
+            this.tweens.add({
+                targets: attack,
+                alpha: 0,
+                scaleX: 1.8,
+                scaleY: 1.8,
+                duration: 350,
+                onComplete: () => attack.destroy()
+            });
+        }
+
+        // Check enemy hits
+        this.enemies.children.each(enemy => {
+            if (!enemy.active) return;
+
+            const dist = Phaser.Math.Distance.Between(attackX, attackY, enemy.x, enemy.y);
+            if (dist < enemyMeleeRange) {
+                const strikeDamage = getStrikeDamage();
+                const applied = this.damageEnemy(enemy, strikeDamage);
+                if (applied && strikeDamage > currentLinkedDamage) {
+                    this.consumeReefCurrentEdge();
+                }
+            }
+        });
+
+        // Check boss hit
+        if (this.bossFightActive && this.bossBody) {
+            const distToBoss = Phaser.Math.Distance.Between(attackX, attackY, this.bossBody.x, this.bossBody.y);
+            if (distToBoss < bossMeleeRange) {
+                const strikeDamage = getStrikeDamage();
+                const applied = this.resolveBossHit(
+                    strikeDamage,
+                    { source: 'katana_current' }
+                );
+                if (applied && strikeDamage > currentLinkedDamage) {
+                    this.consumeReefCurrentEdge();
+                }
+            }
+        }
+
+        this.combatJuice?.screenShake?.(2, 60);
+        this.combatJuice?.hapticFeedback?.('light');
+
+        if (window.AudioManager) {
+            window.AudioManager.playAttack();
+        }
+    }
+
+    damageEnemy(enemy, amount) {
+        return super.damageEnemy(enemy, amount);
+    }
+
+    damageBoss(amount) {
+        if (!this.bossFightActive || this.bossDefeated || !this.boss) return false;
+
+        const boss = this.boss, body = this.bossBody, player = this.player, encounter = this.guardianEncounter;
+        const control = this.getReefGuardianControl();
+        const sameHit = () => this.boss === boss && this.bossBody === body && this.player === player &&
+            this.guardianEncounter === encounter && this.bossFightActive && !this.bossDefeated;
+        const feedback = action => { if (sameHit()) control?.feedback(action); };
+        const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
+        feedback(() => this.updateBossHealthBar());
+        feedback(() => this.showFloatingText(
+            recoveryBonus
+                ? `EXPOSED CURRENT -${finalAmount}`
+                : `ROUTE FRACTURE -${finalAmount}`,
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
+            (this.bossBody?.y || 700) - 85,
+            '#F0B6FF'
+        ));
+        feedback(() => control.flashHit());
+
+        feedback(() => window.AudioManager?.playEnemyHit?.());
+
+        if (!sameHit()) { control?.retire(); return false; }
+        if (this.bossHealth <= 0) {
+            this.defeatBoss();
+        }
+        return true;
+    }
+
+    defeatBoss() {
+        if (this.bossDefeated || !this.bossFightActive || !this.boss?.active || !this.player?.active) return false;
+        console.log('[ReefLevel] Nyx\'voral stabilized!');
+
+        this.bossDefeated = true;
+        this.bossFightActive = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
+
+        this.reefVictory?.retire();
+        const victory = new ReefVictorySequence(this);
+        if (!victory.requireCurrent()) return false;
+        this.reefGuardianControl?.retire();
+        this.clearReefBossSummons();
+        this.clearReefBossLunge();
+        this.clearReefBossTears();
+        this.enterLevelCompletionState();
+        // Arm results before optional achievements, drawing or audio can fail.
+        try { victory.later(2600, () => victory.finish()); }
+        catch (error) { victory.retire(); throw error; }
+        // Record guardian restoration for achievements.
+        victory.present(() => window.AchievementSystem?.recordEvent?.('guardian_restored', { bossId: 'nyxvoral' }));
+        if (!victory.requireCurrent()) return false;
+
+        if (this.bossAttackTimer) {
+            this.bossAttackTimer.remove();
+        }
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossAttackLocked = false;
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
+        victory.present(() => this.bossRouteText?.setText('BROKEN ROUTE // RESTORED'));
+        if (!victory.requireCurrent()) return false;
+
+        if (this.bossBody?.body) {
+            this.bossBody.body.enable = false;
+            this.bossBody.setVelocity?.(0, 0);
+        }
+        this.bossMinions.forEach(minion => {
+            minion.graphics?.destroy?.();
+            minion.combatCue?.destroy?.();
+            minion.destroy?.();
+        });
+        this.bossMinions = [];
+        victory.present(() => this.bossIndicator?.setAlpha?.(0));
+
+        victory.present(() => window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207));
+        victory.present(() => this.showFloatingText(
+            'PASSAGE GUARDIAN STABLE',
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
+            (this.bossBody?.y || 700) - 100,
+            '#8FE3CF'
+        ));
+
+        // Nyx'voral calms and withdraws into the restored current.
+        victory.fade();
+
+        victory.present(() => {
+            if (!window.FXLibrary) return;
+            const resonanceX = this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX;
+            const resonanceY = this.bossBody?.y || 700;
+            for (let i = 0; i < 5; i++) {
+                victory.later(i * 300, () => victory.present(() => {
+                    window.FXLibrary.stardustBurst(
+                        this,
+                        resonanceX + (Math.random() - 0.5) * 150,
+                        resonanceY + (Math.random() - 0.5) * 80,
+                        {
+                            count: 24,
+                            color: [0x8FE3CF, 0x00FFFF, 0xBFA6FF, 0xFFD700],
+                            duration: 2000
+                        }
+                    );
+                }));
+            }
+        });
+
+        victory.fadeUI();
+        victory.present(() => window.AudioManager?.playLevelUp?.());
+        return true;
+    }
+
+    showVictoryScreen() {
+        this.completeLevelProgression({
+            achievementLevelId: 'cosmicReef',
+            shipPartId: 'dimensional_drive',
+            speedrunThreshold: 240000,
+            deferPresentation: true
+        });
+        this.showRegionalVictorySummary();
+    }
+
+    showFloatingText(text, x, y, color = '#FFFFFF') {
+        const camera = this.cameras?.main;
+        const viewportWidth = camera?.width || this.scale?.width || 390;
+        const viewportHeight = camera?.height || this.scale?.height || 720;
+        const isCheckpointRecovery = text === 'BACK AT CHECKPOINT';
+        const horizontalPadding = viewportWidth <= 480 ? 18 : 28;
+        const maximumTextWidth = Math.max(
+            120,
+            Math.min(320, viewportWidth - horizontalPadding * 2)
+        );
+        const displayX = isCheckpointRecovery ? viewportWidth / 2 : x;
+        const displayY = isCheckpointRecovery
+            ? Math.min(430, viewportHeight * 0.56)
+            : y;
+        const floatText = this.add.text(displayX, displayY, text, {
+            fontSize: viewportWidth <= 480 ? '14px' : '16px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: maximumTextWidth }
+        }).setOrigin(0.5).setDepth(500);
+
+        if (isCheckpointRecovery) {
+            floatText.setScrollFactor(0);
+        } else {
+            const viewLeft = camera?.worldView?.left ?? camera?.scrollX ?? 0;
+            const viewRight = camera?.worldView?.right ??
+                viewLeft + viewportWidth;
+            const halfWidth = Math.min(
+                maximumTextWidth / 2,
+                floatText.width / 2
+            );
+            floatText.x = Phaser.Math.Clamp(
+                x,
+                viewLeft + horizontalPadding + halfWidth,
+                viewRight - horizontalPadding - halfWidth
+            );
+        }
+
+        this.tweens.add({
+            targets: floatText,
+            y: displayY - (isCheckpointRecovery ? 36 : 60),
+            alpha: 0,
+            duration: 1800,
+            onComplete: () => floatText.destroy()
+        });
+    }
+
+    handleMovement() {
+        const leftPressed = this.cursors.left.isDown || this.wasdKeys.A.isDown;
+        const rightPressed = this.cursors.right.isDown || this.wasdKeys.D.isDown;
+        const virtualLeft = this.virtualJoystickX < -0.2;
+        const virtualRight = this.virtualJoystickX > 0.2;
+
+        if (leftPressed || virtualLeft) {
+            const mult = virtualLeft ? Math.min(1, Math.abs(this.virtualJoystickX) * 1.5) : 1;
+            const target = -this.playerSpeed * mult;
+            const newVel = this.player.body.velocity.x + (target - this.player.body.velocity.x) * this.playerAcceleration;
+            this.player.setVelocityX(newVel);
+            this.player.facingRight = false;
+        } else if (rightPressed || virtualRight) {
+            const mult = virtualRight ? Math.min(1, Math.abs(this.virtualJoystickX) * 1.5) : 1;
+            const target = this.playerSpeed * mult;
+            const newVel = this.player.body.velocity.x + (target - this.player.body.velocity.x) * this.playerAcceleration;
+            this.player.setVelocityX(newVel);
+            this.player.facingRight = true;
+        } else {
+            this.player.setVelocityX(this.player.body.velocity.x * this.swimDrag);
+            if (Math.abs(this.player.body.velocity.x) < 3) {
+                this.player.setVelocityX(0);
+            }
+        }
+
+        // When not actively swimming, player sinks noticeably
+        if (!this.isSwimmingUp && this.player.body.velocity.y < this.maxSinkSpeed) {
+            // Apply sink speed more aggressively so player feels gravity
+            this.player.setVelocityY(this.player.body.velocity.y + this.sinkSpeed * 0.18);
+        }
+    }
+
+    handleDuck() {
+        // Down is deliberate descent in the Reef, never a platformer crouch.
+        this.isDucking = false;
+    }
+
+    handleJump() {
+        const swimPressed = this.jumpKey.isDown ||
+                           this.cursors.up.isDown ||
+                           this.wasdKeys.W.isDown ||
+                           this.virtualJoystickY < -0.2 ||
+                           this.virtualJumpPressed ||
+                           this.virtualJumpQueued;
+        const queuedSwim = this.virtualJumpQueued;
+
+        if (swimPressed) {
+            this.isSwimmingUp = true;
+            const joystickStrength = this.virtualJoystickY < -0.2
+                ? Math.min(1, Math.abs(this.virtualJoystickY) * 1.4)
+                : 1;
+            const target = this.jumpVelocity * joystickStrength;
+            // Use swimAcceleration for more responsive feel
+            const accel = this.swimAcceleration || 0.20;
+            const newVel = this.player.body.velocity.y + (target - this.player.body.velocity.y) * accel;
+            this.player.setVelocityY(newVel);
+
+            // INCREASED: Visual feedback when swimming - 60% chance of trail
+            if (Math.random() > 0.4) {
+                this.createPlayerCosmicTrail();
+            }
+
+            // Add subtle forward boost when swimming up
+            if (this.player.facingRight !== undefined) {
+                const forwardBoost = this.player.facingRight ? 15 : -15;
+                this.player.setVelocityX(this.player.body.velocity.x + forwardBoost * 0.1);
+            }
+        } else {
+            this.isSwimmingUp = false;
+            // Apply drag but let gravity do more work (don't reduce Y velocity as much)
+            this.player.setVelocityY(this.player.body.velocity.y * this.swimDrag);
+        }
+
+        if (queuedSwim) {
+            this.virtualJumpQueued = false;
+        }
+
+        // Sink faster when pressing down
+        const sinkPressed = this.cursors.down.isDown ||
+            this.wasdKeys.S.isDown ||
+            this.virtualJoystickY > 0.2;
+        if (sinkPressed) {
+            const joystickStrength = this.virtualJoystickY > 0.2
+                ? Math.min(1, this.virtualJoystickY * 1.4)
+                : 1;
+            const target = this.maxSinkSpeed * joystickStrength;
+            const newVel = this.player.body.velocity.y +
+                (target - this.player.body.velocity.y) * 0.2;
+            this.player.setVelocityY(newVel);
+        }
+    }
+
+    releaseVirtualJumpInput() {
+        super.releaseVirtualJumpInput();
+        this.isSwimmingUp = false;
+    }
+
+    createPlayerCosmicTrail() {
+        if (!this.player?.active) return false;
+        const now = Number(this.time?.now) || 0;
+        if (now < this.reefTrailNextAt) return false;
+        this.reefTrailNextAt = now + (this.isMobile ? 90 : 55);
+
+        const particleLimit = this.isMobile ? 8 : 14;
+        if (this.reefTrailParticles.length >= particleLimit) return false;
+        if (!this.reefTrailLayer?.active) {
+            this.reefTrailLayer = this.add.graphics().setDepth(150);
+        }
+        const colors = [0xE066FF, 0x00FFFF, 0x9B30FF];
+        this.reefTrailParticles.push({
+            x: this.player.x + (Math.random() - 0.5) * 25,
+            y: this.player.y + 15,
+            velocityY: 58 + Math.random() * 24,
+            size: 3 + Math.random() * 3,
+            color: Phaser.Utils.Array.GetRandom(colors),
+            age: 0,
+            duration: 720 + Math.random() * 260
+        });
+        return true;
+    }
+
+    updatePlayerCosmicTrail(delta) {
+        const layer = this.reefTrailLayer;
+        if (!layer?.active) return 0;
+
+        const elapsed = Math.min(50, Math.max(0, Number(delta) || 0));
+        const seconds = elapsed / 1000;
+        this.reefTrailParticles = this.reefTrailParticles.filter(particle => {
+            particle.age += elapsed;
+            particle.y += particle.velocityY * seconds;
+            return particle.age < particle.duration;
+        });
+
+        layer.clear();
+        this.reefTrailParticles.forEach(particle => {
+            const alpha = 0.6 * (1 - (particle.age / particle.duration));
+            layer.fillStyle(particle.color, alpha);
+            layer.fillCircle(particle.x, particle.y, particle.size);
+        });
+        return this.reefTrailParticles.length;
+    }
+
+    update(time, delta) {
+        super.update(time, delta);
+        if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
+
+        this.updateReefAscentCurrentGuidance();
+        this.updateCosmicDust(delta);
+        this.updatePlayerCosmicTrail(delta);
+
+        this.updateReefEnemyActivation();
+        this.updateEnemies(time);
+
+        if (this.bossFightActive) {
+            this.updateBoss(time, delta);
+        }
+
+        // Update swim indicator
+        this.updateSwimIndicator();
+
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
+    }
+
+    /**
+     * Create swim indicator HUD element
+     */
+    createSwimIndicator() {
+        const { width, height } = this.cameras.main;
+        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+
+        // Position above mobile controls or at bottom center
+        const indicatorY = isMobile ? height - 160 : height - 80;
+
+        // Background
+        this.swimIndicatorBg = this.add.graphics();
+        this.swimIndicatorBg.fillStyle(0x0A0015, 0.7);
+        this.swimIndicatorBg.fillRoundedRect(width / 2 - 55, indicatorY - 15, 110, 30, 8);
+        this.swimIndicatorBg.setScrollFactor(0);
+        this.swimIndicatorBg.setDepth(2000);
+        this.swimIndicatorBg.setAlpha(0);
+
+        // Text
+        this.swimIndicatorText = this.add.text(width / 2, indicatorY, 'CURRENT ASCENT', {
+            fontSize: '14px',
+            color: '#00FFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2001);
+        this.swimIndicatorText.setAlpha(0);
+
+        // Pulse animation for when swimming
+        this.swimIndicatorPulse = this.tweens.add({
+            targets: this.swimIndicatorText,
+            scale: { from: 1, to: 1.1 },
+            duration: 300,
+            yoyo: true,
+            repeat: -1,
+            paused: true
+        });
+    }
+
+    /**
+     * Update swim indicator visibility based on input
+     */
+    updateSwimIndicator() {
+        if (!this.swimIndicatorText) return;
+
+        if (this.isSwimmingUp) {
+            // Show indicator when swimming
+            if (this.swimIndicatorText.alpha < 0.9) {
+                this.swimIndicatorBg.setAlpha(1);
+                this.swimIndicatorText.setAlpha(1);
+                this.swimIndicatorPulse?.resume();
+            }
+        } else {
+            // Fade out when not swimming
+            if (this.swimIndicatorText.alpha > 0.1) {
+                this.swimIndicatorBg.setAlpha(0);
+                this.swimIndicatorText.setAlpha(0);
+                this.swimIndicatorPulse?.pause();
+            }
+        }
+    }
+
+    shutdown() {
+        this.reefVictory?.retire();
+        this.reefGuardianControl?.retire();
+        this.clearReefBossSummons();
+        this.clearReefBossLunge();
+        this.clearReefBossTears();
+        console.log('[ReefLevel] Shutting down Cosmic Abyss');
+        this.clearLevelEntryKeyHandler();
+
+        if (this.bossAttackTimer) {
+            this.bossAttackTimer.remove();
+        }
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossAttackLocked = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
+
+        // Clean up boss indicator
+        if (this.bossIndicatorTimer) {
+            this.bossIndicatorTimer.remove();
+            this.bossIndicatorTimer = null;
+        }
+        if (this.bossIndicator) {
+            this.bossIndicator.destroy();
+            this.bossIndicator = null;
+        }
+        if (this.bossUI) {
+            this.bossUI.destroy();
+            this.bossUI = null;
+        }
+        this.bossRouteText = null;
+        this.bossSubtitle = null;
+        this.boss?.destroy?.();
+        this.boss = null;
+        this.bossBody?.destroy?.();
+        this.bossBody = null;
+        this.bossMinions.forEach(minion => {
+            minion.graphics?.destroy?.();
+            minion.combatCue?.destroy?.();
+            minion.destroy?.();
+        });
+        this.bossMinions = [];
+        this.bossTriggerZone?.destroy?.();
+        this.bossTriggerZone = null;
+
+        this.beaconAnchors.forEach(anchor => {
+            anchor.visual?.destroy?.();
+            anchor.label?.destroy?.();
+            anchor.zone?.destroy?.();
+        });
+        this.beaconAnchors = [];
+        this.clearCreaturePassageWake();
+        this.openingSignalCurrent?.visual?.destroy?.();
+        this.openingSignalCurrent?.label?.destroy?.();
+        this.openingSignalCurrent?.pulseTween?.remove?.();
+        this.openingSignalCurrent = null;
+        this.destroyReefCurrent(this.abyssAscentCurrent);
+        this.abyssAscentCurrent = null;
+        this.activeReefAscentCurrent = null;
+        this.destroyReefCurrent(this.driftAscentCurrent);
+        this.driftAscentCurrent = null;
+        this.destroyReefCurrent(this.travelerAscentCurrent);
+        this.travelerAscentCurrent = null;
+
+        this.objectiveDisplay?.destroy?.();
+        this.objectiveDisplay = null;
+        this.swimIndicatorPulse?.stop?.();
+        this.swimIndicatorPulse = null;
+        this.swimIndicatorBg?.destroy?.();
+        this.swimIndicatorBg = null;
+        this.swimIndicatorText?.destroy?.();
+        this.swimIndicatorText = null;
+
+        // Reset camera zoom
+        if (this.cameras?.main) {
+            this.cameras.main.setZoom(1.0);
+        }
+
+        this.nebulaParticles.forEach(p => p?.destroy());
+        this.nebulaParticles = [];
+        this.voidRifts.forEach(r => r?.destroy());
+        this.voidRifts = [];
+        this.starfieldLayer?.destroy();
+        this.starfieldLayer = null;
+        this.entryCosmicParticleTween?.remove?.();
+        this.entryCosmicParticleTween = null;
+        this.entryCosmicParticleLayer?.destroy?.();
+        this.entryCosmicParticleLayer = null;
+        this.cosmicDustTimer?.remove?.();
+        this.cosmicDustTimer = null;
+        this.cosmicDustLayer?.destroy?.();
+        this.cosmicDustLayer = null;
+        this.cosmicDustParticles = [];
+        this.reefTrailLayer?.destroy?.();
+        this.reefTrailLayer = null;
+        this.reefTrailParticles = [];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefProximityEnemies = [];
+        this.reefEnemyActivationBounds = null;
+
+        super.shutdown();
+    }
+}
+
+export default ReefLevel;
+
+if (typeof window !== 'undefined') {
+    window.ReefLevel = ReefLevel;
+}

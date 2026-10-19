@@ -265,6 +265,11 @@ class SceneLoaderClass {
         devLog(`[SceneLoader] Chunk ${chunkName} preloaded`);
     }
 
+    updateLoading(method, ...args) {
+        try { window.UXEnhancements?.[method]?.(...args); }
+        catch { devWarn('[SceneLoader] Optional loading presentation unavailable'); }
+    }
+
     /**
      * Load a scene and register it with Phaser
      * @param {Phaser.Game} game - The Phaser game instance
@@ -288,11 +293,10 @@ class SceneLoaderClass {
             return true;
         }
 
+        const loadingOwner = {};
         try {
             // Show loading state
-            if (window.UXEnhancements) {
-                window.UXEnhancements.showLoading(`Loading ${sceneName}...`);
-            }
+            this.updateLoading('showLoading', `Loading ${sceneName}...`, loadingOwner);
 
             // Load the module
             const module = await this.preload(sceneName);
@@ -311,18 +315,14 @@ class SceneLoaderClass {
             devLog(`[SceneLoader] ${sceneName} registered with Phaser`);
 
             // Hide loading state
-            if (window.UXEnhancements) {
-                window.UXEnhancements.hideLoading();
-            }
+            this.updateLoading('hideLoading', loadingOwner);
 
             return true;
         } catch (error) {
             console.error(`[SceneLoader] Failed to load ${sceneName}:`, error);
 
             // Hide loading state
-            if (window.UXEnhancements) {
-                window.UXEnhancements.hideLoading();
-            }
+            this.updateLoading('hideLoading', loadingOwner);
 
             return false;
         }
