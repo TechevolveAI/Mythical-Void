@@ -5,6 +5,8 @@ const vm = require('node:vm');
 
 const { parse } = require('@babel/parser');
 const { livingHandoffFixture } = require('./support/livingHandoffFixture.cjs');
+const CreaturePortraitSpec = require('../systems/CreaturePortraitSpec.js');
+const loadMediaService = require('./support/loadMediaService.cjs');
 
 describe('ordinary living-form progress and Continue recovery', () => {
     let f;
@@ -14,12 +16,28 @@ describe('ordinary living-form progress and Continue recovery', () => {
         for (const key of ['CloudSave', 'AchievementSystem', 'QuestManager', 'AudioManager', 'BirthEventSystem', 'CompanionMediaService', 'LivingPortraitService']) delete window[key];
         for (const method of ['log', 'warn', 'error']) jest.spyOn(console, method).mockImplementation(() => {});
         f = livingHandoffFixture();
+        window.CreaturePortraitSpec = CreaturePortraitSpec;
+        const { LivingPortraitService } = loadMediaService('LivingPortraitService', () => {
+            throw Error('SYNTHETIC_REVEAL_NETWORK_DENIED');
+        }, window);
+        window.LivingPortraitService = new LivingPortraitService();
     });
     afterEach(() => {
+        window.LivingPortraitService?.retireCampaignWork?.();
         f.close(); jest.restoreAllMocks(); jest.clearAllTimers(); jest.useRealTimers();
         for (const key of ['GameState', 'CloudSave', 'AchievementSystem', 'QuestManager', 'AudioManager', 'BirthEventSystem', 'CompanionMediaService', 'LivingPortraitService']) delete window[key];
         document.body.replaceChildren();
+        delete window.CreaturePortraitSpec;
     });
+    const savedPortrait = () => {
+        const spec = CreaturePortraitSpec.create({ genes: f.state.get('creature.genes'),
+            dna: f.state.get('creature.dna'), stage: 'baby' });
+        const record = { identityKey: spec.identityKey, stage: 'baby', status: 'ready',
+            assetRef: 'portrait-job-v1:00000000-0000-4000-8000-000000000077',
+            imageUrl: 'https://example.test/synthetic-reveal.png' };
+        expect(f.state.saveCreaturePortrait(record)).toBe(true);
+        return record;
+    };
     const click = handoff => handoff.mobileContinueButton.dispatchEvent(new Event('pointerup', { bubbles: true, cancelable: true }));
     const primaryWrites = () => {
         const writes = [], set = Storage.prototype.setItem;
@@ -93,7 +111,7 @@ describe('ordinary living-form progress and Continue recovery', () => {
     test('actual once-only image reveal retains a refused marker for native Continue retry without regenerating media', async () => {
         const media = { recordAppearance: jest.fn(), prepareGeneratedVideo: jest.fn(() => Promise.resolve(null)) };
         window.CompanionMediaService = media;
-        f.scene.portraitPromise = Promise.resolve({ imageUrl: 'data:image/png;base64,fictional', identityKey: 'fictional:baby', stage: 'baby' });
+        const record = savedPortrait(); f.scene.portraitPromise = Promise.resolve(record);
         const handoff = f.show(), marker = jest.spyOn(handoff, 'onPortraitShown'), set = Storage.prototype.setItem;
         let refuse = true;
         jest.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
@@ -101,7 +119,8 @@ describe('ordinary living-form progress and Continue recovery', () => {
             return set.call(this, key, value);
         });
         await jest.advanceTimersByTimeAsync(0); handoff.image.onload(); handoff.image.onload();
-        expect(marker).toHaveBeenCalledTimes(1); expect(handoff.portraitShownIdentity).toBe('fictional:baby');
+        await jest.advanceTimersByTimeAsync(0);
+        expect(marker).toHaveBeenCalledTimes(1); expect(handoff.portraitShownIdentity).toBe(record.identityKey);
         expect(f.state.get('tutorial.livingFormSeen')).not.toBe(true);
         expect(handoff.status.textContent).toContain('could not finish saving');
         refuse = false; click(handoff); jest.advanceTimersByTime(360);
@@ -314,10 +333,19 @@ describe('ordinary living-form progress and Continue recovery', () => {
         window.CompanionMediaService = { recordAppearance: jest.fn(), prepareGeneratedVideo: jest.fn(() => {
             f.scene.init(); return Promise.resolve(null);
         }) };
-        f.scene.portraitPromise = Promise.resolve({ imageUrl: 'data:image/png;base64,fictional', identityKey: 'fictional:baby' });
+        f.scene.portraitPromise = Promise.resolve(savedPortrait());
         const handoff = f.show(); await jest.advanceTimersByTimeAsync(0); handoff.image.onload();
+        await jest.advanceTimersByTimeAsync(0);
         expect(window.CompanionMediaService.prepareGeneratedVideo).toHaveBeenCalledTimes(1);
         expect(window.AudioManager.playLevelUp).not.toHaveBeenCalled();
+    });
+
+    test('a still-owned image reveal requests its normal celebration sound exactly once', async () => {
+        window.AudioManager = { playLevelUp: jest.fn() };
+        f.scene.portraitPromise = Promise.resolve(savedPortrait());
+        const handoff = f.show(); await jest.advanceTimersByTimeAsync(0);
+        handoff.image.onload(); handoff.image.onload(); await jest.advanceTimersByTimeAsync(0);
+        expect(window.AudioManager.playLevelUp).toHaveBeenCalledTimes(1);
     });
 
     test.each(['portrait', 'continue'])('%s preparation preserves complete pinned successful payload and relative domain events', action => {

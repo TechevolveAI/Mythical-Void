@@ -1,5 +1,6 @@
 const GameStateManager = require('../systems/GameState.js');
 const CreaturePortraitSpec = require('../systems/CreaturePortraitSpec.js');
+const CloudSaveManager = require('../systems/CloudSaveManager.js');
 const loadMediaService = require('./support/loadMediaService.cjs');
 
 describe('portrait results owned by the current synthetic journey', () => {
@@ -14,7 +15,7 @@ describe('portrait results owned by the current synthetic journey', () => {
         ...record, success: true, status, jobId: '00000000-0000-4000-8000-000000000077',
         imageUrl: status === 'succeeded' ? imageUrl : null }) });
     const flush = async () => { for (let index = 0; index < 20; index++) await Promise.resolve(); };
-    let state, services;
+    let state, services, cloud;
     beforeEach(() => {
         jest.useFakeTimers(); localStorage.clear(); services = [];
         for (const method of ['log', 'warn', 'error']) jest.spyOn(console, method).mockImplementation(() => {});
@@ -22,15 +23,16 @@ describe('portrait results owned by the current synthetic journey', () => {
         state.set('creature.genes', creature.genes); state.set('creature.hatched', true);
         state.addCreatureToCollection(); expect(state.save()).toBe(true);
         window.CreaturePortraitSpec = CreaturePortraitSpec;
-        window.CloudSave = { gameState: state, currentUser: { id: 'synthetic-custody-owner' }, campaignEpoch: 0 };
         window.CreatureMediaClient = { auth: { getSession: async () => ({
             data: { session: { access_token: 'synthetic-custody-token' } }, error: null }) } };
+        cloud = window.CloudSave = new CloudSaveManager({ gameState: state, client: window.CreatureMediaClient, storage: localStorage });
+        cloud.currentUser = { id: 'synthetic-custody-owner' };
         window.CompanionMediaService = { prepareGeneratedVideo: jest.fn(),
             captureCampaignGuard: () => () => true, canPublishMedia: () => true,
             getState: () => ({ appearances: {} }), getVideoRecord: () => null };
     });
     afterEach(() => {
-        services.forEach(service => service.retireCampaignWork()); state.stopAutoSave();
+        services.forEach(service => service.retireCampaignWork()); cloud.destroy(); state.stopAutoSave();
         jest.clearAllTimers(); jest.useRealTimers(); jest.restoreAllMocks(); localStorage.clear();
         for (const name of ['GameState', 'CloudSave', 'CreatureMediaClient', 'CreaturePortraitSpec',
             'LivingPortraitService', 'CompanionMediaService']) delete window[name];
@@ -167,6 +169,53 @@ describe('portrait results owned by the current synthetic journey', () => {
         const rejected = expect(pending).rejects.toMatchObject({ code: 'portrait_context_changed' });
         state.emit('reset'); authenticate({ data: { session: { access_token: 'synthetic-retired-token' } }, error: null });
         await rejected; expect(fetch).not.toHaveBeenCalled();
+    });
+
+    test('the initial anonymous session may bind only the matching authenticated owner before its first POST', async () => {
+        cloud.currentUser = null;
+        window.CreatureMediaClient.auth.getSession = async () => {
+            cloud.currentUser = { id: 'synthetic-initial-session' };
+            return { data: { session: { access_token: 'synthetic-initial-token', user: cloud.currentUser } }, error: null };
+        };
+        const fetch = jest.fn(async () => response()), service = serviceFor(fetch);
+        await expect(service.generate({ creatureData: creature })).resolves.toMatchObject(record);
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([false, true])('an initial session permits only its own delayed auth notification; mismatch=%s', async mismatch => {
+        cloud.currentUser = null;
+        const user = { id: 'synthetic-initial-session' };
+        window.CreatureMediaClient.auth.getSession = async () => ({ data: {
+            session: { access_token: 'synthetic-initial-token', user } }, error: null });
+        const fetch = jest.fn(async () => {
+            cloud.currentUser = mismatch ? { id: 'synthetic-unrelated-session' } : user;
+            return response();
+        });
+        const service = serviceFor(fetch), pending = service.generate({ creatureData: creature });
+        if (mismatch) {
+            await expect(pending).rejects.toMatchObject({ code: 'portrait_context_changed' });
+            expect(service.volatilePortraits.size).toBe(0);
+            expect(state.getCreaturePortrait()).toBeNull();
+        } else await expect(pending).resolves.toMatchObject(record);
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('a token for another established owner cannot authorise a generation POST', async () => {
+        window.CreatureMediaClient.auth.getSession = async () => ({ data: { session: {
+            access_token: 'synthetic-mismatched-token', user: { id: 'synthetic-unrelated-session' } } }, error: null });
+        const fetch = jest.fn(), service = serviceFor(fetch);
+        await expect(service.generate({ creatureData: creature })).rejects.toMatchObject({ code: 'portrait_context_changed' });
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    test('only exact real-manager admission advances preserve custody, not an extra cloud campaign change', () => {
+        const service = serviceFor(jest.fn()), context = service.captureCampaignContext();
+        service.retainPortrait(record, context);
+        state.holdSaveAdmission({ code: 'synthetic_hold' }); state.releaseSaveAdmission();
+        expect(cloud.campaignEpoch).toBe(2); expect(context.isCurrent()).toBe(true);
+        cloud.campaignEpoch += 1;
+        expect(context.isCurrent()).toBe(false);
+        service.captureCampaignContext(); expect(service.volatilePortraits.size).toBe(0);
     });
 
     test('an explicitly failed retained job can be retried, but not while saving is held', async () => {

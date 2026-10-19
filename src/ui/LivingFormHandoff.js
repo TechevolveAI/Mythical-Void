@@ -742,7 +742,12 @@ export default class LivingFormHandoff {
                     'shows-pixel-reference',
                     'has-portrait-failure'
                 );
-                window.AudioManager?.playLevelUp?.();
+                Promise.resolve().then(() => {
+                    // Shared video preparation gets its queued ownership check
+                    // first. A retired reveal must not request celebratory sound.
+                    if (!this.isVisible || token !== this.renderToken || !isCurrent()) return;
+                    window.AudioManager?.playLevelUp?.();
+                }).catch(() => null);
             } else if (isLocalReference) {
                 if (
                     !this.portraitPending

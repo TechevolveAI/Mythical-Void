@@ -66,10 +66,38 @@ class LivingPortraitService {
         if (this.campaignContext?.isCurrent()) return this.campaignContext;
         this.retireCampaignWork();
         const owner = window.GameState, story = owner?.get?.('story');
-        const cloud = window.CloudSave, cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
-        const context = { owner, isCurrent: () => this.campaignContext === context &&
-            window.GameState === owner && owner?.get?.('story') === story && window.CloudSave === cloud &&
-            cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser };
+        const cloud = window.CloudSave, client = window.CreatureMediaClient || cloud?.client;
+        let cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+        let admissionEpoch = owner?.getSaveAdmission?.().epoch, initialSessionPending = false;
+        const admissionListener = cloud?.gameState === owner ? cloud?.unsubscribeFromAdmission : null;
+        const ownsReader = () => this.campaignContext === context && window.GameState === owner &&
+            owner?.get?.('story') === story && window.CloudSave === cloud &&
+            (window.CreatureMediaClient || cloud?.client) === client;
+        const ownsEpoch = () => {
+            if (cloud?.campaignEpoch === cloudEpoch) return true;
+            const nextAdmission = owner?.getSaveAdmission?.().epoch;
+            const delta = nextAdmission - admissionEpoch;
+            // The existing CloudSaveManager also retires uploads on admission
+            // changes. Only those exact correlated advances preserve media custody.
+            if (typeof admissionListener !== 'function' || cloud?.unsubscribeFromAdmission !== admissionListener ||
+                !Number.isSafeInteger(delta) || delta <= 0 || cloud?.campaignEpoch !== cloudEpoch + delta) return false;
+            cloudEpoch = cloud.campaignEpoch; admissionEpoch = nextAdmission;
+            return true;
+        };
+        const context = { owner, client, isCurrent: () => {
+            if (!ownsReader() || !ownsEpoch()) return false;
+            const user = cloud?.currentUser?.id;
+            if (user === cloudUser) { initialSessionPending = false; return true; }
+            return initialSessionPending && user == null;
+        }, bindInitialSession: session => {
+            const user = session?.user?.id;
+            if (typeof user !== 'string' || !ownsReader() || !ownsEpoch()) return;
+            if (cloudUser == null && (cloud?.currentUser?.id == null || cloud.currentUser.id === user)) {
+                cloudUser = user; initialSessionPending = cloud?.currentUser?.id == null;
+            } else if (cloudUser !== user) {
+                throw new LivingPortraitError('The portrait session changed', { code: 'portrait_context_changed', status: 'canceled' });
+            }
+        } };
         this.campaignContext = context;
         this.unsubscribeCampaignReset = owner?.on?.('reset', () => {
             if (this.campaignContext === context) this.retireCampaignWork();
@@ -575,7 +603,7 @@ class LivingPortraitService {
 
     async runJob({ job, portraitSpec, referenceImage }) {
         try {
-            const accessToken = await this.getAccessToken();
+            const accessToken = await this.getAccessToken(job.context);
             this.assertCampaignContext(job.context);
             if (!this.canPublishPortrait(job.context)) throw this.saveDeferredError();
             const { response, result: initialResult } = await this.requestJson(
@@ -751,8 +779,9 @@ class LivingPortraitService {
         }
     }
 
-    async getAccessToken() {
-        const client = window.CreatureMediaClient || window.CloudSave?.client;
+    async getAccessToken(context = this.captureCampaignContext()) {
+        this.assertCampaignContext(context);
+        const client = context.client;
         if (!client?.auth) {
             throw new Error('Private portrait authentication is unavailable');
         }
@@ -768,6 +797,8 @@ class LivingPortraitService {
         }
 
         let session = sessionData?.session || null;
+        context.bindInitialSession(session);
+        this.assertCampaignContext(context);
         if (!session?.access_token) {
             const { data, error } = await this.withDeadline(
                 client.auth.signInAnonymously(),
@@ -781,6 +812,8 @@ class LivingPortraitService {
                 throw new Error('Private portrait authentication failed');
             }
             session = data.session;
+            context.bindInitialSession(session);
+            this.assertCampaignContext(context);
         }
         return session.access_token;
     }
@@ -841,7 +874,7 @@ class LivingPortraitService {
 
         this.assertCampaignContext(context);
         if (!this.canPublishPortrait(context)) throw this.saveDeferredError();
-        const accessToken = await this.getAccessToken();
+        const accessToken = await this.getAccessToken(context);
         this.assertCampaignContext(context);
         if (!this.canPublishPortrait(context)) throw this.saveDeferredError();
         const { response, result } = await this.requestJson(
