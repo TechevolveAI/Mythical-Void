@@ -11424,7 +11424,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             throw new Error('Live portrait provider is not enabled in this build');
         }
         const fixtureReady = await evaluate(session,
-            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState)`);
+            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState, window.QuestManager)`);
         if (!fixtureReady) throw new Error('The synthetic hatch could not be committed before revealing');
         const staged = await evaluate(session, `(() => {
             const game = window.mythicalGame;
@@ -11485,7 +11485,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     // valid without relaxing the production living-form ownership checks.
     if (!useLivePortraitProvider) {
         const fixtureReady = await evaluate(session,
-            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState)`);
+            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState, window.QuestManager)`);
         if (!fixtureReady) throw new Error('The synthetic hatch could not be committed before naming');
     }
 
