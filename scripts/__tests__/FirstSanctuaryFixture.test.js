@@ -1,10 +1,18 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { parse } = require('@babel/parser');
 const GameStateManager = require('../../src/systems/GameState.js');
 const { attach, fixture } = require('../../src/__tests__/support/soulNamingFixture.cjs');
 const { loadAchievementSystem } = require('../../src/__tests__/support/achievementDraftFixture.cjs');
-const { stageFirstSanctuaryHatchFixture } = require('../lib/first-sanctuary-fixture.cjs');
+const { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture } = require('../lib/first-sanctuary-fixture.cjs');
+
+const mediaSource = fs.readFileSync(path.join(__dirname, '../../src/systems/CompanionMediaService.js'), 'utf8');
+const mediaClass = parse(mediaSource, { sourceType: 'module' }).program.body
+    .find(node => node.type === 'ClassDeclaration' && node.id.name === 'CompanionMediaService');
+const activePortraitMethod = mediaClass.body.body.find(node => node.key?.name === 'isActivePortrait');
+const isActivePortrait = new Function('window',
+    `return ({${mediaSource.slice(activePortraitMethod.start, activePortraitMethod.end)}}).isActivePortrait;`)(window);
 
 function loadQuests() {
     const filename = path.join(__dirname, '../../src/systems/QuestManager.js');
@@ -96,6 +104,30 @@ describe('first-Sanctuary browser fixture represents a committed hatch', () => {
         quests.loadedGameState = {};
         const before = JSON.stringify(state.state), raw = localStorage.getItem(state.saveKey);
         expect(stageFirstSanctuaryHatchFixture(state, quests)).toBe(false);
+        expect(JSON.stringify(state.state)).toBe(before);
+        expect(localStorage.getItem(state.saveKey)).toBe(raw);
+    });
+    test('a late-portrait fixture passes the real active-creature check without bypassing it', () => {
+        expect(stageFirstSanctuaryHatchFixture(state)).toBe(true);
+        state.set('creature.named', true);
+        expect(state.save()).toBe(true);
+        const id = state.get('creature.id'), genes = JSON.stringify(state.get('creature.genes'));
+        expect(isActivePortrait({ identityKey: 'unowned-old-smoke-portrait', stage: 'baby',
+            imageUrl: '/marketing/nova.webp' })).toBe(false);
+        const portrait = stageFirstSanctuaryLatePortraitFixture(state);
+        expect(portrait.imageUrl).toBe('/marketing/nova.webp');
+        expect(isActivePortrait(portrait)).toBe(true);
+        expect(state.get('creature.id')).toBe(id);
+        expect(JSON.stringify(state.get('creature.genes'))).toBe(genes);
+        const saved = JSON.parse(localStorage.getItem(state.saveKey));
+        expect(saved.creature.portraits.byStage.baby.assetRef).toBe(portrait.assetRef);
+        expect(isActivePortrait({ ...portrait, identityKey: 'another-synthetic-creature' })).toBe(false);
+        expect(isActivePortrait({ ...portrait, stage: 'adult' })).toBe(false);
+    });
+    test('a held save cannot be changed by late-portrait fixture preparation', () => {
+        state.holdSaveAdmission({ code: 'synthetic_hold' });
+        const before = JSON.stringify(state.state), raw = localStorage.getItem(state.saveKey);
+        expect(stageFirstSanctuaryLatePortraitFixture(state)).toBeNull();
         expect(JSON.stringify(state.state)).toBe(before);
         expect(localStorage.getItem(state.saveKey)).toBe(raw);
     });

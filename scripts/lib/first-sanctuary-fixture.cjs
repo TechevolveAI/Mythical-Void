@@ -25,4 +25,18 @@ function stageFirstSanctuaryHatchFixture(state, quests = null) {
         Boolean(state.get('creature.id'));
 }
 
-module.exports = { stageFirstSanctuaryHatchFixture };
+function stageFirstSanctuaryLatePortraitFixture(state) {
+    if (!state?.canCommitHatchSave?.() || !state.get('creature.hatched') ||
+        !state.get('creature.named') || !state.get('creature.id')) return null;
+    const stage = state.get('creature.lifecycle.stage') || 'baby';
+    const record = { identityKey: `synthetic-late-portrait:${state.get('creature.id')}:${stage}`,
+        stage, assetRef: 'portrait-job-v1:00000000-0000-4000-8000-000000000077',
+        status: 'ready', provider: 'synthetic-fixture' };
+    if (!state.saveCreaturePortrait(record)) return null;
+    const current = state.getCreaturePortrait(stage);
+    if (current?.identityKey !== record.identityKey || current.assetRef !== record.assetRef) return null;
+    // The fake reference is never resolved; texture loading uses a local image.
+    return { ...current, imageUrl: '/marketing/nova.webp' };
+}
+
+module.exports = { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture };

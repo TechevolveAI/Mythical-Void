@@ -9,7 +9,7 @@ const {
 } = require('./lib/browser-audio-policy.cjs');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
-const { stageFirstSanctuaryHatchFixture } = require('./lib/first-sanctuary-fixture.cjs');
+const { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture } = require('./lib/first-sanctuary-fixture.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -12189,13 +12189,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             scene.sanctuaryReturnMomentScheduleTimer = null;
             scene.pendingSanctuaryReturnMoment = null;
         }
-        const accepted = await scene?.maybeShowLivingPortraitReadyNotice?.({
-            identityKey: 'late-arrival-smoke:baby:portrait',
-            stage: 'baby',
-            imageUrl: '/marketing/nova.webp',
-            assetRef: null,
-            storage: 'preview'
-        });
+        const portrait = (${stageFirstSanctuaryLatePortraitFixture.toString()})(window.GameState);
+        if (!portrait) throw new Error('The synthetic late portrait could not be staged for the active creature');
+        const accepted = await scene?.maybeShowLivingPortraitReadyNotice?.(portrait);
         return {
             accepted,
             blocked: scene?.isLivingPortraitNoticeBlocked?.(),
