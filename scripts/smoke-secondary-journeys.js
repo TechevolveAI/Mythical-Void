@@ -14551,10 +14551,14 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                     paused: scene.physics.world.isPaused, inputEnabled: scene.input.enabled,
                     completionAttempt: scene.forestCompletionAttempt ? {
                         phase: scene.forestCompletionAttempt.phase, failureCode: scene.forestCompletionAttempt.failureCode,
+                        preparationStage: scene.forestCompletionAttempt.preparationStage,
                         busy: scene.forestCompletionAttempt.busy, closed: scene.forestCompletionAttempt.closed
                     } : null,
                     saveAdmission: window.GameState.getSaveAdmission().status,
                     thoughtInitialized: window.ThoughtBubbleSystem?.isInitialized === true,
+                    inventorySource: window.InventoryManager?.captureRewardCalculationSource({ state: window.GameState })?.status,
+                    thoughtSource: window.ThoughtBubbleSystem?.captureCompletionContextSource({ state: window.GameState })?.status,
+                    achievementSource: window.AchievementSystem?.hasHatchProgressSource(window.GameState),
                     questSourceLoaded: window.QuestManager?.initialized === true &&
                         window.QuestManager.loadedGameState === window.GameState &&
                         window.QuestManager.loadedAdmissionEpoch === window.GameState.getSaveAdmission().epoch,

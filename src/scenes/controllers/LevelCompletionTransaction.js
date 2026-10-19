@@ -76,7 +76,14 @@ const safe = callback => {
 const failureCode = error => {
     try {
         const message = Object.getOwnPropertyDescriptor(error, 'message')?.value;
-        return typeof message === 'string' && /^FOREST_[A-Z_]{1,64}$/.test(message)
+        if (typeof message !== 'string') return 'COMPLETION_UNAVAILABLE';
+        const fixed = { 'Quest progress has not been loaded': 'QUEST_SOURCE_NOT_LOADED',
+            'Achievement progress has not been loaded for this source': 'ACHIEVEMENT_SOURCE_NOT_LOADED' };
+        if (Object.hasOwn(fixed, message)) return fixed[message];
+        if (['THOUGHT_PUBLICATION_UNAVAILABLE', 'INVENTORY_PUBLICATION_UNAVAILABLE',
+            'UNSUPPORTED_DETACHED_JSON_DATA', 'UNSUPPORTED_DETACHED_JSON_PROTOTYPE', 'UNSUPPORTED_DETACHED_JSON_KEY',
+            'UNSUPPORTED_DETACHED_JSON_FIELD', 'SPARSE_DETACHED_JSON_DATA', 'ACHIEVEMENT_PROGRESS_NOT_CANONICAL'].includes(message)) return message;
+        return /^FOREST_[A-Z_]{1,64}$/.test(message)
             ? message : 'COMPLETION_UNAVAILABLE';
     } catch { return 'COMPLETION_UNAVAILABLE'; }
 };
@@ -293,6 +300,7 @@ export function createLevelCompletionHandler(blueprint, levelId) {
         };
         attempts.set(scene, attempt); attemptBlueprints.set(attempt, blueprint); scene[profile.attemptSlot] = attempt;
         try {
+            attempt.preparationStage = 'source';
             if (!core() || Object.getPrototypeOf(scene) !== blueprint.prototype || !lifetime || !root ||
                 scene.levelId !== profile.sceneLevelId || !scene.bossDefeated || scene.bossFightActive || scene.levelCompletionActive !== true ||
                 (encounter?.id !== profile.guardianId && !(scene.testMode === true && encounter == null)) || !player?.active || player.scene !== scene || body?.gameObject !== player ||
@@ -306,6 +314,7 @@ export function createLevelCompletionHandler(blueprint, levelId) {
             selected = Object.fromEntries(['EconomyManager', 'InventoryManager', 'AchievementSystem', 'QuestManager', 'ThoughtBubbleSystem',
                 'GuardianOutcomes', 'GuardianResidents', 'RescuedResidents', 'ProjectBeaconFieldKit', 'CurrentEcology', 'AudioManager', 'FeedbackManager', 'FXLibrary']
                 .map(name => [name, window[name]]));
+            attempt.preparationStage = 'services';
             for (const [name, expected] of Object.entries({ EconomyManager: economy, InventoryManager: inventory, AchievementSystem: achievements, QuestManager: quests })) {
                 if (selected[name] != null && selected[name] !== expected) throw Error('FOREST_SERVICE_UNAVAILABLE');
             }
@@ -347,6 +356,7 @@ export function createLevelCompletionHandler(blueprint, levelId) {
             }
             if (selected.CurrentEcology?.getCurrentRegionSnapshot !== undefined && selected.CurrentEcology.getCurrentRegionSnapshot !== getCurrentRegionSnapshot) throw Error('FOREST_ECOLOGY_UNAVAILABLE');
             if (selected.CurrentEcology) methods.push(sameMethods(selected.CurrentEcology, ['getCurrentRegionSnapshot']));
+            attempt.preparationStage = 'data';
             originalDataCurrent = pinData(root);
             const encounterCurrent = pinData(encounter);
             const identity = state.getHatchActiveIdentity(), creatureId = state.get('creature.id'), timer = state.autoSaveInterval;
@@ -375,6 +385,7 @@ export function createLevelCompletionHandler(blueprint, levelId) {
                 registration.getScene === getScene && getScene.call(registration, sceneKey) === scene;
             const originalRaw = getRaw.call(storage, key), initialUpload = state.cloudWriteLease;
             const prepare = () => {
+                attempt.preparationStage = 'saved-source';
                 reader = state.captureSaveAdmissionOwner({ raw: originalRaw }); memory = state.captureSaveAdmissionOwner();
                 try {
                     const raw = getRaw.call(storage, key);
@@ -388,15 +399,18 @@ export function createLevelCompletionHandler(blueprint, levelId) {
                     throw Error('FOREST_ORIGINAL_SAVE_UNAVAILABLE');
                 }
                 const sourceCurrent = () => core() && runtimeCurrent() && originalDataCurrent() && reader.isCurrent() && memory.isCurrent();
+                attempt.preparationStage = 'participants';
                 participants = { isCurrent: sourceCurrent, inventory: selected.InventoryManager?.captureRewardCalculationSource({ state, reader }) || null,
                     achievements: selected.AchievementSystem ? captureCompletionAchievementSource(achievements, state, reader) : null,
                     thought: selected.ThoughtBubbleSystem?.captureCompletionContextSource({ state, reader }) || null,
                     economyMode: !selected.EconomyManager ? 'unavailable' : economyInitialised ? 'initialised' : 'uninitialised',
                     audioAvailable: Boolean(selected.AudioManager), domains,
                     stateMethods: { getCampaignGateAccess: state.getCampaignGateAccess, syncCanonicalCampaignGates: state.syncCanonicalCampaignGates } };
+                attempt.preparationStage = 'publication-sources';
                 publications = [selected.QuestManager?.captureNamingProgressPublication(state), selected.AchievementSystem?.captureHatchProgressPublication(),
                     selected.ThoughtBubbleSystem?.captureCompletionContextPublication(state), selected.InventoryManager?.captureCompletionCachePublication(state)].filter(Boolean);
                 if (!sourceCurrent()) throw Error('FOREST_SOURCE_RETIRED');
+                attempt.preparationStage = 'calculation';
                 const now = completionNow;
                 const plan = calculateLevelCompletionDraft(root, { levelId: profile.levelId, sceneLevelId: scene.levelId, shipPartId: profile.shipPartId,
                     katanaUpgradeId: profile.katanaUpgradeId || null,
@@ -406,6 +420,7 @@ export function createLevelCompletionHandler(blueprint, levelId) {
                     guardianRestoredAfter: !profile.guardianBefore, guardianRestoredBefore: Boolean(profile.guardianBefore),
                     guardianRestoredAt: profile.guardianBefore ? scene.completionGuardianAt : null }, participants);
                 if (plan.status !== 'calculated' || !sourceCurrent()) throw Error('FOREST_CALCULATION_UNAVAILABLE');
+                attempt.preparationStage = 'publication';
                 draft = prepareCompletionPublicationDraft(plan, { inventory: selected.InventoryManager, achievements: selected.AchievementSystem });
                 let index = 0;
                 if (selected.QuestManager) publications[index++].prepare(draft.state);
