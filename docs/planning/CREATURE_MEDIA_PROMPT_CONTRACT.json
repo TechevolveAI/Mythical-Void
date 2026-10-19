@@ -1,0 +1,54 @@
+{
+  "status": "private-follow-up-not-released",
+  "baselineCommit": "c4e3705cdf5773c2bec896d5fe05c3594bdc425a",
+  "portrait": {
+    "clientIdentitySource": "src/systems/CreaturePortraitSpec.js",
+    "schemaVersion": 1,
+    "promptVersion": "living-portrait-v6-alien-field-atlas",
+    "artDirectionVersion": "living-interpretation-v1",
+    "providerTraitPolicy": "portrait-provider-traits-v1",
+    "providerTraitVocabulary": "netlify/lib/portrait-prompt-traits.cjs",
+    "authoredPromptBuilder": "netlify/lib/generate-ai-art-core.cjs#buildCreaturePrompt",
+    "jobOwner": "src/systems/LivingPortraitService.js",
+    "providerInput": [
+      "developer-authored prompt with closed fictional biology values and bounded numerical or hexadecimal visual values",
+      "optional game-captured synthetic creature reference image"
+    ],
+    "notProviderInput": [
+      "player name or age",
+      "creature name",
+      "account or creature identity identifiers",
+      "DNA identifier",
+      "free-text trait descriptions, quirks or effects",
+      "unrecognised trait labels, features, mutations or ability strings",
+      "save history or relationships"
+    ],
+    "unknownTraits": "Use a generic authored category or omit the unsupported optional feature in the model prompt only. Never edit saved genetics, labels, family relationships, cache keys or the source spec.",
+    "compatibility": "Frozen 96-case prompt hashes from the released baseline cover ordinary, shiny/mutated and legacy-no-DNA creatures, four stages, four styles, with and without a reference image. Source-derived domain tests cover all currently authored DNA, genetics, feature and mutation choices."
+  },
+  "video": {
+    "authoredTemplates": "src/config/companion-video-moments.json",
+    "authoredPromptBuilder": "netlify/lib/generate-companion-video-core.cjs#buildPrompt",
+    "promptVersion": "creature-story-video-v3",
+    "shotVersion": 3,
+    "jobOwner": "src/systems/CompanionMediaService.js",
+    "providerInput": [
+      "opaque synthetic creature portrait input",
+      "bounded recorded creature stage",
+      "developer-authored scene text selected by moment and known realm"
+    ],
+    "browserText": "Moment suffixes, player names, creature names, account identifiers and save history must never be interpolated into provider prompt text.",
+    "changesInThisSlice": "None. Existing video configuration and provider selection are not changed."
+  },
+  "reviewBoundaries": {
+    "providersCalledForThisWork": false,
+    "realPlayerRecordsUsed": false,
+    "savesIdentityOrMediaReferencesChanged": false,
+    "modelOrFeatureSwitchChanged": false,
+    "googleMigrationActivated": false,
+    "productionChangedByThisSlice": false,
+    "contractCoordination": "Operations notified before implementation; this safeguard is a dependency for the migration AI boundary, not proof that migration is qualified.",
+    "imageLimitation": "Text projection does not prove that arbitrary forged PNG input depicts only fictional creatures. Normal app capture has no player-photo input; semantic image-origin enforcement remains a separate security review.",
+    "creativeLimitation": "Prompt parity and schema tests do not approve generated image quality, physical-device playback, provider availability or legal compliance."
+  }
+}

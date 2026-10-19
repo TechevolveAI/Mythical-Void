@@ -463,6 +463,37 @@ describe('living portrait Netlify function', () => {
         expect(providerFetch).not.toHaveBeenCalled();
     });
 
+    test.each(['replicate', 'gemini'])('%s receives only closed fictional traits even for a modified request', async provider => {
+        process.env.PORTRAIT_IMAGE_PROVIDER = provider;
+        const adminClient = createAdminClient();
+        const providerFetch = jest.fn().mockResolvedValue({ ok: true,
+            json: async () => ({ id: 'synthetic-provider-job', status: 'starting', output: null }) });
+        const generateContent = jest.fn().mockResolvedValue({ candidates: [{ content: { parts: [{
+            inlineData: { mimeType: 'image/png', data: 'iVBORw0KGgo=' }
+        }] } }] });
+        portraitFunction._internal.setRuntime({ createClient: () => adminClient, fetch: providerFetch,
+            createGeminiClient: () => ({ models: { generateContent } }), now: () => 1786032300000 });
+        const spec = createSpec();
+        spec.variants = { shiny: true, shinyType: 'SYNTHETIC_PRIVATE_SENTINEL' };
+        spec.eyes.unusualPlacement = 'SYNTHETIC_PRIVATE_SENTINEL';
+        spec.affinity.abilities.push('SYNTHETIC_PRIVATE_SENTINEL');
+        spec.specialFeatures = [{ type: 'soft_glow', variant: 'SYNTHETIC_PRIVATE_SENTINEL' }];
+        const before = JSON.stringify(spec);
+        expect(portraitFunction._internal.validatePortraitSpec(spec)).toBe(true);
+        const response = await portraitFunction.handler(event({ style: 'cinematic', portraitSpec: spec }, {
+            authorization: 'Bearer valid-token'
+        }));
+        expect(response.statusCode).toBe(provider === 'replicate' ? 202 : 200);
+        const outbound = provider === 'replicate'
+            ? JSON.parse(providerFetch.mock.calls[0][1].body)
+            : generateContent.mock.calls[0][0];
+        expect(JSON.stringify(outbound)).not.toMatch(/synthetic[ _]private[ _]sentinel/i);
+        expect(JSON.stringify(outbound)).not.toContain(spec.identityKey);
+        expect(JSON.stringify(outbound)).not.toContain(spec.creatureId);
+        expect(JSON.stringify(spec)).toBe(before);
+        if (provider === 'gemini') expect(providerFetch).not.toHaveBeenCalled();
+    });
+
     test('fails over from invalid Replicate auth to the managed image gateway', async () => {
         const adminClient = createAdminClient();
         const providerFetch = jest.fn().mockResolvedValue({
