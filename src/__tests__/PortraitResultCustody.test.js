@@ -15,15 +15,18 @@ describe('portrait results owned by the current synthetic journey', () => {
         ...record, success: true, status, jobId: '00000000-0000-4000-8000-000000000077',
         imageUrl: status === 'succeeded' ? imageUrl : null }) });
     const flush = async () => { for (let index = 0; index < 20; index++) await Promise.resolve(); };
-    let state, services, cloud;
+    let state, services, cloud, authListeners;
     beforeEach(() => {
-        jest.useFakeTimers(); localStorage.clear(); services = [];
+        jest.useFakeTimers(); localStorage.clear(); services = []; authListeners = new Set();
         for (const method of ['log', 'warn', 'error']) jest.spyOn(console, method).mockImplementation(() => {});
         state = new GameStateManager(); window.GameState = state;
         state.set('creature.genes', creature.genes); state.set('creature.hatched', true);
         state.addCreatureToCollection(); expect(state.save()).toBe(true);
         window.CreaturePortraitSpec = CreaturePortraitSpec;
-        window.CreatureMediaClient = { auth: { getSession: async () => ({
+        window.CreatureMediaClient = { auth: { onAuthStateChange: listener => {
+            authListeners.add(listener);
+            return { data: { subscription: { unsubscribe: () => authListeners.delete(listener) } } };
+        }, getSession: async () => ({
             data: { session: { access_token: 'synthetic-custody-token' } }, error: null }) } };
         cloud = window.CloudSave = new CloudSaveManager({ gameState: state, client: window.CreatureMediaClient, storage: localStorage });
         cloud.currentUser = { id: 'synthetic-custody-owner' };
@@ -171,6 +174,22 @@ describe('portrait results owned by the current synthetic journey', () => {
         await rejected; expect(fetch).not.toHaveBeenCalled();
     });
 
+    test.each(['getSession', 'signInAnonymously'])('explicit sign-out retires pending initial %s without a POST or token', async method => {
+        cloud.currentUser = null;
+        let authenticate;
+        if (method === 'signInAnonymously') window.CreatureMediaClient.auth.getSession = async () => ({ data: { session: null }, error: null });
+        window.CreatureMediaClient.auth[method] = () => new Promise(resolve => { authenticate = resolve; });
+        const fetch = jest.fn(), service = serviceFor(fetch), context = service.captureCampaignContext();
+        const pending = service.getAccessToken(context);
+        const rejected = expect(pending).rejects.toMatchObject({ code: 'portrait_context_changed' });
+        await flush();
+        for (const listener of [...authListeners]) listener('SIGNED_OUT', null);
+        authenticate({ data: { session: { access_token: 'synthetic-retired-token',
+            user: { id: 'synthetic-retired-session' } } }, error: null });
+        await rejected; expect(fetch).not.toHaveBeenCalled(); expect(context.isCurrent()).toBe(false);
+        expect(service.volatilePortraits.size).toBe(0); expect(authListeners.size).toBe(1);
+    });
+
     test('the initial anonymous session may bind only the matching authenticated owner before its first POST', async () => {
         cloud.currentUser = null;
         window.CreatureMediaClient.auth.getSession = async () => {
@@ -216,6 +235,27 @@ describe('portrait results owned by the current synthetic journey', () => {
         cloud.campaignEpoch += 1;
         expect(context.isCurrent()).toBe(false);
         service.captureCampaignContext(); expect(service.volatilePortraits.size).toBe(0);
+    });
+
+    test('an observed ownership rejection cannot become current again when fields are restored', () => {
+        const service = serviceFor(jest.fn()), context = service.captureCampaignContext(), owner = cloud.currentUser;
+        cloud.currentUser = { id: 'synthetic-intervening-owner' };
+        expect(context.isCurrent()).toBe(false);
+        cloud.currentUser = owner;
+        expect(context.isCurrent()).toBe(false);
+    });
+
+    test('a matching initial auth notification preserves the pending original request', async () => {
+        cloud.currentUser = null;
+        let authenticate;
+        window.CreatureMediaClient.auth.getSession = () => new Promise(resolve => { authenticate = resolve; });
+        const fetch = jest.fn(async () => response()), service = serviceFor(fetch);
+        const pending = service.generate({ creatureData: creature });
+        const session = { access_token: 'synthetic-initial-token', user: { id: 'synthetic-initial-session' } };
+        for (const listener of [...authListeners]) listener('SIGNED_IN', session);
+        expect(service.getActiveJob()).not.toBeNull();
+        authenticate({ data: { session }, error: null });
+        await expect(pending).resolves.toMatchObject(record); expect(fetch).toHaveBeenCalledTimes(1);
     });
 
     test('an explicitly failed retained job can be retried, but not while saving is held', async () => {

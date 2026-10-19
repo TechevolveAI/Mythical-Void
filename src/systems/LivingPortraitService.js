@@ -39,6 +39,7 @@ class LivingPortraitService {
         this.volatilePortraits = new Map();
         this.campaignContext = null;
         this.unsubscribeCampaignReset = null;
+        this.authSubscription = null;
         this.reconnectRetries = new Map();
         this.retryDrainPromise = null;
         this.retryTimer = null;
@@ -68,9 +69,9 @@ class LivingPortraitService {
         const owner = window.GameState, story = owner?.get?.('story');
         const cloud = window.CloudSave, client = window.CreatureMediaClient || window.CloudSave?.client;
         let cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
-        let admissionEpoch = owner?.getSaveAdmission?.().epoch, initialSessionPending = false;
+        let admissionEpoch = owner?.getSaveAdmission?.().epoch, initialSessionPending = false, retired = false;
         const admissionListener = cloud?.gameState === owner ? cloud?.unsubscribeFromAdmission : null;
-        const ownsReader = () => this.campaignContext === context && window.GameState === owner &&
+        const ownsReader = () => !retired && this.campaignContext === context && window.GameState === owner &&
             owner?.get?.('story') === story && window.CloudSave === cloud &&
             (window.CreatureMediaClient || cloud?.client) === client;
         const ownsEpoch = () => {
@@ -85,10 +86,12 @@ class LivingPortraitService {
             return true;
         };
         const context = { owner, client, isCurrent: () => {
-            if (!ownsReader() || !ownsEpoch()) return false;
+            if (!ownsReader() || !ownsEpoch()) { retired = true; return false; }
             const user = cloud?.currentUser?.id;
             if (user === cloudUser) { initialSessionPending = false; return true; }
-            return initialSessionPending && user == null;
+            if (initialSessionPending && user == null) return true;
+            retired = true;
+            return false;
         }, bindInitialSession: session => {
             const user = session?.user?.id;
             if (typeof user !== 'string' || !ownsReader() || !ownsEpoch()) return;
@@ -102,13 +105,25 @@ class LivingPortraitService {
         this.unsubscribeCampaignReset = owner?.on?.('reset', () => {
             if (this.campaignContext === context) this.retireCampaignWork();
         });
+        const subscription = client?.auth?.onAuthStateChange?.((event, session) => {
+            if (this.campaignContext !== context) return;
+            if (event === 'SIGNED_OUT') { this.retireCampaignWork(); return; }
+            if (cloudUser == null && session?.user) {
+                try { context.bindInitialSession(session); }
+                catch { this.retireCampaignWork(); }
+            }
+        })?.data?.subscription;
+        if (this.campaignContext === context) this.authSubscription = subscription || null;
+        else subscription?.unsubscribe?.();
         return context;
     }
 
     retireCampaignWork() {
+        this.campaignContext = null;
         this.unsubscribeCampaignReset?.();
         this.unsubscribeCampaignReset = null;
-        this.campaignContext = null;
+        this.authSubscription?.unsubscribe?.();
+        this.authSubscription = null;
         this.jobs.clear();
         this.activeStageJobs.clear();
         this.completedStageDiagnostics.clear();
