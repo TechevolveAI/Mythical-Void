@@ -66,7 +66,7 @@ class LivingPortraitService {
         if (this.campaignContext?.isCurrent()) return this.campaignContext;
         this.retireCampaignWork();
         const owner = window.GameState, story = owner?.get?.('story');
-        const cloud = window.CloudSave, client = window.CreatureMediaClient || cloud?.client;
+        const cloud = window.CloudSave, client = window.CreatureMediaClient || window.CloudSave?.client;
         let cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
         let admissionEpoch = owner?.getSaveAdmission?.().epoch, initialSessionPending = false;
         const admissionListener = cloud?.gameState === owner ? cloud?.unsubscribeFromAdmission : null;
