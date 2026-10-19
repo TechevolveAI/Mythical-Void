@@ -1,7 +1,7 @@
 const { fixture, factsFor } = require('../../src/__tests__/support/levelCompletionFixture.cjs');
-const { stageGuardianHandoffThoughtFixture } = require('../lib/guardian-handoff-fixture.cjs');
+const { stageGuardianHandoffServicesFixture } = require('../lib/guardian-handoff-fixture.cjs');
 
-describe('direct Guardian fixture uses the real Sanctuary thought initialisation', () => {
+describe('direct Guardian fixture uses the real naming and Sanctuary initialisation', () => {
     let f, scene;
     beforeEach(() => {
         document.body.replaceChildren();
@@ -11,22 +11,28 @@ describe('direct Guardian fixture uses the real Sanctuary thought initialisation
             addEventListener: window.addEventListener.bind(window), removeEventListener: window.removeEventListener.bind(window) });
         f.selected.AudioManager.playLevelUp = () => {};
         f.selected.ThoughtBubbleSystem.isInitialized = false;
+        f.selected.AchievementSystem.initialized = false;
     });
     afterEach(() => {
         scene?.events.emit('shutdown'); scene?.regionalVictoryPanel?.destroy();
         scene = null; f.close(); document.body.replaceChildren();
     });
-    test('control: skipping that service refuses rewards without changing saved progress', () => {
+    test.each(['thought', 'achievement'])('control: skipping the %s service refuses rewards without changing saved progress', missing => {
+        if (missing === 'thought') f.selected.AchievementSystem.initialize();
+        else f.selected.ThoughtBubbleSystem.initialize();
         const raw = f.storage.getItem(f.state.saveKey);
         scene = new f.api.NativeForest(factsFor(0), f.effects);
         expect(scene.showBossVictory()).toBe(false);
         expect(scene.forestCompletionAttempt.phase).toBe('protected');
+        expect(scene.forestCompletionAttempt.preparationStage).toBe('publication-sources');
+        expect(scene.forestCompletionAttempt.failureCode).toBe(missing === 'achievement'
+            ? 'ACHIEVEMENT_SOURCE_NOT_LOADED' : 'THOUGHT_PUBLICATION_UNAVAILABLE');
         expect(f.storage.getItem(f.state.saveKey)).toBe(raw);
         expect(f.state.get('levels.mythicalForest.completed')).toBe(false);
     });
     test('the normal initialiser loads provenance without saving and the real completion succeeds', () => {
         const raw = f.storage.getItem(f.state.saveKey), before = JSON.stringify(f.state.state);
-        expect(stageGuardianHandoffThoughtFixture(f.state, f.selected.ThoughtBubbleSystem)).toBe(true);
+        expect(stageGuardianHandoffServicesFixture(f.state, f.selected.ThoughtBubbleSystem, f.selected.AchievementSystem)).toBe(true);
         expect(JSON.stringify(f.state.state)).toBe(before);
         expect(f.storage.getItem(f.state.saveKey)).toBe(raw);
         expect(f.persistenceEvents).toEqual([]);
@@ -39,8 +45,9 @@ describe('direct Guardian fixture uses the real Sanctuary thought initialisation
     test('fixture preparation cannot bypass a held save', () => {
         f.state.holdSaveAdmission({ code: 'synthetic_hold' });
         const raw = f.storage.getItem(f.state.saveKey), before = JSON.stringify(f.state.state);
-        expect(stageGuardianHandoffThoughtFixture(f.state, f.selected.ThoughtBubbleSystem)).toBe(false);
+        expect(stageGuardianHandoffServicesFixture(f.state, f.selected.ThoughtBubbleSystem, f.selected.AchievementSystem)).toBe(false);
         expect(f.selected.ThoughtBubbleSystem.isInitialized).toBe(false);
+        expect(f.selected.AchievementSystem.initialized).toBe(false);
         expect(JSON.stringify(f.state.state)).toBe(before);
         expect(f.storage.getItem(f.state.saveKey)).toBe(raw);
     });

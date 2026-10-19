@@ -10,7 +10,7 @@ const {
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
 const { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture } = require('./lib/first-sanctuary-fixture.cjs');
-const { stageGuardianHandoffThoughtFixture } = require('./lib/guardian-handoff-fixture.cjs');
+const { stageGuardianHandoffServicesFixture } = require('./lib/guardian-handoff-fixture.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -14214,8 +14214,8 @@ async function prepareGuardianHandoffState(session, step) {
         state.set('world.rescuedResidents', {});
         state.set('world.guardianResidents', {});
         state.save();
-        if (!(${stageGuardianHandoffThoughtFixture.toString()})(state, window.ThoughtBubbleSystem)) {
-            throw Error('Guardian fixture thought context is not ready');
+        if (!(${stageGuardianHandoffServicesFixture.toString()})(state, window.ThoughtBubbleSystem, window.AchievementSystem)) {
+            throw Error('Guardian fixture services are not ready');
         }
 
         return {
