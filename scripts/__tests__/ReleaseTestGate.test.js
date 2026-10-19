@@ -17,6 +17,22 @@ function findNumberedDuplicates(directory) {
 }
 
 describe('release test gate', () => {
+    test('hosted boss completion is independent without reducing the release assertions', () => {
+        const workflow = require('js-yaml').load(read('.github/workflows/gameplay-contracts.yml'));
+        const contracts = workflow.jobs['gameplay-contracts'].steps;
+        expect(contracts.some(step => step.run === 'npm test -- --silent')).toBe(true);
+        expect(contracts.some(step => step.run === 'node scripts/smoke-expedition-debrief.cjs')).toBe(true);
+        const boss = workflow.jobs['boss-completion-flow'];
+        expect(boss['timeout-minutes']).toBe(15);
+        expect(boss.steps.some(step => step.run === 'npm ci --ignore-scripts')).toBe(true);
+        expect(boss.steps.some(step => step.run === 'npm run build:onboarding-ci')).toBe(true);
+        const proof = boss.steps.find(step => step.name === 'Verify boss rewards, installation and interrupted ending recovery');
+        expect(proof.run).toBe("xvfb-run -a -s '-screen 0 1280x1024x24' node scripts/run-completion-flow.cjs");
+        expect(proof.env.SMOKE_NATIVE_OPENGL).toBe('1');
+        expect(proof.env.MYTHICAL_VOID_AUTOMATION_AUDIO).toBe('0');
+        expect(boss.steps.some(step => step.uses === 'actions/upload-artifact@v4' && step.if === 'always()')).toBe(true);
+    });
+
     test('birthday reveal keeps a bounded simulation clock and exact visible message assertion', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
         const start = source.indexOf('// The reveal uses Phaser tweens:');

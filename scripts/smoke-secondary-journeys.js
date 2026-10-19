@@ -10,6 +10,7 @@ const {
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
 const { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture } = require('./lib/first-sanctuary-fixture.cjs');
+const { stageGuardianHandoffThoughtFixture } = require('./lib/guardian-handoff-fixture.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -14213,6 +14214,9 @@ async function prepareGuardianHandoffState(session, step) {
         state.set('world.rescuedResidents', {});
         state.set('world.guardianResidents', {});
         state.save();
+        if (!(${stageGuardianHandoffThoughtFixture.toString()})(state, window.ThoughtBubbleSystem)) {
+            throw Error('Guardian fixture thought context is not ready');
+        }
 
         return {
             priorParts,
@@ -14550,6 +14554,10 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                         busy: scene.forestCompletionAttempt.busy, closed: scene.forestCompletionAttempt.closed
                     } : null,
                     saveAdmission: window.GameState.getSaveAdmission().status,
+                    thoughtInitialized: window.ThoughtBubbleSystem?.isInitialized === true,
+                    questSourceLoaded: window.QuestManager?.initialized === true &&
+                        window.QuestManager.loadedGameState === window.GameState &&
+                        window.QuestManager.loadedAdmissionEpoch === window.GameState.getSaveAdmission().epoch,
                     recoveryScreen: document.querySelector('[data-completion-save-recovery]')?.querySelector('h1')?.textContent || null,
                     guardianId: scene.guardianEncounter?.id, levelId: scene.levelId,
                     sourceActors: { playerActive: scene.player?.active, playerOwned: scene.player?.scene === scene,

@@ -46,17 +46,34 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm test
+      - run: npm test -- --silent
       - run: npm run build:onboarding-ci
       - name: Verify every expedition debrief on phone and desktop
         env:
           CHROME_PATH: /usr/bin/google-chrome
           DEBRIEF_EVIDENCE_DIR: /tmp/mythical-debrief-evidence
         run: node scripts/smoke-expedition-debrief.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-debrief-evidence
+          path: /tmp/mythical-debrief-evidence
+  boss-completion-flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build:onboarding-ci
       - name: Verify boss rewards, installation and interrupted ending recovery
         env:
           CHROME_PATH: /usr/bin/google-chrome
           COMPLETION_EVIDENCE_DIR: /tmp/mythical-completion-evidence
+          MYTHICAL_VOID_AUTOMATION_AUDIO: '0'
           SMOKE_NATIVE_OPENGL: '1'
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: xvfb-run -a -s '-screen 0 1280x1024x24' node scripts/run-completion-flow.cjs
@@ -64,6 +81,4 @@ jobs:
         if: always()
         with:
           name: gameplay-completion-evidence
-          path: |
-            /tmp/mythical-debrief-evidence
-            /tmp/mythical-completion-evidence
+          path: /tmp/mythical-completion-evidence
