@@ -1716,6 +1716,54 @@ class GameStateManager {
         return true;
     }
 
+    /** Publish the existing story-media record without exposing an uncommitted receipt. */
+    saveCompanionMedia(next, { isCurrentCampaign = () => true } = {}) {
+        try {
+            const reader = this.captureSaveAdmissionOwner();
+            if (!this.canCommitHatchSave() || !reader.isCurrent()) return false;
+            const original = this.state, story = this.get('story');
+            const field = story && Object.getOwnPropertyDescriptor(story, 'companionMedia');
+            if (!field || !Object.hasOwn(field, 'value') || !field.writable || !field.enumerable) return false;
+            const media = JSON.parse(JSON.stringify(next));
+            if (!media || Array.isArray(media) || media.schemaVersion !== 2) return false;
+            const expected = JSON.stringify(media), previous = field.value;
+            const identity = this.getHatchActiveIdentity();
+            const game = typeof window === 'undefined' ? undefined : window.GameState;
+            const cloud = typeof window === 'undefined' ? undefined : window.CloudSave;
+            const cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+            const stagedStory = { ...story, companionMedia: media };
+            const staged = { ...original, player: { ...original.player }, session: { ...original.session }, story: stagedStory };
+            const ownsCampaign = () => typeof isCurrentCampaign.forVerifiedStoryWrite === 'function'
+                ? isCurrentCampaign.forVerifiedStoryWrite(this, story) : isCurrentCampaign();
+            const owns = () => ownsCampaign() && (this.state === original || this.state === staged) &&
+                (this.get('story') === story || this.get('story') === stagedStory) && this.getHatchActiveIdentity() === identity &&
+                (typeof window === 'undefined' || (window.GameState === game && window.CloudSave === cloud)) &&
+                cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser;
+            if (!reader.isCurrent() || !owns()) return false;
+            const result = this.commitHatchSaveDraft(staged, {
+                isCurrentCampaign: owns,
+                isCurrentResult: (live, durable) => JSON.stringify(live.story?.companionMedia) === expected &&
+                    JSON.stringify(durable?.story?.companionMedia) === expected,
+                isCurrentUpload: lease => typeof window !== 'undefined' && window.CloudSave === cloud &&
+                    cloud?.gameState === this && cloud?.activeCloudWrite === lease &&
+                    cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser,
+                onPublished: () => {
+                    // The writer has verified and adopted these exact bytes.
+                    // Retain the story root used by in-flight media ownership.
+                    story.companionMedia = media;
+                    staged.story = story;
+                },
+                notifications: [
+                    { event: 'stateChanged', args: [{ path: 'story.companionMedia', oldValue: previous,
+                        newValue: media, timestamp: Date.now() }] },
+                    { event: 'changed:story.companionMedia', args: [media, previous] }
+                ],
+                onNotification: notification => { this.emit(notification.event, ...notification.args); }
+            });
+            return result.success && result.isCurrent();
+        } catch { return false; }
+    }
+
     /**
      * Persist generated portrait metadata for the active creature.
      */

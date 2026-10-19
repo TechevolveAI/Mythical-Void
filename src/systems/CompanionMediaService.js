@@ -62,6 +62,7 @@ class CompanionMediaService {
         this.mediaSession = null;
         this.videoUnavailableUntil = 0;
         this.campaignOwner = null;
+        this.campaignStory = null;
         this.campaignEpoch = 0;
         this.unsubscribeCampaignReset = null;
         this.timeouts = {
@@ -72,19 +73,29 @@ class CompanionMediaService {
 
     captureCampaignGuard() {
         const owner = window.GameState;
-        if (owner !== this.campaignOwner) {
+        const story = owner?.get?.('story');
+        const ownerChanged = owner !== this.campaignOwner;
+        if (ownerChanged) {
             this.unsubscribeCampaignReset?.();
             this.campaignOwner = owner;
-            this.invalidateCampaignWork();
             this.unsubscribeCampaignReset = owner?.on?.('reset', () => this.invalidateCampaignWork());
+        }
+        if (ownerChanged || story !== this.campaignStory) {
+            this.campaignStory = story;
+            this.invalidateCampaignWork();
         }
         const epoch = this.campaignEpoch;
         const admissionEpoch = owner?.getSaveAdmission?.().epoch;
         const cloud = window.CloudSave, cloudUser = cloud?.currentUser?.id;
-        const ownsCampaign = () => window.GameState === owner && this.campaignEpoch === epoch &&
+        const ownsOwner = () => window.GameState === owner && this.campaignEpoch === epoch &&
             window.CloudSave === cloud && cloud?.currentUser?.id === cloudUser;
+        const ownsCampaign = () => ownsOwner() && owner?.get?.('story') === story;
         const current = () => ownsCampaign() && owner?.getSaveAdmission?.().epoch === admissionEpoch;
         current.ownsCampaign = ownsCampaign;
+        // Only the verified writer owns its temporary detached story root.
+        // Async work keeps the stricter original-story guard above.
+        current.forVerifiedStoryWrite = (writerOwner, sourceStory) => writerOwner === owner && sourceStory === story &&
+            ownsOwner() && owner?.getSaveAdmission?.().epoch === admissionEpoch;
         return current;
     }
 
@@ -99,32 +110,21 @@ class CompanionMediaService {
 
     canPublishMedia(isCurrent) {
         const owner = window.GameState;
-        return Boolean(owner && typeof owner.get === 'function' && typeof owner.set === 'function' &&
-            typeof owner.save === 'function' && isCurrent() && owner?.getSaveAdmission?.().status !== 'held' &&
+        return Boolean(owner && typeof owner.get === 'function' && typeof owner.saveCompanionMedia === 'function' &&
+            isCurrent() && owner?.getSaveAdmission?.().status !== 'held' &&
             owner?.storageMode !== 'memory' && !owner?.cloudWriteLease &&
             owner?.canPersistSave?.() !== false && isCurrent());
     }
 
     publishMediaState(next, event, packet, isCurrent = this.captureCampaignGuard()) {
         if (!this.canPublishMedia(isCurrent)) return false;
-        const owner = window.GameState, story = owner.get('story');
-        const previous = owner.get('story.companionMedia');
-        const rollbackOwnedField = () => {
-            if (window.GameState === owner && owner.get('story') === story &&
-                owner.get('story.companionMedia') === next) story.companionMedia = previous;
-        };
+        const owner = window.GameState;
         try {
-            owner.set('story.companionMedia', next);
-            if (!this.canPublishMedia(isCurrent) || owner.get('story.companionMedia') !== next ||
-                owner.save?.() === false || !isCurrent() ||
-                owner.getSaveAdmission?.().status === 'held') {
-                rollbackOwnedField();
-                return false;
-            }
+            if (!owner.saveCompanionMedia(next, { isCurrentCampaign: isCurrent }) ||
+                !this.canPublishMedia(isCurrent)) return false;
             owner.emit?.(event, packet);
-            return true;
+            return this.canPublishMedia(isCurrent);
         } catch (error) {
-            rollbackOwnedField();
             return false;
         }
     }
@@ -282,7 +282,8 @@ class CompanionMediaService {
         if (!portraitRecord?.identityKey) return false;
 
         const state = this.getState();
-        const video = this.getVideoRecord(momentId, portraitRecord.identityKey);
+        const video = Object.values(state.videos).find(entry => entry.momentId === momentId &&
+            entry.identityKey === portraitRecord.identityKey);
         if (video?.status !== 'succeeded') return false;
 
         return !Object.values(state.appearances).some(appearance => (
@@ -297,12 +298,8 @@ class CompanionMediaService {
         const portraitRecord = record || window.GameState?.getCreaturePortrait?.();
         if (!portraitRecord?.identityKey) return [];
         const state = this.getState();
-        const videos = { ...state.videos };
-        for (const [key, cached] of this.volatileVideos) {
-            if (cached.owner === window.GameState && cached.isCurrent() &&
-                (!videos[key] || videos[key].assetRef === cached.record.assetRef)) videos[key] = cached.record;
-        }
-        return Object.values(videos)
+        // Temporary results are retry custody, not a saved ready notification.
+        return Object.values(state.videos)
             .filter(video => (
                 video.identityKey === portraitRecord.identityKey &&
                 video.status === 'succeeded' &&
@@ -642,8 +639,9 @@ class CompanionMediaService {
 
     async startGeneratedVideo({ momentId, portraitRecord, isCurrentCampaign = this.captureCampaignGuard() }) {
         const session = this.getMediaSession();
+        if (!this.canPublishMedia(isCurrentCampaign) || !session.isCurrent()) return null;
         const accessToken = await window.LivingPortraitService?.getAccessToken?.();
-        if (!accessToken || !(isCurrentCampaign() && session.isCurrent())) return null;
+        if (!accessToken || !this.canPublishMedia(isCurrentCampaign) || !session.isCurrent()) return null;
         const request = await this.requestVideoJson(
             '/.netlify/functions/generate-companion-video',
             {
@@ -685,7 +683,7 @@ class CompanionMediaService {
             throw new Error(result.error || `Video service error (${response.status})`);
         }
         if (result.assetRef) {
-            this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
+            if (!this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign)) return null;
         }
         if (!session.isCurrent()) return null;
         if (result.status === 'succeeded' && result.videoUrl) {
@@ -711,8 +709,9 @@ class CompanionMediaService {
         const active = this.videoResolutions.get(record.assetRef);
         if (active) return active;
         const resolution = (async () => {
+            if (!this.canPublishMedia(isCurrentCampaign) || !session.isCurrent()) return null;
             const accessToken = await window.LivingPortraitService?.getAccessToken?.();
-            if (!accessToken || !(isCurrentCampaign() && session.isCurrent())) return null;
+            if (!accessToken || !this.canPublishMedia(isCurrentCampaign) || !session.isCurrent()) return null;
             const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
                     encodeURIComponent(record.assetRef)
@@ -745,7 +744,7 @@ class CompanionMediaService {
                 });
             }
             if (result.status !== 'succeeded' || !result.videoUrl) return null;
-            this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
+            if (!this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign)) return null;
             return isCurrentCampaign() && session.isCurrent() ? { ...result, portraitRecord } : null;
         })().finally(() => {
             if (this.videoResolutions.get(record.assetRef) === resolution) {
@@ -769,7 +768,8 @@ class CompanionMediaService {
         while (isCurrentCampaign() && Date.now() - startedAt < this.timeouts.pollWindowMs) {
             const delay = Math.min(8000, 2500 + pollCount * 500);
             await new Promise(resolve => setTimeout(resolve, delay));
-            if (!(isCurrentCampaign() && session.isCurrent()) || Date.now() - startedAt >= this.timeouts.pollWindowMs) return null;
+            if (!this.canPublishMedia(isCurrentCampaign) || !session.isCurrent() ||
+                Date.now() - startedAt >= this.timeouts.pollWindowMs) return null;
             pollCount += 1;
             const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
@@ -791,7 +791,7 @@ class CompanionMediaService {
             const { response, result } = request;
             if (!response.ok) return null;
             if (result.status === 'succeeded' && result.videoUrl) {
-                this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign);
+                if (!this.saveVideoRecord(momentId, portraitRecord, result, isCurrentCampaign)) return null;
                 return session.isCurrent() ? { ...result, portraitRecord } : null;
             }
             if (['failed', 'canceled'].includes(result.status)) {

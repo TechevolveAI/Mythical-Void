@@ -63,20 +63,20 @@ describe('optional media cannot publish through a protected save', () => {
     });
     test('a refused media save is not announced and restores only its own optional field', () => {
         const before = state.get('story.companionMedia'), durable = raw(), emit = jest.spyOn(state, 'emit');
-        jest.spyOn(state, 'save').mockReturnValue(false);
+        jest.spyOn(state, 'createLocalSaveBackup').mockReturnValue(false);
         expect(service.saveVideoRecord('first_forest_arrival', portrait, result)).toBeNull();
         expect(state.get('story.companionMedia')).toBe(before);
         expect(raw()).toBe(durable);
         expect(emit).not.toHaveBeenCalledWith('companionVideoStatus', expect.anything());
     });
-    test('a synchronous hold at publication restores its owned field and performs no save', () => {
-        const before = state.get('story.companionMedia'), durable = raw();
-        const save = jest.spyOn(state, 'save');
+    test('a hold in a post-verification notification cannot rewind the now-durable receipt', () => {
+        const durable = raw(), emit = jest.spyOn(state, 'emit');
         state.on('changed:story.companionMedia', () => state.holdSaveAdmission({ code: 'synthetic_hold' }));
         expect(service.recordAppearance('first_forest_arrival', portrait)).toBe(false);
-        expect(state.get('story.companionMedia')).toBe(before);
-        expect(raw()).toBe(durable);
-        expect(save).not.toHaveBeenCalled();
+        expect(raw()).not.toBe(durable);
+        expect(state.get('story.companionMedia')).toEqual(JSON.parse(raw()).story.companionMedia);
+        expect(state.getSaveAdmission().status).toBe('held');
+        expect(emit).not.toHaveBeenCalledWith('companionMediaAppearance', expect.anything());
     });
     test('campaign replacement cannot expose the previous campaign temporary media', () => {
         state.holdSaveAdmission({ code: 'synthetic_hold' });
@@ -95,9 +95,9 @@ describe('optional media cannot publish through a protected save', () => {
         expect(service.getVideoRecord('first_forest_arrival', portrait.identityKey)).toBeNull();
         expect(JSON.stringify(state.state)).toBe(before);
     });
-    test('a throwing save cannot announce media as saved', () => {
+    test('a throwing verified publisher cannot announce media as saved', () => {
         const before = state.get('story.companionMedia'), durable = raw();
-        jest.spyOn(state, 'save').mockImplementation(() => { throw Error('Synthetic write failure'); });
+        jest.spyOn(state, 'saveCompanionMedia').mockImplementation(() => { throw Error('Synthetic write failure'); });
         expect(service.recordAppearance('first_forest_arrival', portrait)).toBe(false);
         expect(state.get('story.companionMedia')).toBe(before);
         expect(raw()).toBe(durable);
@@ -110,10 +110,10 @@ describe('optional media cannot publish through a protected save', () => {
         expect(state.get('story.companionMedia')).toBe(replacement);
         expect(save).not.toHaveBeenCalled();
     });
-    test.each(['set', 'save'])('an owner replaced during %s is not touched by old publication or rollback', boundary => {
+    test.each(['notification', 'backup'])('an owner replaced during %s is not touched by old publication', boundary => {
         const successor = new GameStateManager(), before = JSON.stringify(successor.state);
-        if (boundary === 'set') state.on('changed:story.companionMedia', () => { sceneWindow.GameState = successor; });
-        else jest.spyOn(state, 'save').mockImplementation(() => { sceneWindow.GameState = successor; return true; });
+        if (boundary === 'notification') state.on('changed:story.companionMedia', () => { sceneWindow.GameState = successor; });
+        else jest.spyOn(state, 'createLocalSaveBackup').mockImplementation(() => { sceneWindow.GameState = successor; return true; });
         expect(service.recordAppearance('first_forest_arrival', portrait)).toBe(false);
         expect(JSON.stringify(successor.state)).toBe(before);
     });
@@ -172,7 +172,7 @@ function createGameState(portrait) {
     const state = {
         story: { companionMedia: null }
     };
-    return {
+    const fake = {
         get: jest.fn(path => path.split('.').reduce(
             (value, key) => value?.[key],
             state
@@ -187,6 +187,14 @@ function createGameState(portrait) {
         getCreaturePortrait: jest.fn(() => portrait),
         state
     };
+    // Orchestration-only repository double. Actual verified disk publication
+    // is exercised with GameStateManager above and in MediaPublicationDurability.
+    fake.saveCompanionMedia = jest.fn((next, { isCurrentCampaign = () => true } = {}) => {
+        if (!isCurrentCampaign() || fake.save() === false || !isCurrentCampaign()) return false;
+        state.story.companionMedia = JSON.parse(JSON.stringify(next));
+        return true;
+    });
+    return fake;
 }
 
 describe('saved creature video job recovery', () => {
@@ -988,6 +996,7 @@ describe('CompanionMediaService', () => {
 });
 
 describe('CompanionMediaService new game isolation', () => {
+    const states = [];
     const portrait = {
         identityKey: 'synthetic-creature:baby:portrait',
         stage: 'baby',
@@ -1003,7 +1012,8 @@ describe('CompanionMediaService new game isolation', () => {
     };
     const setup = () => {
         const gameState = new GameStateManager();
-        gameState.storageMode = 'memory';
+        states.push(gameState);
+        expect(gameState.save()).toBe(true);
         const sceneWindow = {
             GameState: gameState,
             fetch: jest.fn(() => { throw new Error('No outside requests permitted'); }),
@@ -1016,10 +1026,12 @@ describe('CompanionMediaService new game isolation', () => {
     };
 
     beforeEach(() => {
+        localStorage.clear();
         jest.useFakeTimers();
         jest.spyOn(console, 'log').mockImplementation(() => {});
     });
     afterEach(() => {
+        states.splice(0).forEach(state => state.stopAutoSave()); localStorage.clear();
         jest.clearAllTimers();
         jest.useRealTimers();
         jest.restoreAllMocks();
@@ -1098,10 +1110,13 @@ describe('CompanionMediaService new game isolation', () => {
     test('switching creatures preserves the original film without assigning it to the new active creature', async () => {
         const h = setup();
         const otherPortrait = { ...portrait, identityKey: 'second-creature:baby:portrait' };
-        const creature = (id, record) => ({
-            id, name: id, hatchTime: Date.now(), lifecycle: { stage: 'baby', birthDate: Date.now() },
-            portraits: { schemaVersion: 1, activeStage: 'baby', byStage: { baby: { ...record, status: 'ready' } } }
-        });
+        const creature = (id, record) => {
+            const defaults = h.gameState.createInitialState().creature;
+            return { ...defaults, id, name: id, hatched: true, hatchTime: Date.now(),
+                genes: { id, species: 'stellarWyrm', rarity: 'rare' },
+                lifecycle: { ...defaults.lifecycle, stage: 'baby', birthDate: Date.now() },
+                portraits: { schemaVersion: 2, activeStage: 'baby', byStage: { baby: { ...record, status: 'ready' } } } };
+        };
         h.gameState.set('creatures', [creature('first', portrait), creature('second', otherPortrait)]);
         expect(h.gameState.switchActiveCreature(0)).toBe(true);
         let finish;
@@ -1139,10 +1154,12 @@ describe('CompanionMediaService new game isolation', () => {
         finish[1]({ response: { ok: true }, result });
         await expect(replacement).resolves.toMatchObject({ portraitRecord: portrait });
         await expect(joined).resolves.toMatchObject({ portraitRecord: portrait });
-        // This fixture deliberately has no durable storage. Keep the film
-        // usable in memory, without reporting a successful canonical save.
+        // The replacement request uses actual synthetic durable storage; the
+        // old finaliser may neither remove it nor publish into its predecessor.
         expect(h.save).not.toHaveBeenCalled();
         expect(h.service.getVideoRecord('first_forest_arrival', portrait.identityKey)).toMatchObject(resultForSave());
+        expect(Object.values(JSON.parse(localStorage.getItem(h.gameState.saveKey)).story.companionMedia.videos))
+            .toEqual([expect.objectContaining(resultForSave())]);
         expect(h.service.videoJobs.size).toBe(0);
         expect(h.service.videoResolutions.size).toBe(0);
     });

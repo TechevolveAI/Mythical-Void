@@ -54,6 +54,15 @@
       "presentation": "LivingFormHandoff delegates to the same helper. Existing in-flight job de-duplication, feature switches, quotas and optional Watch/archive delivery remain unchanged.",
       "failureIsolation": "Optional video errors cannot change a successfully saved portrait job into a failure."
     },
+    "publication": {
+      "writer": "GameState.saveCompanionMedia stages the existing v2 companion-media data and accounting through the exact-byte verified writer. Live story data and change/ready/watched notifications are not exposed before verification.",
+      "storyOwnership": "Only the trusted verified-publication callback reuses the original story root with identical verified media metadata. During that synchronous writer only, its own exact original/detached-root fence owns the temporary story root; game/cloud/admission/active-identity fences remain enforced. Async guards always require their original story root. Unrelated story and creature branches remain untouched so in-flight jobs keep their legitimate session ownership.",
+      "postCommitChanges": "A listener may retire, hold or change the current game after verification. The old call cannot announce success, roll back the committed receipt or overwrite the successor. A post-commit hold is not an uncommitted write failure.",
+      "temporaryResults": "Volatile video responses are internal retry custody, not Watch-ready notices. A refused result resumes its existing asset with GET; only committed canonical ready metadata is listed as ready to watch.",
+      "restoreOwnership": "Unpublished responses belong to their original story root as well as game/cloud ownership. Restoring a save retires the old story's cache and callbacks. Normal verified media publication preserves that root; creature switches within the same campaign remain supported.",
+      "requestAdmission": "No new video request or authentication lookup is started while save admission is held, storage is memory-only or a cloud write is active. Publication refusal returns no ready response and retains the existing opaque result for later retry.",
+      "authority": "These are client-side correctness checks only. Server authentication, ownership, idempotency and quota enforcement remain authoritative and unchanged. This is not proof of provider availability, physical-phone playback or native migration acceptance."
+    },
     "providerInput": [
       "opaque synthetic creature portrait input",
       "bounded recorded creature stage",
