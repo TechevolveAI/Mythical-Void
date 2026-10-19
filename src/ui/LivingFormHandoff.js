@@ -736,15 +736,7 @@ export default class LivingFormHandoff {
                     this.onPortraitShown?.(record);
                 }
                 if (!isCurrent()) return;
-                if (!window.GameState?.get?.(
-                    'story.projectBeacon.firstForestCinematicSeen'
-                )) {
-                    window.CompanionMediaService?.prepareGeneratedVideo?.({
-                        momentId: 'first_forest_arrival',
-                        stage: record?.stage || 'baby',
-                        record
-                    }).catch?.(() => null);
-                }
+                window.LivingPortraitService?.prepareFirstForestVideo?.(record)?.catch?.(() => null);
                 if (!isCurrent()) return;
                 this.root?.classList.remove(
                     'shows-pixel-reference',

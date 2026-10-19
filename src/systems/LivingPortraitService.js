@@ -608,18 +608,38 @@ class LivingPortraitService {
     }
 
     prepareFirstForestVideo(record) {
-        if (
-            !record?.assetRef ||
-            !this.isCurrentCreaturePortrait(record) ||
-            window.GameState?.get?.('story.projectBeacon.firstForestCinematicSeen')
-        ) {
-            return null;
+        try {
+            const owner = window.GameState;
+            const media = window.CompanionMediaService;
+            const isCurrent = media?.captureCampaignGuard?.() || (() => window.GameState === owner);
+            return Promise.resolve().then(() => {
+                const current = owner?.getCreaturePortrait?.();
+                if (
+                    window.GameState !== owner || window.CompanionMediaService !== media ||
+                    !isCurrent() || record?.status !== 'ready' || !record.assetRef ||
+                    !this.isCurrentCreaturePortrait(record) ||
+                    current?.identityKey !== record.identityKey ||
+                    current?.stage !== record.stage || current?.assetRef !== record.assetRef ||
+                    owner?.get?.('levels.mythicalForest.completed') === true ||
+                    media?.canPublishMedia?.(isCurrent) === false
+                ) return null;
+
+                const momentId = 'first_forest_arrival';
+                const watched = Object.values(media?.getState?.()?.appearances || {}).some(appearance => (
+                    appearance.momentId === momentId && appearance.identityKey === record.identityKey &&
+                    appearance.renderMode === 'generated_video'
+                ));
+                const existing = media?.getVideoRecord?.(momentId, record.identityKey);
+                if (watched || ['failed', 'canceled'].includes(existing?.status)) return null;
+
+                // Seeing the authored intro is not the same as watching this
+                // personal film. A late portrait must still get its first job.
+                return media?.prepareGeneratedVideo?.({ momentId, stage: record.stage, record }) ?? null;
+            }).catch(() => null);
+        } catch {
+            // Optional media cannot turn a completed portrait into a failed job.
+            return Promise.resolve(null);
         }
-        return window.CompanionMediaService?.prepareGeneratedVideo?.({
-            momentId: 'first_forest_arrival',
-            stage: record.stage || 'baby',
-            record
-        })?.catch?.(() => null) || null;
     }
 
     async getAccessToken() {

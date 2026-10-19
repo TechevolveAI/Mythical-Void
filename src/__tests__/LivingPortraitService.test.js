@@ -11,6 +11,7 @@ function loadService({
     authImpl = null,
     online = true,
     portraitSpecFactory = null,
+    stateOverrides = {},
     serviceOptions = {}
     } = {}) {
     const filePath = path.join(
@@ -41,7 +42,8 @@ function loadService({
         get: jest.fn(key => ({
             'creature.genes': currentCreature?.genes,
             'creature.dna': currentCreature?.dna,
-            'creature.name': currentCreature?.name
+            'creature.name': currentCreature?.name,
+            ...stateOverrides
         })[key]),
         getCreaturePortrait: jest.fn(() => portrait),
         saveCreaturePortrait: jest.fn(record => {
@@ -77,6 +79,11 @@ function loadService({
     let onlineState = online;
     const eventListeners = new Map();
     const prepareGeneratedVideo = jest.fn(() => Promise.resolve(null));
+    const mediaService = { prepareGeneratedVideo,
+        getState: jest.fn(() => ({ appearances: {} })),
+        getVideoRecord: jest.fn(() => null),
+        captureCampaignGuard: jest.fn(() => () => true),
+        canPublishMedia: jest.fn(() => true) };
     const sandbox = {
         module: { exports: {} },
         exports: {},
@@ -122,7 +129,7 @@ function loadService({
                 isValid: jest.fn(() => true)
             },
             GameState: gameState,
-            CompanionMediaService: { prepareGeneratedVideo }
+            CompanionMediaService: mediaService
         }
     };
 
@@ -140,6 +147,7 @@ function loadService({
         gameState,
         auth,
         prepareGeneratedVideo,
+        mediaService,
         setOnline,
         setCreature: (creature, nextPortrait = null) => {
             currentCreature = creature;
@@ -267,6 +275,85 @@ describe('background living portrait generation', () => {
                 assetRef: 'portrait-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074'
             })
         });
+    });
+
+    test('a portrait finishing after the ordinary Forest intro still queues the unseen personal film without a reveal screen', async () => {
+        const h = loadService({ stateOverrides: {
+            'story.projectBeacon.firstForestCinematicSeen': true,
+            'levels.mythicalForest.completed': false
+        } });
+        const record = await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(record.assetRef).toBeTruthy();
+        expect(h.prepareGeneratedVideo).toHaveBeenCalledTimes(1);
+        expect(h.prepareGeneratedVideo).toHaveBeenCalledWith({ momentId: 'first_forest_arrival', stage: 'baby', record });
+    });
+
+    test('an optional video-service throw cannot fail a successfully saved portrait', async () => {
+        const h = loadService();
+        h.prepareGeneratedVideo.mockImplementation(() => { throw Error('synthetic optional-video failure'); });
+        const record = await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(h.getPortrait().assetRef).toBe(record.assetRef);
+        expect(h.service.getDiagnostics('baby').status).toBe('succeeded');
+        expect(h.gameState.emit).not.toHaveBeenCalledWith('creaturePortraitGenerationFailed', expect.anything());
+    });
+
+    test.each(['failed', 'canceled'])('background prewarming never resubmits an existing %s video job', async status => {
+        const h = loadService();
+        h.mediaService.getVideoRecord.mockReturnValue({ status });
+        await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+    });
+
+    test('a completed Forest does not request a new arrival film during later portrait generation', async () => {
+        const h = loadService({ stateOverrides: { 'levels.mythicalForest.completed': true } });
+        await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+    });
+
+    test.each(['generated_video', 'motion_still'])('%s viewing history is distinguished when preparing the personal film', async renderMode => {
+        const h = loadService({ stateOverrides: { 'story.projectBeacon.firstForestCinematicSeen': true } });
+        h.mediaService.getState.mockReturnValue({ appearances: { synthetic: {
+            momentId: 'first_forest_arrival', identityKey: 'creature-1:baby:abc123', renderMode
+        } } });
+        await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(h.prepareGeneratedVideo).toHaveBeenCalledTimes(renderMode === 'generated_video' ? 0 : 1);
+    });
+
+    test('protected save admission suppresses optional background generation without failing the portrait', async () => {
+        const h = loadService();
+        h.mediaService.canPublishMedia.mockReturnValue(false);
+        await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+        expect(h.service.getDiagnostics('baby').status).toBe('succeeded');
+    });
+
+    test('a queued prewarm cannot survive a campaign reset before its asynchronous turn', async () => {
+        const h = loadService();
+        const record = await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        h.prepareGeneratedVideo.mockClear();
+        let current = true;
+        h.mediaService.captureCampaignGuard.mockReturnValue(() => current);
+        const pending = h.service.prepareFirstForestVideo(record);
+        current = false;
+        await expect(pending).resolves.toBeNull();
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+    });
+
+    test.each(['stage', 'assetRef'])('a replaced active portrait %s cannot queue an older film', async field => {
+        const h = loadService();
+        const record = await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        h.prepareGeneratedVideo.mockClear();
+        h.gameState.getCreaturePortrait.mockReturnValue({ ...record, [field]: field === 'stage' ? 'adult' : 'different-portrait' });
+        await h.service.prepareFirstForestVideo(record);
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+    });
+
+    test('a failure in optional video bookkeeping cannot change portrait success', async () => {
+        const h = loadService();
+        h.mediaService.getState.mockImplementation(() => { throw Error('synthetic optional-bookkeeping failure'); });
+        await h.service.prewarm({ creatureData, referenceImage: 'data:image/png;base64,synthetic=' });
+        expect(h.service.getDiagnostics('baby').status).toBe('succeeded');
+        expect(h.gameState.emit).not.toHaveBeenCalledWith('creaturePortraitGenerationFailed', expect.anything());
     });
 
     test('does not generate a post-hatch portrait without the pixel identity reference', async () => {

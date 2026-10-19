@@ -32,13 +32,27 @@
     "promptVersion": "creature-story-video-v3",
     "shotVersion": 3,
     "jobOwner": "src/systems/CompanionMediaService.js",
+    "firstForestPreparation": {
+      "trigger": "A successfully saved active-creature portrait starts the existing first_forest_arrival preparation helper without needing a reveal screen to remain open.",
+      "latePortrait": "Seeing the authored Forest intro or a moving portrait is not a generated-film viewing receipt. A late first portrait can still prepare the unseen film while the Forest is unfinished.",
+      "suppressed": [
+        "Forest already completed",
+        "same creature's generated arrival film already viewed",
+        "portrait replaced or no longer active",
+        "campaign or cloud owner changed",
+        "protected save admission",
+        "existing failed or cancelled job: no automatic paid resubmission"
+      ],
+      "presentation": "LivingFormHandoff delegates to the same helper. Existing in-flight job de-duplication, feature switches, quotas and optional Watch/archive delivery remain unchanged.",
+      "failureIsolation": "Optional video errors cannot change a successfully saved portrait job into a failure."
+    },
     "providerInput": [
       "opaque synthetic creature portrait input",
       "bounded recorded creature stage",
       "developer-authored scene text selected by moment and known realm"
     ],
     "browserText": "Moment suffixes, player names, creature names, account identifiers and save history must never be interpolated into provider prompt text.",
-    "changesInThisSlice": "None. Existing video configuration and provider selection are not changed."
+    "changesInThisSlice": "First-Forest trigger and optional-error isolation only. Existing video configuration, templates, provider selection and request shapes are not changed."
   },
   "reviewBoundaries": {
     "providersCalledForThisWork": false,
