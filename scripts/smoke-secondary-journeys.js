@@ -11634,7 +11634,32 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             };
         })()`),
         { timeoutMs: 1200, message: 'visible pending living-form handoff' }
-    );
+    ).catch(async error => {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene?.('SoulRevealScene');
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const button = document.querySelector('[data-testid="living-form-mobile-continue"]');
+            const state = window.GameState;
+            const bounds = button?.getBoundingClientRect?.();
+            return {
+                activeScenes: window.mythicalGame?.scene?.getScenes?.(true)?.map(s => s.scene?.key),
+                rootPresent: Boolean(root), rootClass: root?.className,
+                portraitState: root?.dataset?.portraitState,
+                spinnerPresent: Boolean(root?.querySelector('.living-form-spinner')),
+                buttonBounds: bounds ? { width: bounds.width, height: bounds.height } : null,
+                hatched: state?.get?.('creature.hatched'), named: state?.get?.('creature.named'),
+                creatureIdentityPresent: Boolean(state?.get?.('creature.id')),
+                admission: state?.getSaveAdmission?.(),
+                namingPhase: scene?.namingAttempt?.phase,
+                namingRecoveryPresent: Boolean(scene?.namingSaveRecovery),
+                livingOwnerPresent: Boolean(scene?.livingFormOwner),
+                livingOwnerCurrent: scene?.livingFormOwner?.isCurrent?.(),
+                livingRecoveryPresent: Boolean(scene?.livingFormOwner?.recovery),
+                portraitErrorPresent: Boolean(scene?.portraitError)
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    });
     if (
         pendingReveal.action !== 'ENTER SANCTUARY NOW' ||
         !pendingReveal.detail.includes('anatomy') ||
