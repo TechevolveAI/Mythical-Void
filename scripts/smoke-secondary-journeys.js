@@ -9,6 +9,7 @@ const {
 } = require('./lib/browser-audio-policy.cjs');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
+const { stageFirstSanctuaryHatchFixture } = require('./lib/first-sanctuary-fixture.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -11422,6 +11423,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         if (!providerEnabled) {
             throw new Error('Live portrait provider is not enabled in this build');
         }
+        const fixtureReady = await evaluate(session,
+            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState)`);
+        if (!fixtureReady) throw new Error('The synthetic hatch could not be committed before revealing');
         const staged = await evaluate(session, `(() => {
             const game = window.mythicalGame;
             if (!game?.scene) return false;
@@ -11475,6 +11479,14 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             }
             await waitForScene(session, 'SoulRevealScene');
         }
+    }
+
+    // Direct scene previews skip the real hatch transaction; keep their fixture
+    // valid without relaxing the production living-form ownership checks.
+    if (!useLivePortraitProvider) {
+        const fixtureReady = await evaluate(session,
+            `(${stageFirstSanctuaryHatchFixture.toString()})(window.GameState)`);
+        if (!fixtureReady) throw new Error('The synthetic hatch could not be committed before naming');
     }
 
     const naming = await waitFor(
