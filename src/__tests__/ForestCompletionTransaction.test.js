@@ -185,6 +185,17 @@ describe('actual Forest completion caller and recovery through the actual local 
         expect(scene.showBossVictory()).toBe(true); expect(f.state.get('combat.bossesDefeated')).toBe(0);
         expect(f.state.get('levels.mythicalForest.completed')).toBe(true); expect(f.state.get('inventory.pendingBossRewards')).toHaveLength(1);
     });
+    test.each(['getter', 'unrecognised'])('failure diagnostics cannot invoke a %s error message or expose its contents', kind => {
+        const { f, scene } = create(), raw = f.storage.getItem(f.state.saveKey);
+        const read = jest.fn(() => { throw Error('SYNTHETIC_MESSAGE_GETTER'); });
+        const error = kind === 'getter' ? Object.defineProperty({}, 'message', { get: read }) : Error('synthetic-private-detail');
+        Object.defineProperty(scene, 'levelId', { get() { throw error; } });
+        expect(scene.showBossVictory()).toBe(false);
+        expect(read).not.toHaveBeenCalled();
+        expect(scene.forestCompletionAttempt.failureCode).toBe('COMPLETION_UNAVAILABLE');
+        expect(f.storage.getItem(f.state.saveKey)).toBe(raw);
+        expect(document.querySelector('[data-completion-save-recovery]')).not.toBeNull();
+    });
     test('a legitimate replay awards one battle and bond increment without another campaign count', () => {
         const { f, scene } = create({ seed: ({ complete, selected }) => {
             complete(factsFor(0)); selected.AchievementSystem.recordEvent('guardian_restored', {});

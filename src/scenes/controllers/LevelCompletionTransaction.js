@@ -73,8 +73,13 @@ const safe = callback => {
         try { Promise.prototype.then.call(returned, undefined, () => {}); } catch { /* Not a native promise. */ }
     } catch { /* Optional feedback cannot undo a verified save. */ }
 };
-const failureCode = error => /^FOREST_[A-Z_]{1,64}$/.test(error?.message || '')
-    ? error.message : 'COMPLETION_UNAVAILABLE';
+const failureCode = error => {
+    try {
+        const message = Object.getOwnPropertyDescriptor(error, 'message')?.value;
+        return typeof message === 'string' && /^FOREST_[A-Z_]{1,64}$/.test(message)
+            ? message : 'COMPLETION_UNAVAILABLE';
+    } catch { return 'COMPLETION_UNAVAILABLE'; }
+};
 const sameMethods = (object, names) => {
     const prototype = Object.getPrototypeOf(object);
     const methods = names.map(name => object[name]), inherited = names.map(name => prototype?.[name]);
