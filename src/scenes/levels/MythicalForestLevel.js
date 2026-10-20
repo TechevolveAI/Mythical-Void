@@ -2931,12 +2931,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     updateRootwakeCrossing() {
         const crossing = this.rootwakeCrossing;
-        if (!crossing || !this.scene.isActive() || this.physics.world.isPaused) return false;
+        if (!crossing || !this.scene.isActive() || this.physics.world.isPaused || this.time.paused) return false;
 
         if (
             this.rootwakeSequenceActive &&
-            Number.isFinite(crossing.completesAt) &&
-            this.time.now >= crossing.completesAt
+            crossing.sequenceClock?.getRemaining() <= 0
         ) {
             return crossing.completeAwakening?.() || false;
         }
@@ -2975,7 +2974,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const crossing = this.rootwakeCrossing;
         if (
             !crossing || crossing.awakened || this.rootwakeSequenceActive ||
-            !this.scene.isActive() || this.physics.world.isPaused ||
+            !this.scene.isActive() || this.physics.world.isPaused || this.time.paused ||
             this.isPlayerDead || this.levelCompletionActive ||
             !this.player?.active ||
             !this.isPlayerSettledOnTraversalSupport([
@@ -2988,6 +2987,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         const profile = powerProfile || buildCreaturePowerProfile(window.GameState, { context: 'fend' });
         const color = profile.color || crossing.color || 0x8FE3CF;
+        const clock = this.time;
+        // Independent of the completion callback, and frozen by the scene Clock.
+        const sequenceClock = crossing.reducedMotion ? null : clock.addEvent({ delay: 1750 });
+        crossing.sequenceClock = sequenceClock;
+        if (sequenceClock) crossing.sequenceTimers.push(sequenceClock);
         this.rootwakeSequenceActive = true;
         crossing.state = 'awakening';
         crossing.color = color;
@@ -2996,7 +3000,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         crossing.trigger?.destroy?.();
         crossing.trigger = null;
         const isCurrent = () => this.rootwakeCrossing === crossing &&
-            this.rootwakeSequenceActive && this.scene.isActive() &&
+            this.rootwakeSequenceActive && this.time === clock &&
+            crossing.sequenceClock === sequenceClock && !clock.paused && this.scene.isActive() &&
             !this.physics.world.isPaused;
         const settle = platform => {
             if (!isCurrent()) return;
@@ -3111,6 +3116,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.rootwakeSequenceActive = false;
         crossing.sequenceTimers.forEach(timer => timer?.remove?.());
         crossing.sequenceTimers = [];
+        crossing.sequenceClock = null;
         crossing.completeAwakening = null;
         crossing.completesAt = 0;
         crossing.platforms.forEach(platform => this.tweens?.killTweensOf?.(platform.visual));

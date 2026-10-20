@@ -74,11 +74,13 @@ describe('Rootwake Crossing gameplay contract', () => {
 
     test('cannot remain stuck if the one-shot completion timer is dropped', () => {
         expect(levelSource).toContain('crossing.completesAt = this.time.now + 1750;');
+        expect(levelSource).toContain('clock.addEvent({ delay: 1750 })');
         expect(levelSource).toContain('crossing.completeAwakening = completeAwakening;');
         expect(levelSource).toContain('crossing.sequenceTimers.push(this.time.delayedCall(1750, completeAwakening));');
         expect(levelSource).toMatch(
-            /this\.rootwakeSequenceActive[\s\S]*this\.time\.now >= crossing\.completesAt[\s\S]*crossing\.completeAwakening\?\.\(\)/
+            /this\.rootwakeSequenceActive[\s\S]*crossing\.sequenceClock\?\.getRemaining\(\) <= 0[\s\S]*crossing\.completeAwakening\?\.\(\)/
         );
+        expect(levelSource).not.toContain('this.time.now >= crossing.completesAt');
     });
 
     test('private capture retains transformation and continuous traversal assertions', () => {

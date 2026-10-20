@@ -7,6 +7,10 @@ const ArcadeStaticBody = require('phaser/src/physics/arcade/StaticBody');
 const EventEmitter = require('eventemitter3');
 const Clock = require('phaser/src/time/Clock');
 const TweenManager = require('phaser/src/tweens/TweenManager');
+const pauseSource = fs.readFileSync(path.join(__dirname, '../scenes/controllers/PlatformerPauseSession.js'), 'utf8');
+const pauseClass = parse(pauseSource, { sourceType: 'module' }).program.body
+    .map(node => node.declaration || node).find(node => node.type === 'ClassDeclaration');
+const PauseSession = new Function(`return (${pauseSource.slice(pauseClass.start, pauseClass.end)});`)();
 
 const source = fs.readFileSync(path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'), 'utf8');
 const baseSource = fs.readFileSync(path.join(__dirname, '../scenes/PlatformerLevelScene.js'), 'utf8');
@@ -70,7 +74,9 @@ function fixture({ saved = null, reduced = false, systemReduced = false, nativeT
         isGrounded: true, isInvincible: false, recoveryInputLockedUntil: 0, platformerControlsVisible: true,
         scene: { isActive: jest.fn(() => true) },
         children: { remove: jest.fn() },
-        time: { now: 1000, delayedCall: jest.fn((delay, callback) => {
+        time: { now: 1000, addEvent: jest.fn(({ delay }) => ({
+            delay, elapsed: 0, getRemaining() { return this.delay - this.elapsed; }, remove: jest.fn()
+        })), delayedCall: jest.fn((delay, callback) => {
             const timer = { delay, callback, remove: jest.fn() }; timers.push(timer); return timer;
         }) },
         tweens: {
@@ -102,7 +108,8 @@ function fixture({ saved = null, reduced = false, systemReduced = false, nativeT
     };
     let clock, tweenManager;
     if (nativeTiming) {
-        scene.sys = { events: new EventEmitter() };
+        scene.events = new EventEmitter();
+        scene.sys = { events: scene.events, isActive: () => true };
         clock = scene.time = new Clock(scene);
         clock.now = 1000;
         const delayedCall = clock.delayedCall.bind(clock);
@@ -155,6 +162,8 @@ function physicsFixture({ awakened = true, width = 32, height = 44, x = 350, bot
     player.setVelocityX.mockImplementation(value => { player.body.setVelocityX(value); return player; });
     player.setVelocityY.mockImplementation(value => { player.body.setVelocityY(value); return player; });
     scene.physics.world = world;
+    scene.physics.pause = () => world.pause();
+    scene.physics.resume = () => world.resume();
     scene.platforms.getChildren = () => supports;
     scene.isPassThroughPlatform = method('isPassThroughPlatform', result.dependencies, true).bind(scene);
     scene.shouldProcessPlatformCollision = method('shouldProcessPlatformCollision', result.dependencies, true).bind(scene);
@@ -178,7 +187,11 @@ function physicsFixture({ awakened = true, width = 32, height = 44, x = 350, bot
             }
             scene.isGrounded = player.body.blocked.down || player.body.touching.down;
         },
-        close() { result.tweenManager?.destroy(); result.clock?.destroy(); world.shutdown(); }
+        close() {
+            scene.pauseMenuSession?.retire();
+            scene.clearRootwakeSequence();
+            result.tweenManager?.destroy(); result.clock?.destroy(); world.shutdown();
+        }
     };
 }
 
@@ -186,6 +199,183 @@ const CADENCES = [
     ['60fps', [1000 / 60]], ['30fps', [1000 / 30]], ['15fps', [1000 / 15]],
     ['intermittent-100ms-stall', [1000 / 60, 1000 / 60, 100]]
 ];
+
+describe('Rootwake reveal with installed Clock, TweenManager, Arcade and real pause ownership', () => {
+    test.each([[200, 1], [5000, 1], [5000, 0.5], [5000, 1.75]])(
+        '%ims menu at clock rate %s preserves the unfinished reveal until active time resumes', (menuDuration, rate) => {
+            const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+            const { scene, crossing, clock, gameState, dependencies } = simulation;
+            try {
+                scene.player.setVelocityX(0);
+                clock.timeScale = rate;
+                expect(scene.awakenRootwakeCrossing()).toBe(true);
+                simulation.step(300);
+                const remaining = crossing.sequenceTimers.find(timer => timer.callback)?.getRemaining();
+                const visuals = crossing.platforms.map(platform => [platform.visual.y, platform.visual.alpha, platform.zone.body.enable]);
+                const contactProgress = crossing.contactProgress.edge;
+                scene.pauseMenuActive = true;
+                const pause = PauseSession.open(scene);
+                expect(pause).not.toBeNull();
+                simulation.step(menuDuration);
+                expect(scene.updateRootwakeCrossing()).toBe(false);
+                expect(crossing.completeAwakening()).toBe(false);
+                expect(crossing.platforms.map(platform => [platform.visual.y, platform.visual.alpha, platform.zone.body.enable])).toEqual(visuals);
+                expect(crossing.contactProgress.edge).toBe(contactProgress);
+                scene.pauseMenuActive = false;
+                expect(pause.release()).toBe(true);
+                expect(scene.updateRootwakeCrossing()).toBe(false);
+                expect(crossing.awakened).toBe(false);
+                expect(gameState.save).not.toHaveBeenCalled();
+                simulation.step((remaining - 1) / rate);
+                scene.updateRootwakeCrossing();
+                expect(crossing.awakened).toBe(false);
+                simulation.step(1 / rate);
+                scene.updateRootwakeCrossing();
+                expect(crossing.awakened).toBe(true);
+                for (const platform of crossing.platforms) {
+                    expect(platform.zone.body.enable).toBe(true);
+                    expect(platform.visual.y - 10).toBeCloseTo(platform.zone.body.top, 6);
+                }
+                expect(gameState.save).toHaveBeenCalledTimes(1);
+                expect(dependencies.recordCreaturePowerEvent).toHaveBeenCalledTimes(1);
+            } finally { simulation.close(); }
+        }
+    );
+
+    test.each(['removed', 'callback-dropped'])(
+        'an independent active-time fallback completes once when the primary timer is %s and tweens are cancelled', fault => {
+            const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+            const { scene, crossing, clock, gameState } = simulation;
+            try {
+                scene.player.setVelocityX(0);
+                scene.awakenRootwakeCrossing();
+                simulation.step(300);
+                const complete = crossing.completeAwakening;
+                const primary = crossing.sequenceTimers.find(timer => timer.callback);
+                const remaining = primary.getRemaining();
+                if (fault === 'removed') primary.remove();
+                else primary.callback = undefined;
+                crossing.platforms.forEach(platform => scene.tweens.killTweensOf(platform.visual));
+                scene.tweens.killTweensOf(crossing.contactProgress);
+                scene.pauseMenuActive = true;
+                const pause = PauseSession.open(scene);
+                simulation.step(5000);
+                scene.pauseMenuActive = false;
+                pause.release();
+                expect(clock.now).toBeGreaterThan(crossing.completesAt);
+                expect(scene.updateRootwakeCrossing()).toBe(false);
+                simulation.step(remaining - 1);
+                expect(scene.updateRootwakeCrossing()).toBe(false);
+                simulation.step(1);
+                expect(scene.updateRootwakeCrossing()).toBe(true);
+                expect(crossing.platforms.every(platform => platform.settled && platform.zone.body.enable)).toBe(true);
+                expect(crossing.platforms.every(platform => Math.abs(platform.visual.y - 10 - platform.zone.body.top) < 0.001)).toBe(true);
+                expect(complete()).toBe(false);
+                expect(gameState.save).toHaveBeenCalledTimes(1);
+            } finally { simulation.close(); }
+        }
+    );
+
+    test('repeated menus preserve the remaining active duration and save only once', () => {
+        const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+        const { scene, crossing, gameState } = simulation;
+        try {
+            scene.player.setVelocityX(0);
+            scene.awakenRootwakeCrossing();
+            for (const menuDuration of [200, 5000, 350]) {
+                simulation.step(250);
+                const remaining = crossing.sequenceClock.getRemaining();
+                scene.pauseMenuActive = true;
+                const pause = PauseSession.open(scene);
+                simulation.step(menuDuration);
+                scene.pauseMenuActive = false;
+                pause.release();
+                expect(crossing.sequenceClock.getRemaining()).toBe(remaining);
+                expect(scene.updateRootwakeCrossing()).toBe(false);
+                expect(gameState.save).not.toHaveBeenCalled();
+            }
+            simulation.step(999);
+            expect(scene.updateRootwakeCrossing()).toBe(false);
+            simulation.step(1);
+            scene.updateRootwakeCrossing();
+            expect(crossing.awakened).toBe(true);
+            simulation.step(5000);
+            scene.updateRootwakeCrossing();
+            expect(gameState.save).toHaveBeenCalledTimes(1);
+        } finally { simulation.close(); }
+    });
+
+    test('a required watchdog setup failure leaves a dormant, retryable crossing and remains an error', () => {
+        const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+        const { scene, crossing, clock, gameState } = simulation;
+        try {
+            const trigger = crossing.trigger;
+            const failure = new Error('SYNTHETIC_ROOTWAKE_CLOCK_FAILURE');
+            jest.spyOn(clock, 'addEvent').mockImplementationOnce(() => { throw failure; });
+            expect(() => scene.awakenRootwakeCrossing()).toThrow(failure);
+            expect(scene.rootwakeSequenceActive).toBe(false);
+            expect(crossing.state).toBe('dormant');
+            expect(crossing.trigger).toBe(trigger);
+            expect(trigger.destroy).not.toHaveBeenCalled();
+            expect(crossing.sequenceTimers).toHaveLength(0);
+            expect(gameState.save).not.toHaveBeenCalled();
+            expect(scene.awakenRootwakeCrossing()).toBe(true);
+        } finally { simulation.close(); }
+    });
+
+    test('a primary timer setup failure stays visible but the independent native fallback still opens the route', () => {
+        const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+        const { scene, crossing, clock, gameState } = simulation;
+        try {
+            scene.player.setVelocityX(0);
+            const failure = new Error('SYNTHETIC_ROOTWAKE_COMPLETION_FAILURE');
+            jest.spyOn(clock, 'delayedCall').mockImplementationOnce(() => { throw failure; });
+            expect(() => scene.awakenRootwakeCrossing()).toThrow(failure);
+            simulation.step(1749);
+            expect(scene.updateRootwakeCrossing()).toBe(false);
+            simulation.step(1);
+            expect(scene.updateRootwakeCrossing()).toBe(true);
+            expect(crossing.awakened).toBe(true);
+            expect(gameState.save).toHaveBeenCalledTimes(1);
+        } finally { simulation.close(); }
+    });
+
+    test('cleanup rejects callbacks from an earlier reveal even if the same crossing is started again', () => {
+        const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+        const { scene, crossing, gameState, tweens } = simulation;
+        try {
+            scene.awakenRootwakeCrossing();
+            const oldComplete = crossing.completeAwakening;
+            const oldSettle = tweens.find(tween => tween.targets === crossing.platforms[0].visual).onComplete;
+            const oldClock = crossing.sequenceClock;
+            const remove = jest.spyOn(oldClock, 'remove');
+            scene.clearRootwakeSequence();
+            expect(remove).toHaveBeenCalledTimes(1);
+            expect(crossing.sequenceClock).toBeNull();
+            expect(scene.awakenRootwakeCrossing()).toBe(true);
+            expect(crossing.sequenceClock).not.toBe(oldClock);
+            oldSettle();
+            expect(oldComplete()).toBe(false);
+            expect(crossing.platforms[0].zone.body.enable).toBe(false);
+            expect(gameState.save).not.toHaveBeenCalled();
+        } finally { simulation.close(); }
+    });
+
+    test('a replacement scene Clock cannot receive the old reveal completion', () => {
+        const simulation = physicsFixture({ awakened: false, reduced: false, nativeTiming: true });
+        const { scene, crossing, clock, gameState } = simulation;
+        try {
+            scene.awakenRootwakeCrossing();
+            const complete = crossing.completeAwakening;
+            scene.time = { now: 9000 };
+            simulation.step(1750);
+            expect(complete()).toBe(false);
+            expect(scene.updateRootwakeCrossing()).toBe(false);
+            expect(crossing.awakened).toBe(false);
+            expect(gameState.save).not.toHaveBeenCalled();
+        } finally { scene.time = clock; simulation.close(); }
+    });
+});
 
 describe('normal first approach with installed Arcade, Clock and TweenManager', () => {
     test.each(CADENCES.flatMap(([name, deltas]) => [22, 32].map(width =>
@@ -475,6 +665,7 @@ test.each([{ reduced: true }, { systemReduced: true }])('reduced motion is immed
     expect(crossing.platforms.every(platform => platform.zone.body.enable && platform.settled)).toBe(true);
     expect(tweens).toHaveLength(0);
     expect(timers).toHaveLength(0);
+    expect(scene.time.addEvent).not.toHaveBeenCalled();
     expect(gameState.save).toHaveBeenCalledTimes(1);
     expect(method('startRootwakeGravityWeather', dependencies).call(scene)).toBe(false);
 });
@@ -484,9 +675,10 @@ test('clock fallback finishes cancelled tweens, saves once and keeps old storage
     scene.awakenRootwakeCrossing();
     const complete = crossing.completeAwakening;
     const firstTween = tweens.find(tween => tween.targets === crossing.platforms[0].visual);
-    scene.time.now = 2749;
+    scene.time.now = 9000;
+    crossing.sequenceClock.elapsed = 1749;
     expect(scene.updateRootwakeCrossing()).toBe(false);
-    scene.time.now = 2750;
+    crossing.sequenceClock.elapsed = 1750;
     expect(scene.updateRootwakeCrossing()).toBe(true);
     expect(crossing.state).toBe('awake');
     for (const platform of crossing.platforms) {
@@ -505,15 +697,20 @@ test('clock fallback finishes cancelled tweens, saves once and keeps old storage
     expect(dependencies.recordCreaturePowerEvent).toHaveBeenCalledTimes(1);
 });
 
-test('pause cannot complete a crossing; resuming finishes safely once', () => {
+test('a due fallback waits for physics and clock to resume before finishing once', () => {
     const { scene, crossing, gameState } = fixture();
     scene.awakenRootwakeCrossing();
     scene.time.now = 4000;
+    crossing.sequenceClock.elapsed = 1750;
     scene.physics.world.isPaused = true;
     expect(crossing.completeAwakening()).toBe(false);
     expect(scene.updateRootwakeCrossing()).toBe(false);
     expect(gameState.save).not.toHaveBeenCalled();
     scene.physics.world.isPaused = false;
+    scene.time.paused = true;
+    expect(crossing.completeAwakening()).toBe(false);
+    expect(scene.updateRootwakeCrossing()).toBe(false);
+    scene.time.paused = false;
     expect(scene.updateRootwakeCrossing()).toBe(true);
     expect(gameState.save).toHaveBeenCalledTimes(1);
 });
@@ -542,6 +739,7 @@ test('an existing awakened save restores every branch without replay or another 
     expect(crossing.recovery.zone.body.enable).toBe(true);
     expect(scene.awakenRootwakeCrossing()).toBe(false);
     expect(timers).toHaveLength(0);
+    expect(scene.time.addEvent).not.toHaveBeenCalled();
     expect(gameState.save).not.toHaveBeenCalled();
 });
 
