@@ -274,7 +274,7 @@ describe('guardian encounter pacing contracts', () => {
         ['MythicalForestLevel.js', 'this.boss.isRecovering ? 1 : 0'],
         ['CrystalCavesLevel.js', 'this.boss.isRecovering ? 1 : 0'],
         ['VoidPeaksLevel.js', "!this.isTitanControlTimerPending('titanCounterWindowTimer')"],
-        ['AuroraDepthsLevel.js', 'this.time.now < this.bossRecoveryUntil ? 1 : 0']
+        ['AuroraDepthsLevel.js', 'this.phoenixRecoveryWindow?.remaining() > 0 ? 1 : 0']
     ])('%s recovery cue provides bonus stabilization damage', (fileName, contract) => {
         expect(readLevel(fileName)).toContain(contract);
     });

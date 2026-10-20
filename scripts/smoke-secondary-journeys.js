@@ -9882,16 +9882,17 @@ async function smokeAuroraRouteJourney(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
         scene.bossDefeated = false;
         scene.bossFightActive = true;
-        scene.boss = {
-            active: true,
-            x: scene.player.x + 60,
-            y: scene.player.y,
-            setTint: () => {},
-            clearTint: () => {}
-        };
+        // This is a route-charge fixture, not proof of a complete boss fight.
+        // Native bodies keep it inside the same combat ownership contract.
+        scene.boss = scene.add.zone(scene.player.x + 60, scene.player.y, 80, 100);
+        scene.physics.add.existing(scene.boss);
+        scene.boss.body.setAllowGravity(false);
+        scene.bossBody = scene.add.zone(scene.boss.x, scene.boss.y + 35, 160, 210);
+        scene.physics.add.existing(scene.bossBody);
+        scene.bossBody.body.setAllowGravity(false);
         scene.bossHealth = 12;
         scene.bossMaxHealth = 12;
-        scene.bossRecoveryUntil = 0;
+        scene.phoenixRecoveryWindow?.retire();
         scene.updateBossHealthBar = () => {};
         const auraActiveBefore = Boolean(scene.currentChargeAura?.active);
         scene.damageBoss(1);
@@ -23337,7 +23338,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'AuroraDepthsLevel',
         attack: 'flame_dive',
-        recoveryCheck: 'scene?.time?.now < scene?.bossRecoveryUntil'
+        recoveryCheck: '(scene?.phoenixRecoveryWindow?.remaining?.() || 0) > 0'
     },
     {
         sceneName: 'FinalVoidLevel',
