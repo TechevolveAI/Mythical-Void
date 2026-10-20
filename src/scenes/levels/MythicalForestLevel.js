@@ -1632,7 +1632,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     update(time, delta) {
         super.update(time, delta);
-        if (this.levelCompletionActive) return;
+        if (this.levelCompletionActive || this.pauseMenuActive) return;
         this.keepElderTreantRooted();
         this.keepForestArenaSafe();
         this.updateForestBossHazards();

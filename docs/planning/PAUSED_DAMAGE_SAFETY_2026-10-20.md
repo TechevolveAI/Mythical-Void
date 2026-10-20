@@ -40,6 +40,11 @@ bounded repair and review. It does not establish physical-phone acceptance,
 rendered quality, a complete campaign run or immunity to arbitrary external
 mutation of scene fields.
 
+The later [owned pause component](OWNED_EXPEDITION_PAUSE_2026-10-20.md) adds
+native timer/tween progress suspension and source-bound restoration. Its
+remaining absolute-time and human-review gates are explicit; it does not turn
+this earlier focused report into complete pause acceptance.
+
 Focused checks and the production compile are recorded against the exact local
 commit in a separate private report. Full integration/release checks and adult
 review remain required before promotion. Saves, identity, Fusion, media and

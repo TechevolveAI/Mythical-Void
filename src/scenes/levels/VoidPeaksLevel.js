@@ -2080,6 +2080,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
+        if (this.pauseMenuActive) { super.update(time, delta); return; }
         this.keepMountainArenaGrounded();
         this.updatePeakEnemyActivation();
         super.update(time, delta);

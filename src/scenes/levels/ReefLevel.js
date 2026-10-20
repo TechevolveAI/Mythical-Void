@@ -5046,7 +5046,7 @@ class ReefLevel extends PlatformerLevelScene {
 
     update(time, delta) {
         super.update(time, delta);
-        if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
+        if (!this.player || this.isPlayerDead || this.levelCompletionActive || this.pauseMenuActive) return;
 
         this.updateReefAscentCurrentGuidance();
         this.updateCosmicDust(delta);

@@ -537,6 +537,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
+        if (this.pauseMenuActive) { super.update(time, delta); return; }
         if (this.bossBody?.active && this.boss?.active) {
             this.bossBody.setPosition(this.boss.x, this.boss.y + 35);
         }
