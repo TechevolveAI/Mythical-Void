@@ -14,8 +14,10 @@ const notices = () => new Function('GeneratedStoryFilm', 'PreparedFilmPlayer', '
 const ready = { identityKey: 'test', momentId: 'guardian_rescue_cosmic_titan', stage: 'baby', assetRef: 'video-test' };
 const scene = () => {
     let paused = false;
-    return { events: new EventEmitter(), sys: { isActive: () => !paused, isPaused: () => paused },
-        scene: { pause: jest.fn(() => { paused = true; }), resume: jest.fn(() => { paused = false; }) } };
+    const events = new EventEmitter();
+    return { events, sys: { events, isActive: () => !paused, isPaused: () => paused,
+        pause: jest.fn(() => { paused = true; }), resume: jest.fn(() => { paused = false; }) },
+        scene: { pause: jest.fn(), resume: jest.fn() } };
 };
 
 afterEach(() => { document.body.replaceChildren(); jest.useRealTimers(); });
@@ -47,7 +49,7 @@ test('delivery uses the exact realm, not the newest global film; dismiss and exp
     document.querySelector('[aria-label="Dismiss film notice"]').click();
     expect(document.querySelector('.story-video-notice')).toBeNull();
     expect(ui.nextStoryVideo(service, 'voidPeaks')).toBeNull();
-    expect(s.scene.pause).not.toHaveBeenCalled();
+    expect(s.sys.pause).not.toHaveBeenCalled();
     notice.destroy();
     ui.showStoryVideoNotice(s, service, { ...ready, assetRef: 'another-clip' });
     jest.advanceTimersByTime(7001);
@@ -71,14 +73,14 @@ test('closing while resolution is pending restores gameplay and cannot resurrect
     const service = { resolveGeneratedVideo: jest.fn(() => new Promise(r => { resolve = r; })), recordAppearance: jest.fn() };
     const s = scene();
     const player = notices().openStoryVideo(s, service, ready);
-    expect(s.scene.pause).toHaveBeenCalledTimes(1);
+    expect(s.sys.pause).toHaveBeenCalledTimes(1);
     player.close();
     resolve({ videoUrl: 'https://example.test/film.mp4' });
     await Promise.resolve(); await Promise.resolve();
     expect(player.film.state).toBe('disposed');
     expect(player.film.video).toBeNull();
     expect(service.recordAppearance).not.toHaveBeenCalled();
-    expect(s.scene.resume).toHaveBeenCalledTimes(1);
+    expect(s.sys.resume).toHaveBeenCalledTimes(1);
 });
 
 test('missing media stays dismissible; shutdown never resumes a destroyed scene', async () => {
@@ -90,7 +92,7 @@ test('missing media stays dismissible; shutdown never resumes a destroyed scene'
     expect(player.closeButton.disabled).toBe(false);
     expect(service.recordAppearance).not.toHaveBeenCalled();
     s.events.emit('shutdown');
-    expect(s.scene.resume).not.toHaveBeenCalled();
+    expect(s.sys.resume).not.toHaveBeenCalled();
     expect(document.querySelector('.prepared-film-player')).toBeNull();
 });
 

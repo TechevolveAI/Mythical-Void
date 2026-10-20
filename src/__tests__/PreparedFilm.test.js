@@ -55,6 +55,13 @@ function setup({ video = fakeVideo(), overrides = {}, definition = asset } = {})
     return { film: new PreparedFilm(definition, options), options, video };
 }
 
+function playerScene(paused = false) {
+    const events = new EventEmitter();
+    return { events, sys: { events, isActive: () => !paused, isPaused: () => paused,
+        pause: jest.fn(() => { paused = true; }), resume: jest.fn(() => { paused = false; }) },
+        scene: { pause: jest.fn(), resume: jest.fn() } };
+}
+
 describe('PreparedFilm bounded shared media', () => {
     test('closing from the fetching notification prevents even the first media lookup', async () => {
         const { film, options } = setup();
@@ -301,8 +308,7 @@ describe('PreparedFilmPlayer ownership and escape', () => {
     test('scene shutdown during Watch cannot start hidden playback or resume the stopped scene', async () => {
         const { film, video } = setup();
         await film.prepare();
-        const scene = { events: new EventEmitter(), sys: { isActive: () => true, isPaused: () => true },
-            scene: { pause: jest.fn(), resume: jest.fn() } };
+        const scene = playerScene();
         const onClose = jest.fn();
         const player = new PreparedFilmPlayer({ film, title: 'Test film', scene, onClose });
         film.subscribe(state => { if (state === 'starting') scene.events.emit('shutdown'); });
@@ -315,38 +321,32 @@ describe('PreparedFilmPlayer ownership and escape', () => {
         expect(player.closed).toBe(true);
         expect(player.root.isConnected).toBe(false);
         expect(onClose).toHaveBeenCalledTimes(1);
-        expect(scene.scene.resume).not.toHaveBeenCalled();
+        expect(scene.sys.resume).not.toHaveBeenCalled();
         expect(scene.events.listenerCount('shutdown')).toBe(0);
         expect(scene.events.listenerCount('destroy')).toBe(0);
     });
 
     test('Continue disposes loading media and restores only its own scene pause', async () => {
         const { film } = setup();
-        const scene = {
-            sys: { isActive: () => true, isPaused: () => true },
-            scene: { pause: jest.fn(), resume: jest.fn() }, virtualJoystickX: 1, virtualJoystickY: -1
-        };
+        const scene = Object.assign(playerScene(), { virtualJoystickX: 1, virtualJoystickY: -1 });
         const player = new PreparedFilmPlayer({ film, title: 'Test film', scene });
-        expect(scene.scene.pause).toHaveBeenCalledTimes(1);
+        expect(scene.sys.pause).toHaveBeenCalledTimes(1);
         expect(scene.virtualJoystickX).toBe(0);
         expect(player.closeButton.disabled).toBe(false);
         player.closeButton.click();
         expect(film.state).toBe('disposed');
-        expect(scene.scene.resume).toHaveBeenCalledTimes(1);
+        expect(scene.sys.resume).toHaveBeenCalledTimes(1);
         player.close();
-        expect(scene.scene.resume).toHaveBeenCalledTimes(1);
+        expect(scene.sys.resume).toHaveBeenCalledTimes(1);
     });
 
     test('does not unpause a scene paused before the film; shutdown never resumes', () => {
         for (const previouslyActive of [false, true]) {
             const { film } = setup();
-            const scene = {
-                sys: { isActive: () => previouslyActive, isPaused: () => true },
-                scene: { pause: jest.fn(), resume: jest.fn() }
-            };
+            const scene = playerScene(!previouslyActive);
             const player = new PreparedFilmPlayer({ film, title: 'Test film', scene });
             player.close({ resume: !previouslyActive });
-            expect(scene.scene.resume).not.toHaveBeenCalled();
+            expect(scene.sys.resume).not.toHaveBeenCalled();
         }
     });
 

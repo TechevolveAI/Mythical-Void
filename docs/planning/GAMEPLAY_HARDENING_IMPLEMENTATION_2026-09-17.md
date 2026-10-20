@@ -30,7 +30,7 @@ on actual phones. No claim of perfect iOS support based on Chromium emulation.
 | 2 | Mobile input | Behavior-level regression coverage for downward/left hold, second finger, cancel, blur, visibility and layout changes. Repair only reproduced faults. Verify actual input rather than setting movement state directly. Physical iPhone/Android acceptance remains explicit. | Reproduced lifecycle fixes released; physical-phone signoff outstanding |
 | 3 | Level contracts | Record six canonical level IDs, prerequisites, boss/reward, installation, exit and recovery. Exercise existing pure campaign/reward code across all levels; preserve reward idempotency and replay. Do not redesign levels while certifying them. | Contracts and targeted fixes released; whole-campaign acceptance outstanding |
 | 4 | Creature continuity | Trace one immutable identity through hatch, active collection changes, Sanctuary, rescue and story media. Add targeted tests for stale asynchronous results, unavailable portraits, queued reveals, reload and scene teardown; never substitute another creature's portrait. | Async identity/media fixes released; remaining journeys and live media proof outstanding |
-| 5 | Media contracts | Inventory versioned portrait/video templates, bounded fictional traits, provider boundaries, limits and fallback. Make prompt changes reviewable separately from UI. Verify no player free text/identity enters provider payloads. Video is optional, skippable and cannot block play. No paid generation just to exercise a fallback. | Queued |
+| 5 | Media contracts | Inventory versioned portrait/video templates, bounded fictional traits, provider boundaries, limits and fallback. Make prompt changes reviewable separately from UI. Verify no player free text/identity enters provider payloads. Video is optional, skippable and cannot block play. No paid generation just to exercise a fallback. | Private prompt/projection/publication safeguards and inventory exist; live delivery and device acceptance outstanding. See 20/10 reconciliation below. |
 | 6 | Aggregate measurement | Reuse the existing first-party event boundary. Allowlist event names and enum values, strip unknown fields, and prove failures are nonblocking. No new stable identifier, tracker or transport. Agree the Google ObservabilitySink integration with Ops first. | Queued; adapter integration held |
 | 7 | Saves and performance | Recover and evaluate unmerged enterprise-hardening work, not blindly cherry-pick it. Verify write/read-back, recovery, version-bump fixtures and optional cloud startup isolation. Measure production transfer and cold playable time before budgets. Browser eviction cannot be promised away. | Queued |
 | 8 | Creative approval | Short, source-bound per-level briefs: one central idea, safe introduction, practice, complication and boss test. Record human decisions separately from automated results. No new creature topology, ending rewrite or building art without a specific creative review. | Queued |
@@ -133,7 +133,9 @@ The new gameplay-contracts workflow runs this with the full Jest suite and Vite
 build on PRs. This adds a workflow; it does not silently change protected-branch
 requirements or replace the existing opening-journey checks.
 
-Packages 5-8 have not started in this programme. The Google migration and human
+At the first released slice, packages 5-8 had not started in this programme. Later
+private media work is reconciled below; the dated release details remain historical.
+The Google migration and human
 creative approvals remain separate boundaries. Preserve the current playable
 release until the next candidate completes its normal review and release gates.
 
@@ -198,3 +200,23 @@ to resume, and cancellation releases their timers and listeners. This is a
 bounded extension of packages 1-2, not a level redesign, release, phone signoff
 or Google migration acceptance. Dated release details above remain historical;
 the private repair must use its own exact-source qualification and release gates.
+
+## Media Reconciliation, 20/10/2026
+
+Package 5 is no longer accurately described as entirely queued. The existing
+CREATURE_MEDIA_PROMPT_CONTRACT.json, closed provider trait projection, frozen
+96-case portrait prompt matrix and verified-publication safeguards are private
+implementation, not proof of live generation or the Google migration.
+
+See [Creature Media Readiness](CREATURE_MEDIA_READINESS_2026-10-20.md) for the
+actual journey map and source/edit points. Only Forest has a dedicated generated
+entry moment today; the other middle realms have rescue videos rather than new
+entry templates. Trumptopus arrival/victory are shared prepared files. This
+distinction prevents a static portrait or shared loop being presented as proof
+that every level has a personalised generated video.
+
+The separate private film-exit repair addresses a reproduced queued-pause race
+and source ownership in PreparedFilmPlayer. It does not change prompt versions,
+models, generation requests, assets, save contracts, level design or production.
+Native lifecycle/DOM tests do not approve phone playback, visual quality or a
+natural campaign. Full candidate results must identify the exact source commit.
