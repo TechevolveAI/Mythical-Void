@@ -66,6 +66,11 @@ Those windows require a separate source-bound audit and regression before
 calling overall encounter pause timing complete. A shared pause registry for
 every unrelated modal is not introduced here.
 
+The subsequent bounded Mountain counter/cooldown repair and its retained
+failed-readiness evidence are described in
+`MOUNTAIN_PAUSED_COMBAT_WINDOWS_2026-10-20.md`. Other levels' absolute deadlines
+are not qualified by that repair.
+
 Physical iOS/Android input, background/return behaviour, rendered menu quality,
 complete campaign playability and human judgement remain unverified. Passing
 tests do not approve those outcomes. Do not push, merge, deploy, activate Google

@@ -7,13 +7,17 @@ const opening = new Function(source.slice(start, end) + '; return guardianHandof
 
 test('Peaks completion proof waits for a naturally earned damage window', () => {
     const scene = { bossCombatReady: true, titanAttacksCompleted: 1, time: { now: 1000 },
-        titanRecoveryUntil: 2000, titanRecoveryDamage: 0, titanLastHitAt: 0 };
+        titanRecoveryUntil: 2000, titanRecoveryDamage: 0, titanLastHitAt: 0,
+        isTitanControlTimerPending: slot => slot === 'titanCounterWindowTimer',
+        titanCounterWindowTimer: { getRemaining: () => 1000 } };
     expect(opening(scene, 'voidPeaks')).toBe(true);
     for (const closed of [{ bossCombatReady: false }, { titanAttacksCompleted: 0 },
-        { titanRecoveryUntil: 0 }, { titanRecoveryUntil: 1100 }, { titanRecoveryDamage: 4 },
-        { titanPhaseRecoveryTimer: {} }, { titanLastHitAt: 900 }]) {
+        { isTitanControlTimerPending: () => false }, { titanCounterWindowTimer: { getRemaining: () => 250 } },
+        { titanRecoveryDamage: 4 }, { titanPhaseRecoveryTimer: {} }, { isTitanControlTimerPending: () => true },
+        { pauseMenuActive: true }, { time: { paused: true } }, { physics: { world: { isPaused: true } } }]) {
         expect(opening({ ...scene, ...closed }, 'voidPeaks')).toBe(false);
     }
+    expect(opening({ ...scene, time: { now: 10000 }, titanRecoveryUntil: 2000 }, 'voidPeaks')).toBe(true);
 });
 
 test('Forest proof still requires entrance, a real attack and recovery without transition', () => {

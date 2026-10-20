@@ -175,7 +175,7 @@ async function main() {
         for (let windowIndex = 0; windowIndex < 7; windowIndex++) {
             if (await page.evaluate(() => testScene.bossDefeated)) break;
             await page.evaluate(() => { testScene.health = testScene.maxHealth; });
-            await page.waitForFunction(() => testScene.time.now < testScene.titanRecoveryUntil && testScene.titanRecoveryDamage === 0, null, { timeout: 15000 });
+            await page.waitForFunction(() => testScene.isTitanControlTimerPending('titanCounterWindowTimer') && testScene.titanRecoveryDamage === 0, null, { timeout: 15000 });
             await page.evaluate(() => {
                 const s = testScene;
                 s.player.setX(s.boss.x + 72); s.player.facingRight = false;

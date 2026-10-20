@@ -2759,6 +2759,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         [...(this.titanControlTimers?.values() || [])].forEach(owner => owner.retire());
     }
 
+    isTitanControlTimerPending(slot) {
+        const owner = this.titanControlTimers?.get(slot);
+        return Boolean(owner?.isCurrent() && owner.timer.getRemaining() > 0);
+    }
+
     scheduleTitanControlTimer(slot, delay, callback, { loop = false, phaseBound = true, encounterTimer = false } = {}) {
         this.cancelTitanControlTimer(slot);
         const owners = this.titanControlTimers ||= new Map();
@@ -2778,6 +2783,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const isCurrent = () => !owner.retired && this.titanControlTimers === owners && owners.get(slot) === owner &&
             (this[slot] === owner.timer || (owner.delivering && this[slot] === null)) &&
             (!encounterTimer || (this.bossEncounterTimers === timers && (owner.delivering || timers.has(owner.timer)))) && ownsContext();
+        owner.isCurrent = isCurrent;
         owner.retire = () => {
             if (owner.retired) return;
             owner.retired = true;
@@ -2811,6 +2817,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     clearBossEncounterTimers() {
         this.cancelTitanControlTimer('titanAttackRecoveryTimer');
+        this.cancelTitanControlTimer('titanCounterWindowTimer');
+        this.cancelTitanControlTimer('titanHitCooldownTimer');
         this.bossEncounterTimers.forEach(timer => timer?.remove?.(false));
         this.bossEncounterTimers.clear();
     }
@@ -2861,8 +2869,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             !this.boss?.active ||
             !this.player?.active ||
             this.bossDefeated ||
+            this.pauseMenuActive || this.time.paused || this.physics?.world?.isPaused ||
             this.titanAttackLocked ||
-            this.time.now < this.titanRecoveryUntil
+            this.isTitanControlTimerPending('titanCounterWindowTimer')
         ) return;
 
         const windupContext = this.captureMountainAttackContext();
@@ -2966,7 +2975,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 if (!recoveryCurrent()) return;
                 this.titanAttacksCompleted += 1;
                 this.titanRecoveryDamage = 0;
+                // Clock.now advances behind a menu; native remaining time does not.
                 this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
+                this.scheduleTitanControlTimer('titanCounterWindowTimer', TITAN_RECOVERY_WINDOW,
+                    () => { this.titanRecoveryUntil = 0; }, { encounterTimer: true });
+                if (!recoveryCurrent()) return;
                 this.bossSubtitle?.setText?.('Your turn! Strike now');
                 if (recoveryCurrent()) this.tweens.add({ targets: this.boss, angle: 0, duration: 250 });
             }, { encounterTimer: true });
@@ -3307,9 +3320,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     damageBoss(amount) {
         if (!this.boss?.active || this.bossDefeated) return false;
         if (!this.bossCombatReady || !this.titanAttacksCompleted ||
-            this.time.now >= this.titanRecoveryUntil || this.titanPhaseRecoveryTimer ||
-            this.titanRecoveryDamage >= 4 || this.time.now - this.titanLastHitAt < 350 ||
+            this.pauseMenuActive || this.time.paused || this.physics?.world?.isPaused ||
+            this.isPlayerDead || this.levelCompletionActive || this.sys?.isActive?.() === false ||
+            !this.isTitanControlTimerPending('titanCounterWindowTimer') || this.titanPhaseRecoveryTimer ||
+            this.titanRecoveryDamage >= 4 || this.isTitanControlTimerPending('titanHitCooldownTimer') ||
             !Number.isFinite(amount) || amount <= 0) return false;
+        if (!this.scheduleTitanControlTimer('titanHitCooldownTimer', 350, () => {}, { encounterTimer: true })) return false;
         const recoveryBonus = 1;
         const finalAmount = Math.min(4 - this.titanRecoveryDamage, Math.min(3, amount) + recoveryBonus);
         this.titanRecoveryDamage += finalAmount;

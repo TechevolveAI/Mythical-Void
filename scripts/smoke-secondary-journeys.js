@@ -14411,8 +14411,10 @@ async function startGuardianHandoffEncounter(session, step) {
 function guardianHandoffOpening(scene, route) {
     if (route === 'voidPeaks') return Boolean(
         scene.bossCombatReady && scene.titanAttacksCompleted > 0 &&
-        scene.time.now + 250 < scene.titanRecoveryUntil && !scene.titanPhaseRecoveryTimer &&
-        scene.titanRecoveryDamage < 4 && scene.time.now - scene.titanLastHitAt >= 350
+        !scene.pauseMenuActive && !scene.time?.paused && !scene.physics?.world?.isPaused &&
+        scene.isTitanControlTimerPending('titanCounterWindowTimer') &&
+        scene.titanCounterWindowTimer.getRemaining() > 250 && !scene.titanPhaseRecoveryTimer &&
+        scene.titanRecoveryDamage < 4 && !scene.isTitanControlTimerPending('titanHitCooldownTimer')
     );
     return Boolean(scene.bossEntranceComplete && scene.boss?.isRecovering &&
         scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning);
@@ -23330,7 +23332,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
         sceneName: 'VoidPeaksLevel',
         attack: 'gravityCrush',
         arenaSupportId: 'peak-titan-gate',
-        recoveryCheck: 'scene?.time?.now < scene?.titanRecoveryUntil'
+        recoveryCheck: 'scene?.isTitanControlTimerPending?.("titanCounterWindowTimer") === true'
     },
     {
         sceneName: 'AuroraDepthsLevel',
