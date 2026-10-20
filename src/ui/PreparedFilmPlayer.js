@@ -50,6 +50,9 @@ export class PreparedFilmPlayer {
         };
         this.onSceneResume = () => { if (!this.closed) this.ownsPause = false; };
         this.onKey = event => {
+            if (this.closed || !this.root.isConnected || !this.isSceneCurrent()) return;
+            const dialogs = document.querySelectorAll('.prepared-film-player');
+            if (dialogs[dialogs.length - 1] !== this.root) return;
             if (event.key === 'Escape') {
                 event.preventDefault();
                 event.stopPropagation();
@@ -59,7 +62,9 @@ export class PreparedFilmPlayer {
                 const buttons = [this.action, this.closeButton].filter(button => !button.disabled);
                 const index = buttons.indexOf(document.activeElement);
                 event.preventDefault();
-                buttons[(index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus();
+                const next = index < 0 ? (event.shiftKey ? buttons.length - 1 : 0)
+                    : (index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length;
+                buttons[next].focus();
             }
         };
         try {
@@ -88,7 +93,8 @@ export class PreparedFilmPlayer {
                 return;
             }
             document.addEventListener('visibilitychange', this.onHidden);
-            this.root.addEventListener('keydown', this.onKey);
+            // Disabling Watch during startup can move browser focus to body.
+            document.addEventListener('keydown', this.onKey, true);
             document.body.append(this.root);
             this.render();
             if (!this.closed) this.closeButton.focus();
@@ -162,7 +168,7 @@ export class PreparedFilmPlayer {
         release(() => this.sceneSource.events?.off?.('shutdown', this.onShutdown));
         release(() => this.sceneSource.events?.off?.('destroy', this.onShutdown));
         release(() => this.sceneSource.events?.off?.('resume', this.onSceneResume));
-        release(() => this.root.removeEventListener('keydown', this.onKey));
+        release(() => document.removeEventListener('keydown', this.onKey, true));
         release(() => this.root.remove());
         release(() => {
             if (resume && !this.sceneRetired && this.ownsPause && this.isSceneCurrent() &&

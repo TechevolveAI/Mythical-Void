@@ -357,6 +357,51 @@ describe('PreparedFilmPlayer ownership and escape', () => {
         expect(player.closed).toBe(true);
         expect(document.querySelector('[role=dialog]')).toBe(null);
     });
+
+    test('Escape still exits when starting playback has moved focus out of the dialog', () => {
+        const { film } = setup();
+        const scene = playerScene();
+        const player = new PreparedFilmPlayer({ film, title: 'Test film', scene });
+        try {
+            player.action.focus();
+            film.setState('starting');
+            // jsdom does not blur a newly disabled button as Chrome does.
+            player.closeButton.focus();
+            player.closeButton.blur();
+            expect(document.activeElement).toBe(document.body);
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(player.closed).toBe(true);
+            expect(scene.sys.resume).toHaveBeenCalledTimes(1);
+        } finally { player.close(); }
+    });
+
+    test.each([false, true])('Tab recovers film controls after focus leaves the dialog (backwards: %s)', shiftKey => {
+        const { film } = setup();
+        const player = new PreparedFilmPlayer({ film, title: 'Test film' });
+        try {
+            player.closeButton.blur();
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true }));
+            expect(document.activeElement).toBe(shiftKey ? player.closeButton : player.action);
+        } finally { player.close(); }
+    });
+
+    test('only the topmost film handles Escape and a closed film releases its listener', () => {
+        const first = new PreparedFilmPlayer({ film: setup().film, title: 'First film' });
+        const second = new PreparedFilmPlayer({ film: setup().film, title: 'Second film' });
+        const firstClose = jest.spyOn(first, 'close');
+        const secondClose = jest.spyOn(second, 'close');
+        try {
+            second.closeButton.blur();
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(second.closed).toBe(true);
+            expect(first.closed).toBe(false);
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(first.closed).toBe(true);
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(firstClose).toHaveBeenCalledTimes(1);
+            expect(secondClose).toHaveBeenCalledTimes(1);
+        } finally { first.close(); second.close(); }
+    });
 });
 
 describe('FinaleFilms content gates', () => {
