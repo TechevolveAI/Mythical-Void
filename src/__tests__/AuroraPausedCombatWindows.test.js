@@ -324,6 +324,8 @@ describe('Aurora authored combat uses active recovery time', () => {
         const f = fixture(), { scene } = f;
         try {
             scene.damageBoss(1); scene.executeBossAttack('flame_dive');
+            expect(scene.boss.setTint).toHaveBeenCalledWith(0xA9F3E4);
+            expect(scene.boss.setTint).not.toHaveBeenCalledWith(0xFF0000);
             f.advance(100); expect(scene.boss.clearTint).toHaveBeenCalledTimes(1);
         } finally { f.close(); }
     });
@@ -333,6 +335,18 @@ describe('Aurora authored combat uses active recovery time', () => {
         try {
             scene.bossHealth = 61; scene.damageBoss(1); expect(scene.bossPhase).toBe(2);
             f.advance(100); expect(scene.boss.clearTint).not.toHaveBeenCalled();
+        } finally { f.close(); }
+    });
+
+    test.each(['windup', 'phase'])('%s cancels the captured boss hover, not an unrelated player tween', change => {
+        const f = fixture(), { scene } = f;
+        try {
+            f.tweens.add({ targets: scene.boss, y: 770, duration: 2000, yoyo: true, repeat: -1 });
+            f.tweens.add({ targets: scene.player, alpha: 0.5, duration: 2000 });
+            if (change === 'windup') scene.executeBossAttack('flame_dive');
+            else scene.triggerPhase2();
+            expect(f.tweens.getTweensOf(scene.boss)).toHaveLength(0);
+            expect(f.tweens.getTweensOf(scene.player)).toHaveLength(1);
         } finally { f.close(); }
     });
 });

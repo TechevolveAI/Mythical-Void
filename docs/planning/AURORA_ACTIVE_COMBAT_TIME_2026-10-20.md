@@ -61,6 +61,15 @@ combined earlier eight-suite run still had one new fixture-shape failure and
 is not relabelled as entirely green. Full-suite/build results belong to the
 exact-source qualification report.
 
+The first frozen full run at `83d051cf` passed 379 suites and 6213 tests, with
+three assertions failing across two suites. They expected direct `this.boss`
+spellings for hit tint and hover cancellation rather than the captured source
+actor. The subsequent test-only correction follows the source-bound calls and
+adds native assertions for the unchanged hit colour and cancellation of the
+boss hover without cancelling an unrelated player tween. The failing full log
+is retained, not relabelled green. The production build did not run for that
+failed source. Later focused/full results belong to the successor's report.
+
 Fixture-only corrections retained the original assertions: the missing inert
 entry-cleanup callback, a checkpoint getter returning its proper object shape,
 and fault injection targeting the required 700ms/3250ms timers instead of the
