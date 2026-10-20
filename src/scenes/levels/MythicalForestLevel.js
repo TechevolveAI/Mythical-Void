@@ -1,5 +1,6 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
 import { createForestCompletionHandler } from '../controllers/ForestCompletionTransaction.js';
+import ForestCombatTime from '../controllers/ForestCombatTime.js';
 import {
     FIRST_EXPEDITION_DRILL_STATE_PATH,
     FIRST_EXPEDITION_DRILL_STEPS,
@@ -6257,12 +6258,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     destroyForestBossTelegraph(graphic) {
         if (!graphic) return;
-        this.tweens.killTweensOf?.(graphic);
+        let tweenManager = this.tweens;
+        this.bossHazards?.forEach(hazard => {
+            if (hazard.graphic !== graphic) return;
+            tweenManager = hazard.context.tweens;
+            hazard.lifetime?.retire();
+            hazard.hitCooldown?.retire();
+            this.bossHazards.delete(hazard);
+        });
+        tweenManager.killTweensOf?.(graphic);
         this.bossTelegraphs.delete(graphic);
         graphic.destroy?.();
     }
 
     clearForestBossPacing({ includePhase = false } = {}) {
+        this.forestBossHitCooldown?.retire();
+        this.forestBossHitCooldown = null;
+        this.bossHazards?.forEach(hazard => {
+            hazard.lifetime?.retire();
+            hazard.hitCooldown?.retire();
+        });
         this.bossAttackPoseTween?.stop?.();
         this.bossAttackPoseTween = null;
         this.boss?.setAngle?.(0);
@@ -6441,24 +6456,40 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     addForestBossHazard(graphic, bounds, duration) {
+        const context = ForestCombatTime.capture(this);
+        let lifetime;
+        try { lifetime = ForestCombatTime.open(context, duration); }
+        catch (error) {
+            try { graphic.destroy?.(); } catch { /* Preserve the required timer failure. */ }
+            throw error;
+        }
+        if (!lifetime) { graphic.destroy?.(); return false; }
         this.bossTelegraphs.add(graphic);
-        this.bossHazards.add({ graphic, bounds, expiresAt: this.time.now + duration, nextHitAt: 0 });
+        this.bossHazards.add({ graphic, bounds, context, lifetime, hitCooldown: null,
+            expiresAt: this.time.now + duration, nextHitAt: 0 });
+        return true;
     }
 
     updateForestBossHazards() {
-        if (!this.bossFightActive || this.bossDefeated || this.levelCompletionActive ||
-            this.physics.world.isPaused || !this.player?.body?.enable) return;
+        if (!this.boss?.active || !this.bossFightActive || this.bossDefeated || this.levelCompletionActive ||
+            this.isPlayerDead || this.pauseMenuActive || this.time.paused || this.physics.world.isPaused ||
+            this.sys?.isActive?.() === false || !this.boss.body?.enable || !this.player?.active ||
+            !this.player.body?.enable) return;
         const body = this.player.body;
         this.bossHazards?.forEach(hazard => {
-            if (!hazard.graphic.active || this.time.now >= hazard.expiresAt) {
+            if (!hazard.graphic.active || !hazard.context.isCurrent() || hazard.lifetime.remaining() <= 0) {
                 this.destroyForestBossTelegraph(hazard.graphic);
                 this.bossHazards.delete(hazard);
                 return;
             }
             const bounds = hazard.bounds();
-            if (this.time.now >= hazard.nextHitAt && !this.isInvincible &&
+            if (!(hazard.hitCooldown?.remaining() > 0) && !this.isInvincible &&
                 body.right > bounds.left && body.left < bounds.right &&
                 body.bottom > bounds.top && body.top < bounds.bottom) {
+                const cooldown = ForestCombatTime.open(hazard.context, 1000);
+                if (!cooldown) return;
+                hazard.hitCooldown?.retire();
+                hazard.hitCooldown = cooldown;
                 hazard.nextHitAt = this.time.now + 1000;
                 this.handlePlayerDamage(1);
             }
@@ -6493,11 +6524,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Handle boss taking damage - with exciting combat juice!
      */
     damageBoss(amount = 1) {
-        if (!this.boss?.active || this.bossDefeated || !this.bossEntranceComplete ||
+        const context = ForestCombatTime.capture(this);
+        if (!context.canAct() || !this.boss?.active || this.bossDefeated || !this.bossEntranceComplete ||
             !this.bossFightActive || this.bossPhaseTransitioning ||
             !this.boss.isRecovering || !this.bossPhaseAttackCount ||
             (this.forestRecoveryDamage || 0) >= 4 ||
-            this.time.now < this.forestBossNextHitAt || !Number.isFinite(amount) || amount <= 0) return false;
+            this.forestBossHitCooldown?.remaining() > 0 || !Number.isFinite(amount) || amount <= 0) return false;
+
+        const cooldown = ForestCombatTime.open(context, 400);
+        if (!cooldown) return false;
+        this.forestBossHitCooldown?.retire();
+        this.forestBossHitCooldown = cooldown;
 
         const boss = this.boss, player = this.player, clock = this.time;
         const sameBinding = () => this.boss === boss && this.player === player && this.time === clock && boss.active;

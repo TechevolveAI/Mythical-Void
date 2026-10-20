@@ -1,13 +1,23 @@
 const fs = require('fs');
 const path = require('path');
 const { parse } = require('@babel/parser');
+const EventEmitter = require('eventemitter3');
+const Clock = require('phaser/src/time/Clock');
+const { ForestCombatTime } = require('./support/forestCombatFixture.cjs');
+const fixtures = [];
+afterEach(() => {
+    fixtures.splice(0).forEach(scene => {
+        method('clearForestBossPacing').call(scene, { includePhase: true });
+        scene.time.destroy();
+    });
+});
 
 const source = fs.readFileSync(path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'), 'utf8');
 const declaration = parse(source, { sourceType: 'module' }).program.body.find(n => n.type === 'ClassDeclaration');
 const Phaser = { Math: { Clamp: (v, min, max) => Math.min(max, Math.max(min, v)) } };
 function method(name, dependencies = {}) {
     const node = declaration.body.body.find(n => n.key?.name === name);
-    const scope = { Phaser, window: {}, ...dependencies };
+    const scope = { Phaser, ForestCombatTime, window: {}, ...dependencies };
     return new Function(...Object.keys(scope), `return ({${source.slice(node.start, node.end)}}).${name};`)(...Object.values(scope));
 }
 
@@ -23,10 +33,12 @@ function graphic() {
 
 function arena() {
     const body = { enable: true, left: 5500, right: 5540, top: 1040, bottom: 1100, reset: jest.fn() };
-    return {
-        time: { now: 1000 }, physics: { world: { isPaused: false } },
-        player: { x: 5520, y: 1049, body, setVelocity: jest.fn() },
-        boss: { active: true, isRecovering: true }, bossFightActive: true,
+    const events = new EventEmitter(), world = { isPaused: false };
+    body.world = world;
+    const scene = {
+        events, sys: { events, isActive: () => true }, scene: {}, physics: { world },
+        player: { active: true, x: 5520, y: 1049, body, setVelocity: jest.fn() },
+        boss: { active: true, isRecovering: true, body: { enable: true, world } }, bossFightActive: true,
         bossEntranceComplete: true, bossPhaseAttackCount: 1, bossPhase: 1,
         bossHealth: 18, bossMaxHealth: 18, forestBossNextHitAt: 0, forestBossHits: 0,
         getForestArenaFloor: () => ({ top: 1100, left: 5200, right: 8000 }),
@@ -37,6 +49,13 @@ function arena() {
         showFloatingText: jest.fn(), bossHazards: new Set(), bossTelegraphs: new Set(),
         handlePlayerDamage: jest.fn(), tweens: { add: jest.fn(), killTweensOf: jest.fn() }
     };
+    scene.time = new Clock(scene);
+    scene.time.now = 1000;
+    scene.advance = delta => {
+        scene.time.preUpdate(); scene.time.update(scene.time.now + delta, delta); scene.time.preUpdate();
+    };
+    fixtures.push(scene);
+    return scene;
 }
 
 test('body placement retains hitbox offset and synchronizes all three physics history vectors', () => {
@@ -95,7 +114,7 @@ test.each(['entrance', 'attacking', 'phase-change', 'not-attacked', 'cooldown', 
     if (state === 'attacking') s.boss.isRecovering = false;
     if (state === 'phase-change') s.bossPhaseTransitioning = true;
     if (state === 'not-attacked') s.bossPhaseAttackCount = 0;
-    if (state === 'cooldown') s.forestBossNextHitAt = 1001;
+    if (state === 'cooldown') s.forestBossHitCooldown = ForestCombatTime.open(ForestCombatTime.capture(s), 1);
     if (state === 'defeated') s.bossDefeated = true;
     expect(method('damageBoss').call(s, 100)).toBe(false);
     expect(s.bossHealth).toBe(18);
@@ -107,13 +126,13 @@ test('openings reward upgraded hits without allowing frame spam or skipping both
     expect(damage.call(s, 3)).toBe(true);
     expect(s.bossHealth).toBe(14);
     expect(damage.call(s, 3)).toBe(false);
-    s.time.now += 400;
+    s.advance(400);
     expect(damage.call(s, 1)).toBe(false);
     expect(s.bossHealth).toBe(14);
     s.forestRecoveryDamage = 0; // A second completed attack opens another window.
     expect(damage.call(s, 1)).toBe(true);
     expect(s.bossHealth).toBe(12);
-    s.time.now += 400;
+    s.advance(400);
     damage.call(s, 100);
     expect(s.bossHealth).toBe(10);
     expect(s.requestForestBossPhase2).not.toHaveBeenCalled();
@@ -156,10 +175,10 @@ test('moving hazards hit the body in flight, not only at a tween endpoint; jumpi
     update.call(s);
     expect(s.handlePlayerDamage).toHaveBeenCalledTimes(1);
     s.player.body.bottom = 1060;
-    s.time.now += 1000;
+    s.advance(1000);
     update.call(s);
     expect(s.handlePlayerDamage).toHaveBeenCalledTimes(1);
-    s.time.now += 51;
+    s.advance(51);
     update.call(s);
     expect(s.bossHazards.size).toBe(0);
     expect(vine.destroy).toHaveBeenCalled();
