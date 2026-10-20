@@ -7572,15 +7572,19 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.pauseMenuActive = true;
         this.pauseMenuView = 'pause';
 
-        this.hidePlatformerMobileControls();
         try {
+            this.hidePlatformerMobileControls();
+            if (!session.isCurrent()) { session.retire(); return; }
             this.drawPauseMenu();
         } catch (error) {
-            try { this.clearPauseMenuElements(); } catch { /* Keep the original drawing error visible. */ }
             if (session.isCurrent()) {
-                this.pauseMenuActive = false;
-                try { session.release(); } catch { /* Restoration already attempted every owned resource. */ }
+                try { this.clearPauseMenuElements(); } catch { /* Keep the original setup error visible. */ }
+                if (session.isCurrent()) {
+                    this.pauseMenuActive = false;
+                    try { session.release(); } catch { /* Restoration already attempted every owned resource. */ }
+                }
             }
+            if (!session.isCurrent()) session.retire();
             throw error;
         }
     }

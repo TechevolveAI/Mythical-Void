@@ -21,7 +21,7 @@ function fixture({ nativeTweenTime = false } = {}) {
     const uiWindow = new EventTarget();
     uiWindow.InventoryManager = { getAllItems: () => [] };
     const names = ['showPauseMenu', 'drawPauseMenu', 'hidePauseMenu', 'clearPauseMenuElements', 'returnToPauseMenu',
-        'showPowerupMenu', 'getPowerupMenuLayout'];
+        'showPowerupMenu', 'getPowerupMenuLayout', 'hidePlatformerMobileControls', 'showPlatformerMobileControls'];
     const methods = Object.fromEntries(cls.body.body.filter(node => names.includes(node.key?.name)).map(node => [
         node.key.name, new Function('window', 'console', 'PlatformerPauseSession',
             `return ({${source.slice(node.start, node.end)}}).${node.key.name};`)(uiWindow, { log() {} }, PauseSession)
@@ -57,7 +57,7 @@ function fixture({ nativeTweenTime = false } = {}) {
     tweens.add({ targets: target, x: 100, duration: 1000 });
     const tick = jest.fn();
     const timer = clock.delayedCall(1000, tick);
-    const result = { scene, world, clock, tweens, target, timer, tick, uiWindow,
+    const result = { scene, world, clock, tweens, target, timer, tick, uiWindow, methods,
         step(delta) {
             if (!scene.sys.isActive()) return;
             if (nativeTweenTime) jest.advanceTimersByTime(delta);
@@ -234,6 +234,60 @@ describe('shared expedition pause owns only its native simulation state', () => 
         expect(f.world.isPaused || f.clock.paused || f.tweens.paused).toBe(false);
         expect(f.scene.platformerControlsVisible).toBe(true);
         expect(f.scene.pauseMenuElements).toHaveLength(0);
+    });
+
+    test.each(Array.from({ length: 8 }, (_, mask) => mask))(
+        'a native control-hide failure restores original simulation combination %s', mask => {
+            const f = fixture(), failure = Error('SYNTHETIC_CONTROL_HIDE_FAILURE');
+            const before = { world: Boolean(mask & 1), clock: Boolean(mask & 2), tweens: Boolean(mask & 4) };
+            if (before.world) f.world.pause();
+            f.clock.paused = before.clock;
+            f.tweens.paused = before.tweens;
+            f.tweens.timeScale = 0.5;
+            f.scene.isMobile = true;
+            f.scene.hidePlatformerMobileControls = f.methods.hidePlatformerMobileControls;
+            f.scene.showPlatformerMobileControls = jest.fn(f.methods.showPlatformerMobileControls);
+            f.scene.releaseAllPlatformerActionButtons = jest.fn();
+            f.scene.resetJoystick = jest.fn();
+            const control = { input: { enabled: true }, setAlpha: jest.fn()
+                .mockImplementationOnce(() => { throw failure; }).mockReturnThis() };
+            f.scene.mobileControlElements = [control];
+            expect(() => f.scene.showPauseMenu()).toThrow(failure);
+            expect(f.scene.pauseMenuActive).toBe(false);
+            expect(f.scene.pauseMenuSession).toBeNull();
+            expect(f.world.isPaused).toBe(before.world);
+            expect(f.clock.paused).toBe(before.clock);
+            expect(f.tweens.paused).toBe(before.tweens);
+            expect(f.tweens.timeScale).toBe(0.5);
+            expect(f.scene.platformerControlsVisible).toBe(true);
+            expect(control.setAlpha).toHaveBeenLastCalledWith(1);
+            expect(control.input.enabled).toBe(true);
+            expect(f.scene.pauseMenuElements).toHaveLength(0);
+            expect(f.world.listenerCount('pause') + f.world.listenerCount('resume')).toBe(0);
+        }
+    );
+
+    test.each([false, true])('control hiding that replaces the menu cannot mutate its successor (throws=%s)', throws => {
+        const f = fixture(), failure = Error('SYNTHETIC_RETIRED_CONTROL_HIDE');
+        const replacement = { isCurrent: () => true, retire: jest.fn() };
+        const survivor = { destroy: jest.fn() };
+        const elements = [survivor];
+        const draw = jest.spyOn(f.scene, 'drawPauseMenu');
+        f.scene.hidePlatformerMobileControls = () => {
+            f.scene.pauseMenuSession = replacement;
+            f.scene.pauseMenuElements = elements;
+            if (throws) throw failure;
+        };
+        if (throws) expect(() => f.scene.showPauseMenu()).toThrow(failure);
+        else expect(() => f.scene.showPauseMenu()).not.toThrow();
+        expect(draw).not.toHaveBeenCalled();
+        expect(f.scene.pauseMenuSession).toBe(replacement);
+        expect(f.scene.pauseMenuActive).toBe(true);
+        expect(f.scene.pauseMenuElements).toBe(elements);
+        expect(survivor.destroy).not.toHaveBeenCalled();
+        expect(f.scene.showPlatformerMobileControls).not.toHaveBeenCalled();
+        expect(f.world.isPaused && f.clock.paused && f.tweens.timeScale === 0).toBe(true);
+        expect(f.world.listenerCount('pause') + f.world.listenerCount('resume')).toBe(0);
     });
 
     test('retained buttons from an earlier pause view cannot close or reroute its replacement', () => {
