@@ -103,7 +103,7 @@ describe('Reef hit feedback owns one flash without controlling damage', () => {
     test('the existing exposed-current bonus remains one extra damage', () => {
         const f = setup();
         try {
-            f.scene.bossRecoveryUntil = 1000;
+            f.scene.getReefGuardianControl().holdWindow('recovery', 1000);
             expect(f.scene.damageBoss(2)).toBe(true); expect(f.scene.bossHealth).toBe(97);
             expect(f.scene.showFloatingText).toHaveBeenCalledWith('EXPOSED CURRENT -3', 500, 115, '#F0B6FF');
         } finally { f.close(); }

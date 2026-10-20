@@ -1,6 +1,7 @@
 const REEF_CONTROL_TIMER_FIELDS = Object.freeze({
     ai: 'bossAttackTimer', preview: 'bossAttackPreviewTimer', unlock: 'bossAttackUnlockTimer',
-    phase: 'bossPhaseTransitionTimer', instruction: 'bossInstructionTimer'
+    phase: 'bossPhaseTransitionTimer', instruction: 'bossInstructionTimer',
+    recovery: 'bossRecoveryTimer', phaseGrace: 'bossPhaseAdvanceTimer'
 });
 
 export default class ReefGuardianControl {
@@ -90,6 +91,29 @@ export default class ReefGuardianControl {
 
     after(key, delay, callback) { return this.schedule(key, delay, callback); }
     every(key, delay, callback) { return this.schedule(key, delay, callback, true); }
+
+    remaining(key) {
+        const record = this.timers.get(key), context = record?.windowContext, scene = this.scene;
+        if (!record?.active || !context || !this.isCurrent() ||
+            scene[REEF_CONTROL_TIMER_FIELDS[key]] !== record.timer || scene.time !== context.clock ||
+            scene.events !== context.events || scene.sys !== context.systems ||
+            scene.physics?.world !== context.world || this.body?.body !== context.body ||
+            this.player?.body !== context.playerBody || scene.bossPhase !== context.phase) return 0;
+        return Math.max(0, record.timer.getRemaining());
+    }
+
+    holdWindow(key, duration) {
+        if (!['recovery', 'phaseGrace'].includes(key) || !Number.isFinite(duration) || duration <= 0) {
+            throw new RangeError('Invalid Reef combat window');
+        }
+        const scene = this.scene;
+        const context = { clock: scene.time, events: scene.events, systems: scene.sys,
+            world: scene.physics?.world, body: this.body?.body, playerBody: this.player?.body, phase: scene.bossPhase };
+        const timer = this.after(key, Math.max(duration, this.remaining(key)), () => {});
+        const record = this.timers.get(key);
+        if (record?.timer === timer) record.windowContext = context;
+        return timer;
+    }
 
     afterReady(key, delay, callback) {
         const ready = () => {

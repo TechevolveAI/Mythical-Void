@@ -30,7 +30,7 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain('damageZone.body.enable = true;');
         expect(source).toContain("'CURRENT EXPOSED // STRIKE NOW'");
         expect(source).toContain(
-            'const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;'
+            "const recoveryBonus = control.remaining('recovery') > 0 ? 1 : 0;"
         );
         expect(source).toContain('this.requestReefBossPhase(2);');
         expect(source).toContain('this.requestReefBossPhase(3);');

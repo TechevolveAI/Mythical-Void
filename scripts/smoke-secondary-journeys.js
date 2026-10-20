@@ -23324,7 +23324,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
         sceneName: 'ReefLevel',
         attack: 'dimensionalTear',
         arenaSupportId: 'reef-guardian-arena',
-        recoveryCheck: 'scene?.time?.now < scene?.bossRecoveryUntil',
+        recoveryCheck: '(scene?.reefGuardianControl?.remaining?.("recovery") || 0) > 0',
         phaseDeferral: true,
         phaseThreshold: 0.6
     },
