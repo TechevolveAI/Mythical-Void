@@ -1662,14 +1662,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (typeof callback !== 'function') return null;
         const transitionKey = String(key || 'guardian-transition');
         this.cancelGuardianTransition(transitionKey);
+        const guards = this.guardianTransitionGuards;
+        const systems = this.sys, clock = this.time;
+        const events = this.events || systems?.events;
 
         const record = {
             key: transitionKey,
             settled: false,
+            waiting: false,
             sceneTimer: null,
             wallTimer: null
         };
         const cleanup = () => {
+            events?.off?.('resume', settle);
+            events?.off?.('wake', settle);
+            events?.off?.('postupdate', settle);
+            events?.off?.('shutdown', record.cancel);
+            events?.off?.('destroy', record.cancel);
+            record.waiting = false;
             if (record.sceneTimer?.hasDispatched === false) {
                 record.sceneTimer.remove?.();
             }
@@ -1678,15 +1688,30 @@ class PlatformerLevelScene extends Phaser.Scene {
                 window.clearTimeout(record.wallTimer);
                 record.wallTimer = null;
             }
-            if (this.guardianTransitionGuards?.get(transitionKey) === record) {
-                this.guardianTransitionGuards.delete(transitionKey);
+            if (guards.get(transitionKey) === record) {
+                guards.delete(transitionKey);
             }
         };
         const settle = () => {
             if (record.settled) return false;
-            if (this.sys?.isActive?.() === false) {
-                record.settled = true;
-                cleanup();
+            if (this.guardianTransitionGuards !== guards || guards.get(transitionKey) !== record ||
+                this.sys !== systems || this.time !== clock || (this.events || this.sys?.events) !== events) {
+                record.cancel();
+                return false;
+            }
+            // Films pause the Scene; the menu pauses only physics. Neither may
+            // discard a due handoff or let its fallback start combat behind UI.
+            if (systems?.isPaused?.() || systems?.isSleeping?.() || this.pauseMenuActive || clock?.paused) {
+                if (!record.waiting) {
+                    record.waiting = true;
+                    events?.on?.('resume', settle);
+                    events?.on?.('wake', settle);
+                    events?.on?.('postupdate', settle);
+                }
+                return false;
+            }
+            if (systems?.isActive?.() === false) {
+                record.cancel();
                 return false;
             }
             record.settled = true;
@@ -1694,20 +1719,30 @@ class PlatformerLevelScene extends Phaser.Scene {
             callback();
             return true;
         };
+        record.cancel = () => {
+            record.settled = true;
+            cleanup();
+        };
 
         const safeDelay = Math.max(0, Number(delay) || 0);
+        guards.set(transitionKey, record);
+        events?.once?.('shutdown', record.cancel);
+        events?.once?.('destroy', record.cancel);
         record.sceneTimer = this.time?.delayedCall?.(safeDelay, settle) || null;
         record.wallTimer = window.setTimeout(
             settle,
             safeDelay + Math.max(100, Number(fallbackGrace) || 600)
         );
-        this.guardianTransitionGuards.set(transitionKey, record);
         return record;
     }
 
     cancelGuardianTransition(key) {
         const record = this.guardianTransitionGuards?.get(String(key));
         if (!record) return false;
+        if (record.cancel) {
+            record.cancel();
+            return true;
+        }
         record.settled = true;
         record.sceneTimer?.remove?.();
         if (record.wallTimer != null) {

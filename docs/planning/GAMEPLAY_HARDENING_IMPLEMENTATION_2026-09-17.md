@@ -187,3 +187,14 @@ Remaining: physical-phone acceptance, the other four level handoffs, live media
 proof and the rest of package 4, then packages 5-8 in order. Engineering passage
 is not adult visual approval. The released baseline above stays authoritative
 until this separate candidate is actually published and verified.
+
+## Later Private Journey Repair
+
+The [Guardian pause repair](GUARDIAN_TRANSITION_PAUSE_REPAIR_2026-10-20.md)
+records a reproduced shared transition fault: a film pause could permanently
+discard a pending boss handoff, while the physics-only pause menu could allow
+one to run behind its controls. Due handoffs now wait for their original scene
+to resume, and cancellation releases their timers and listeners. This is a
+bounded extension of packages 1-2, not a level redesign, release, phone signoff
+or Google migration acceptance. Dated release details above remain historical;
+the private repair must use its own exact-source qualification and release gates.

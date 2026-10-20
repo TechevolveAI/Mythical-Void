@@ -2315,6 +2315,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             if (!owned) return;
             entrance.transitions.delete(key);
             const { guards, record } = owned;
+            if (record.cancel) { record.cancel(); return; }
             record.settled = true;
             record.sceneTimer?.remove?.();
             if (record.wallTimer != null) window.clearTimeout(record.wallTimer);
