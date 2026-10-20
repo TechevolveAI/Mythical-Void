@@ -6,6 +6,7 @@ const World = require('phaser/src/physics/arcade/World');
 const Body = require('phaser/src/physics/arcade/Body');
 const GameObject = require('phaser/src/gameobjects/GameObject');
 const TweenManager = require('phaser/src/tweens/TweenManager');
+const Clock = require('phaser/src/time/Clock');
 
 const source = fs.readFileSync(path.join(__dirname, '../scenes/levels/CrystalCavesLevel.js'), 'utf8');
 const declaration = parse(source, { sourceType: 'module' }).program.body.find(node => node.type === 'ClassDeclaration');
@@ -57,6 +58,31 @@ function fixture(phase = 1) {
 }
 
 describe('Crystal Guardian ground slam keeps its original encounter owner', () => {
+    test.each([true, false])('native slam uses the shared health boundary while pause menu=%s', paused => {
+        const f = fixture();
+        const base = fs.readFileSync(path.join(__dirname, '../scenes/PlatformerLevelScene.js'), 'utf8');
+        const cls = parse(base, { sourceType: 'module' }).program.body.find(node => node.type === 'ClassDeclaration');
+        const method = cls.body.body.find(node => node.key?.name === 'takeDamage');
+        f.scene.takeDamage = new Function('window', 'console', `return ({${base.slice(method.start, method.end)}}).takeDamage;`)(
+            f.effects, { log() {} }
+        );
+        f.effects.AudioManager.playError = jest.fn();
+        Object.assign(f.scene, { health: 3, maxHealth: 3, guardRecoveryUntil: 0, damageTaken: 0,
+            pauseMenuActive: paused, updateHealthDisplay: jest.fn(), beginInvincibility: jest.fn(),
+            armCenteringStance: jest.fn(), onPlayerDeath: jest.fn() });
+        f.scene.player.setTint = jest.fn(); f.scene.player.clearTint = jest.fn(); f.scene.player.setVelocity = jest.fn();
+        const clock = f.scene.time = new Clock(f.scene);
+        try {
+            f.start();
+            if (paused) f.world.pause();
+            f.step(400);
+            expect(f.scene.health).toBe(paused ? 3 : 2);
+            expect(f.scene.damageTaken).toBe(paused ? 0 : 1);
+            expect(f.scene.updateHealthDisplay).toHaveBeenCalledTimes(paused ? 0 : 1);
+            expect(f.graphics).toHaveLength(1);
+        } finally { clock.destroy(); f.close(); }
+    });
+
     test('a defeated Guardian cannot finish an old slam and damage the player', () => {
         const f = fixture(2);
         try {

@@ -6305,7 +6305,10 @@ class PlatformerLevelScene extends Phaser.Scene {
      * @param {boolean} bypassInvincibility - If true, ignore invincibility (for pit falls)
      */
     takeDamage(amount, bypassInvincibility = false) {
-        if (this.isPlayerDead || this.levelCompletionActive) return;
+        // Late timer/tween impacts must not spend health or guards behind UI.
+        if (this.isPlayerDead || this.levelCompletionActive || this.isRespawning ||
+            this.pauseMenuActive || this.physics?.world?.isPaused === true ||
+            this.time?.paused === true || this.sys?.isActive?.() === false) return;
         if (!bypassInvincibility && (
             this.isInvincible || (Number(this.time?.now) || 0) < this.guardRecoveryUntil
         )) return;
@@ -7099,7 +7102,9 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     onPitFall() {
         // Prevent multiple pit fall triggers
-        if (this.isRespawning) return;
+        if (this.isRespawning || this.isPlayerDead || this.levelCompletionActive ||
+            this.pauseMenuActive || this.physics?.world?.isPaused === true ||
+            this.time?.paused === true || this.sys?.isActive?.() === false) return;
         this.isRespawning = true;
         this.resetPlatformerRecoveryInput();
 
