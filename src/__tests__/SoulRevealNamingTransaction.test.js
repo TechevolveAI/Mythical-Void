@@ -5,6 +5,7 @@ const { loadAchievementSystem } = require('./support/achievementDraftFixture.cjs
 const vm = require('node:vm');
 const { parse } = require('@babel/parser');
 const { namingRosterFixture } = require('./support/namingRosterFixture.cjs');
+const { attach: attachHatching } = require('./support/hatchingStartFixture.cjs');
 const CloudSaveManager = require('../systems/CloudSaveManager.js');
 const parent = readPinnedSource('9407eab8:src/scenes/SoulRevealScene.js');
 const oldClass = parse(parent, { sourceType: 'module' }).program.body.find(node => node.type === 'ExportDefaultDeclaration').declaration;
@@ -37,6 +38,58 @@ describe('naming saves one complete result before handing it to the reveal', () 
         expect(durable.creature.genes.id).toBe('fictional-hatched-genes');
         expect(durable.creature.id).toBe(durable.creatures[0].id); expect(durable.creature.soulData).toBeDefined();
         expect(f.scene.showLivingPortraitHandoff).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(['fresh', 'reload', 'retry-protected-save'])(
+        '%s opening Start, generated hatch and naming preserve the same creature', mode => {
+            f.close();
+            f = namingRosterFixture(() => {}, { beforeHatch({ state, scene }) {
+                attachHatching(scene, 'createOpeningStartDraft');
+                const opening = scene.createOpeningStartDraft(state);
+                expect(state.commitHatchSaveDraft(opening.state, {
+                    notifications: opening.notifications
+                }).success).toBe(true);
+            } });
+            const emptyLineage = { isOffspring: false, generation: null, parentIds: null,
+                offspringBonus: null, hasAncientLineage: false, ancientProphecy: null };
+            expect(f.state.get('creature')).toMatchObject(emptyLineage);
+            const before = JSON.parse(f.raw());
+            if (mode === 'retry-protected-save') {
+                f.state.holdSaveAdmission({ code: 'save_unreadable' }, 'local');
+            }
+            if (mode !== 'fresh') expect(f.state.load()).toBe(true);
+            actualAchievements();
+            f.button.click();
+            expect(f.state.getSaveAdmission().status).toBe('ready');
+            expect(f.scene.showLivingPortraitHandoff).toHaveBeenCalledTimes(1);
+            const durable = JSON.parse(f.raw());
+            expect(durable.creature.named).toBe(true);
+            expect(durable.creature.name).toBe('Fictional Glow');
+            expect(durable.creature.genes).toEqual(before.creature.genes);
+            expect(durable.creature.dna).toEqual(before.creature.dna);
+            expect(durable.creature.care).toEqual(before.creature.care);
+            expect(durable.creature.soulData).toBeDefined();
+            expect(durable.creatures).toHaveLength(1);
+            expect(durable.creatures[0].id).toBe(durable.creature.id);
+            expect(durable.stats.creaturesHatched).toBe(1);
+        }
+    );
+
+    test.each([
+        ['isOffspring', true], ['generation', 1], ['parentIds', ['fictional-parent']],
+        ['offspringBonus', {}], ['hasAncientLineage', true], ['ancientProphecy', 'fictional prophecy'],
+        ['isOffspring', null], ['generation', false], ['parentIds', []],
+        ['offspringBonus', false], ['hasAncientLineage', null], ['ancientProphecy', ''],
+        ['unrecognisedLineage', null]
+    ])('non-default %s=%j remains protected without changing saved progress', (key, value) => {
+        f.state.set(`creature.${key}`, value);
+        expect(f.state.save()).toBe(true);
+        const before = f.raw(), memory = JSON.stringify(f.state.state);
+        f.button.click();
+        expect(f.state.getSaveAdmission().status).toBe('held');
+        expect(f.raw()).toBe(before);
+        expect(JSON.stringify(f.state.state)).toBe(memory);
+        expect(f.scene.showLivingPortraitHandoff).not.toHaveBeenCalled();
     });
 
     test('actual achievements do not publish an incomplete intermediate save', () => {

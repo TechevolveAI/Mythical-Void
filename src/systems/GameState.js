@@ -1527,7 +1527,12 @@ class GameStateManager {
             'stats', 'traits', 'genes', 'genetics', 'dna', 'colors', 'powerHistory', 'agencyHistory', 'portraits',
             'identityArchive', 'care', 'lifecycle', 'mood', 'bond', 'personality', 'personalityState', 'textureName',
             'species', 'rarity', 'cosmicElement', 'descriptiveName', 'spawnPosition']);
-        if (Object.keys(creature).some(key => !allowed.has(key))) return false;
+        // Start persists these empty lineage markers for an ordinary first hatch.
+        // Accept only those exact defaults; populated or unknown lineage still needs review.
+        const emptyLineage = { isOffspring: false, generation: null, parentIds: null,
+            offspringBonus: null, hasAncientLineage: false, ancientProphecy: null };
+        if (Object.keys(creature).some(key => !allowed.has(key) &&
+            !(Object.hasOwn(emptyLineage, key) && creature[key] === emptyLineage[key]))) return false;
         if (creature.genes.rarity && !['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].includes(creature.genes.rarity)) return false;
         if (!creature.care || typeof creature.care !== 'object' || Array.isArray(creature.care) ||
             !Array.isArray(creature.care.careHistory) || !creature.care.dailyCare ||
