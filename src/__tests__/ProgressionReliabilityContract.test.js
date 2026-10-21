@@ -40,8 +40,10 @@ describe('secondary journey reliability contract', () => {
     });
 
     test('registers unknown lazy scenes without calling a throwing getScene lookup', () => {
-        expect(loader).toContain('game.scene.keys?.[sceneName]');
+        expect(loader).toContain('const manager = game?.scene;');
+        expect(loader).toContain('manager.keys?.[sceneName]');
         expect(loader).not.toContain('if (game.scene.getScene(sceneName))');
+        expect(loader).not.toContain('manager.getScene(sceneName)');
         expect(loader).toContain("this.preload('MythicalForestLevel')");
     });
 

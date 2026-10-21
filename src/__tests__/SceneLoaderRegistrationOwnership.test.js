@@ -54,6 +54,23 @@ describe('lazy registration owns a single scene in the native Phaser manager', (
         expect(console.error).not.toHaveBeenCalled();
     });
 
+    test.each(['immediate', 'queued'])('unknown %s registration does not call a throwing getScene lookup', async phase => {
+        const f = fixture();
+        f.manager.isProcessing = phase === 'queued';
+        const lookup = jest.spyOn(f.manager, 'getScene').mockImplementation(() => {
+            throw new Error('SYNTHETIC_UNKNOWN_SCENE');
+        });
+        const pending = f.loader.loadScene(f.game, 'SyntheticRoute');
+        f.ready();
+        await expect(pending).resolves.toBe(true);
+        f.manager.isProcessing = false;
+        expect(() => f.manager.processQueue()).not.toThrow();
+        expect(f.manager.scenes).toHaveLength(1);
+        expect(f.manager.keys.SyntheticRoute).toBe(f.manager.scenes[0]);
+        expect(lookup).not.toHaveBeenCalled();
+        expect(console.error).not.toHaveBeenCalled();
+    });
+
     test.each(['scene update', 'preboot'])('concurrent requests during %s cannot queue duplicate registrations', async phase => {
         const f = fixture();
         f.manager.isProcessing = phase === 'scene update';
