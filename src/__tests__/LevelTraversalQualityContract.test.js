@@ -178,7 +178,7 @@ describe('campaign traversal quality contracts', () => {
             "message: 'Forest authored enemies settled on their supports'"
         );
         expect(smoke).toContain('enemy.body.bottom - support.body.top');
-        expect(smoke).toContain('timeoutMs: 3500');
+        expect(smoke).toContain('timeoutMs: 15000');
         expect(smoke).toContain(
             'entry effects retired within render budget'
         );

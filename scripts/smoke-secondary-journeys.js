@@ -3789,6 +3789,15 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         enemyStates.every(enemy => enemy.settled) &&
                         playerGrounded &&
                         scene.isPlayerDead !== true,
+                    runtime: {
+                        physicsPaused: scene.physics?.world?.isPaused,
+                        clockPaused: scene.time?.paused,
+                        sceneActive: scene.scene?.isActive?.(),
+                        entryDismissing: scene.levelEntryDismissing,
+                        sceneTime: scene.time?.now,
+                        frame: window.mythicalGame?.loop?.frame,
+                        fps: window.mythicalGame?.loop?.actualFps
+                    },
                     player: playerBody ? {
                         x: scene.player.x,
                         y: scene.player.y,
@@ -3819,7 +3828,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         : null;
                 },
                 {
-                    timeoutMs: 3500,
+                    // Software rendering on Linux can take longer to advance
+                    // the first physics frames. Keep the same support checks.
+                    timeoutMs: 15000,
                     message: 'Forest authored enemies settled on their supports'
                 }
             );
@@ -11010,13 +11021,22 @@ async function smokeHomeStart(session, exceptions) {
                 progress: scene.hatchingProgress,
                 nativeActionRemaining: Boolean(document.querySelector('[data-mythical-egg-hatch="true"]')),
                 progressX: scene.progressText?.x,
-                expectedX: scene.scale.width / 2
+                expectedX: scene.hatchTitleText?.x,
+                bounds: scene.progressText?.getBounds?.(),
+                visible: scene.progressText?.visible === true,
+                width: scene.scale.width,
+                height: scene.scale.height
             };
         })()`),
         { timeoutMs: 3000, message: 'first-contact egg touch to begin hatching' }
     );
-    if (hatching.nativeActionRemaining || Math.abs(hatching.progressX - hatching.expectedX) > 2) {
-        throw new Error(`Hatch feedback is stale or off-centre: ${JSON.stringify(hatching)}`);
+    if (hatching.nativeActionRemaining || !hatching.visible ||
+        !Number.isFinite(hatching.progressX) || !Number.isFinite(hatching.expectedX) ||
+        Math.abs(hatching.progressX - hatching.expectedX) > 2 || !hatching.bounds ||
+        hatching.bounds.x < 0 || hatching.bounds.y < 0 ||
+        hatching.bounds.x + hatching.bounds.width > hatching.width ||
+        hatching.bounds.y + hatching.bounds.height > hatching.height) {
+        throw new Error(`Hatch feedback is stale, misaligned or outside the viewport: ${JSON.stringify(hatching)}`);
     }
     if (exceptions.length) {
         throw new Error(`Home Start raised browser exceptions: ${exceptions.join(' | ')}`);
