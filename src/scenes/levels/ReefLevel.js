@@ -4040,12 +4040,11 @@ class ReefLevel extends PlatformerLevelScene {
             !this.bossFightActive ||
             this.bossDefeated ||
             !this.bossCombatReady ||
-            this.bossAttackLocked ||
-            this.time.now < this.bossRecoveryUntil
+            this.bossAttackLocked || this.pauseMenuActive || this.time.paused || this.physics?.world?.isPaused
         ) return;
 
         const control = this.getReefGuardianControl();
-        if (!control?.canAct()) return;
+        if (!control?.canAct() || control.remaining('recovery') > 0) return;
 
         const attacks = ['voidLunge', 'dimensionalTear', 'summonMinions'];
         const attack = forcedAttack || Phaser.Utils.Array.GetRandom(attacks);
@@ -4121,17 +4120,18 @@ class ReefLevel extends PlatformerLevelScene {
             this.enterReefBossPhase(nextPhase);
             return;
         }
-        this.bossRecoveryUntil = Math.max(
-            this.bossRecoveryUntil,
-            this.time.now + duration
-        );
-        this.showBossAttackInstruction('CURRENT EXPOSED // STRIKE NOW', duration);
-        this.showFloatingText(
+        const control = this.getReefGuardianControl();
+        if (!control?.holdWindow('recovery', duration)) return;
+        // Diagnostic only: native remaining time controls gameplay after a pause.
+        this.bossRecoveryUntil = this.time.now + control.remaining('recovery');
+        control.feedback(() => this.showBossAttackInstruction('CURRENT EXPOSED // STRIKE NOW', duration));
+        if (!control.isCurrent()) return;
+        control.feedback(() => this.showFloatingText(
             'CURRENT EXPOSED // BONUS DAMAGE',
             this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
             (this.bossBody?.y || 700) - 110,
             '#8FE3CF'
-        );
+        ));
     }
 
     enterReefBossPhase(phase) {
@@ -4142,6 +4142,8 @@ class ReefLevel extends PlatformerLevelScene {
         const control = this.getReefGuardianControl();
         if (!control) return;
 
+        control.cancel('recovery');
+        control.cancel('phaseGrace');
         control.clearHitFlash();
         this.clearReefBossLunge();
         this.clearReefBossTears();
@@ -4173,6 +4175,7 @@ class ReefLevel extends PlatformerLevelScene {
         control.after('phase', 950, () => {
             this.bossPhaseTransitionActive = false;
             this.bossAttackLocked = false;
+            control.holdWindow('phaseGrace', 1200);
             this.bossPhaseAdvanceLockedUntil = this.time.now + 1200;
             this.openReefBossRecovery(950);
         });
@@ -4181,7 +4184,7 @@ class ReefLevel extends PlatformerLevelScene {
     requestReefBossPhase(phase) {
         if (
             this.bossAttackLocked &&
-            this.time.now >= this.bossRecoveryUntil
+            !(this.reefGuardianControl?.remaining('recovery') > 0)
         ) {
             this.pendingBossPhase = Math.max(
                 this.pendingBossPhase || 0,
@@ -4619,7 +4622,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         const healthPercent = this.bossHealth / this.bossMaxHealth;
 
-        if (this.time.now < this.bossPhaseAdvanceLockedUntil) return;
+        if (this.reefGuardianControl?.remaining('phaseGrace') > 0) return;
 
         if (healthPercent < 0.3 && this.bossPhase === 2) {
             console.log('[ReefLevel] Nyx\'voral entering phase 3!');
@@ -4724,13 +4727,16 @@ class ReefLevel extends PlatformerLevelScene {
 
     damageBoss(amount) {
         if (!this.bossFightActive || this.bossDefeated || !this.boss) return false;
+        if (this.pauseMenuActive || this.time.paused || this.physics?.world?.isPaused ||
+            !Number.isFinite(amount) || amount <= 0) return false;
 
         const boss = this.boss, body = this.bossBody, player = this.player, encounter = this.guardianEncounter;
         const control = this.getReefGuardianControl();
+        if (!control?.canAct()) return false;
         const sameHit = () => this.boss === boss && this.bossBody === body && this.player === player &&
             this.guardianEncounter === encounter && this.bossFightActive && !this.bossDefeated;
         const feedback = action => { if (sameHit()) control?.feedback(action); };
-        const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
+        const recoveryBonus = control.remaining('recovery') > 0 ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         feedback(() => this.updateBossHealthBar());
@@ -5046,7 +5052,7 @@ class ReefLevel extends PlatformerLevelScene {
 
     update(time, delta) {
         super.update(time, delta);
-        if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
+        if (!this.player || this.isPlayerDead || this.levelCompletionActive || this.pauseMenuActive) return;
 
         this.updateReefAscentCurrentGuidance();
         this.updateCosmicDust(delta);

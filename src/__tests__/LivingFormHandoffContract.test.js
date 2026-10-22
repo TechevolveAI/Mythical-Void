@@ -23,6 +23,25 @@ const gameSource = fs.readFileSync(
 );
 
 describe('living form milestone handoff', () => {
+    test('the reveal delegates video preparation to the same guarded background helper', () => {
+        const { parse } = require('@babel/parser');
+        const calls = [];
+        function visit(node) {
+            if (!node || typeof node !== 'object') return;
+            if (['CallExpression', 'OptionalCallExpression'].includes(node.type)) calls.push(node);
+            for (const value of Object.values(node)) {
+                if (Array.isArray(value)) value.forEach(visit);
+                else visit(value);
+            }
+        }
+        visit(parse(handoffSource, { sourceType: 'module' }));
+        const preparation = calls.filter(call => call.callee.property?.name === 'prepareFirstForestVideo');
+        expect(preparation).toHaveLength(1);
+        expect(preparation[0].callee.object.property.name).toBe('LivingPortraitService');
+        expect(preparation[0].arguments[0]).toMatchObject({ type: 'Identifier', name: 'record' });
+        expect(calls.filter(call => call.callee.property?.name === 'prepareGeneratedVideo')).toHaveLength(0);
+    });
+
     test('keeps the exact local creature visible while the living portrait develops', () => {
         expect(handoffSource).toContain(
             'this.setArtwork(this.pixelReferenceImage'

@@ -48,7 +48,8 @@ function fixture(mode = 'opening') {
         creaturePersonalityState: { curiosity: 4 }, hatchPityData: { hatchesSinceEpic: 1 },
         isEggHatch: mode === 'inventory', spawnPosition: { x: 0, y: 240 },
         creature: { active: true, texture: { key: 'fictional-new-texture' } },
-        scale: { width: 390, height: 844 }, add: { graphics: () => graphic },
+        scale: { width: 390, height: 844, on: jest.fn(), off: jest.fn() },
+        resizeHatchingLayout: jest.fn(), add: { graphics: () => graphic },
         tweens: { add: jest.fn(config => { tweens.push(config); }) },
         scene: { start: jest.fn() }, showCriticalError: jest.fn(),
         generateCreatureName: () => 'Nebula Explorer Sprite',
@@ -405,6 +406,8 @@ describe('existing-format hatch completion is durable before it is announced', (
             retry.click();
             expect(f.scene.showHatchingScreen).toHaveBeenCalledTimes(1);
             expect(f.scene.events.once).toHaveBeenCalledTimes(1);
+            expect(f.scene.scale.on).toHaveBeenCalledTimes(1);
+            expect(f.scene.scale.on).toHaveBeenCalledWith('resize', f.scene.resizeHatchingLayout, f.scene);
             expect(primary()).toBe(before);
             expect(f.state.get('creature.genes.id')).toBe('fictional-earlier-genes');
         } finally { cloud.destroy(); }

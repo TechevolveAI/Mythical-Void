@@ -144,6 +144,9 @@ export default class LivingFormHandoff {
             const offsetTop = Math.max(0, Math.floor(viewport?.offsetTop || 0));
             root.style.width = `${nextWidth}px`;
             root.style.height = `${nextHeight}px`;
+            // Phaser caches the DOM dimensions used to centre its transform.
+            // Refresh those dimensions after rotation or a keyboard resize.
+            this.domElement?.updateSize?.();
             this.domElement?.setPosition?.(
                 offsetLeft + (nextWidth / 2),
                 offsetTop + (nextHeight / 2)
@@ -736,21 +739,18 @@ export default class LivingFormHandoff {
                     this.onPortraitShown?.(record);
                 }
                 if (!isCurrent()) return;
-                if (!window.GameState?.get?.(
-                    'story.projectBeacon.firstForestCinematicSeen'
-                )) {
-                    window.CompanionMediaService?.prepareGeneratedVideo?.({
-                        momentId: 'first_forest_arrival',
-                        stage: record?.stage || 'baby',
-                        record
-                    }).catch?.(() => null);
-                }
+                window.LivingPortraitService?.prepareFirstForestVideo?.(record)?.catch?.(() => null);
                 if (!isCurrent()) return;
                 this.root?.classList.remove(
                     'shows-pixel-reference',
                     'has-portrait-failure'
                 );
-                window.AudioManager?.playLevelUp?.();
+                Promise.resolve().then(() => {
+                    // Shared video preparation gets its queued ownership check
+                    // first. A retired reveal must not request celebratory sound.
+                    if (!this.isVisible || token !== this.renderToken || !isCurrent()) return;
+                    window.AudioManager?.playLevelUp?.();
+                }).catch(() => null);
             } else if (isLocalReference) {
                 if (
                     !this.portraitPending

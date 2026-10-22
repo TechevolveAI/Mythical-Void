@@ -66,7 +66,7 @@ describe('Shared Fusion boundary gameplay contract', () => {
             'Fusion receipt must reconcile before cloud upload.'
         );
         expect(authority).toContain('reconcileOfflineReceipt');
-        expect(pod).toContain('VERIFY PRIOR LINEAGE');
+        expect(pod).toContain('Checking previous Fusion');
         expect(legacy).toContain('fusionBoundary:');
         expect(legacy).toContain(
             'export const CAMPAIGN_LEGACY_SCHEMA_VERSION = 16'

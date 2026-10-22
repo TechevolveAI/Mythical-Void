@@ -30,6 +30,7 @@ const names = ['init', 'startBossFight', 'stageTitanArenaEntry', 'spawnCosmicTit
     'createTitanEntrance', 'clearTitanEntrance', 'updateTitanEntrance',
     'fireMountainSnowGrenade', 'clearMountainSnowGrenades', 'trackBossEffect',
     'releaseBossEffect', 'scheduleBossTimer', 'scheduleTitanControlTimer', 'cancelTitanControlTimer', 'clearTitanControlTimers',
+    'isTitanControlTimerPending',
     'clearBossEncounterTimers', 'clearBossEncounterEffects', 'onPlayerDeath',
     'fireMountainGroundWave', 'fireMountainLaser', 'fireMountainProjectile', 'clearMountainProjectiles',
     'executeTitanAttack', 'clearMountainAttackLaunches', 'captureMountainAttackContext',

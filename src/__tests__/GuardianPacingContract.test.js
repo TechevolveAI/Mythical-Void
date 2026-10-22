@@ -30,7 +30,7 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain('damageZone.body.enable = true;');
         expect(source).toContain("'CURRENT EXPOSED // STRIKE NOW'");
         expect(source).toContain(
-            'const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;'
+            "const recoveryBonus = control.remaining('recovery') > 0 ? 1 : 0;"
         );
         expect(source).toContain('this.requestReefBossPhase(2);');
         expect(source).toContain('this.requestReefBossPhase(3);');
@@ -273,8 +273,8 @@ describe('guardian encounter pacing contracts', () => {
     test.each([
         ['MythicalForestLevel.js', 'this.boss.isRecovering ? 1 : 0'],
         ['CrystalCavesLevel.js', 'this.boss.isRecovering ? 1 : 0'],
-        ['VoidPeaksLevel.js', 'this.time.now >= this.titanRecoveryUntil'],
-        ['AuroraDepthsLevel.js', 'this.time.now < this.bossRecoveryUntil ? 1 : 0']
+        ['VoidPeaksLevel.js', "!this.isTitanControlTimerPending('titanCounterWindowTimer')"],
+        ['AuroraDepthsLevel.js', 'this.phoenixRecoveryWindow?.remaining() > 0 ? 1 : 0']
     ])('%s recovery cue provides bonus stabilization damage', (fileName, contract) => {
         expect(readLevel(fileName)).toContain(contract);
     });

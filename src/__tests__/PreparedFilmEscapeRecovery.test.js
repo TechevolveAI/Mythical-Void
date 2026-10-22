@@ -33,9 +33,10 @@ function fixture(kind = 'shared', mountPlayer = true) {
     if (kind === 'shared') film.url = 'blob:synthetic-owned-film';
     const events = new EventEmitter();
     let paused = false;
-    const scene = { events, sys: { isActive: () => !paused, isPaused: () => paused },
+    const scene = { events, sys: { events, isActive: () => !paused, isPaused: () => paused,
+        pause: jest.fn(() => { paused = true; }), resume: jest.fn(() => { paused = false; }) },
         clearInput: jest.fn(), setPrototypePaused: jest.fn(), hidePlatformerMobileControls: jest.fn(),
-        scene: { pause: jest.fn(() => { paused = true; }), resume: jest.fn(() => { paused = false; }) } };
+        scene: { pause: jest.fn(), resume: jest.fn() } };
     const onClose = jest.fn();
     const player = mountPlayer ? new Player({ film, scene, title: 'Synthetic scene', onClose }) : null;
     return { film, video, service, events, scene, onClose, player,
@@ -77,7 +78,7 @@ describe('optional film cleanup cannot trap Continue behind a closed overlay', (
                 expect(f.film.video).toBeNull(); expect(f.film.url).toBeNull();
                 expect(f.film.listeners.size).toBe(0); expect(f.player.attachedVideo).toBeNull();
                 expect(f.video.muted).toBe(true); expect(f.video.volume).toBe(0);
-                expect(f.scene.scene.resume).toHaveBeenCalledTimes(1); expect(f.onClose).toHaveBeenCalledTimes(1);
+                expect(f.scene.sys.resume).toHaveBeenCalledTimes(1); expect(f.onClose).toHaveBeenCalledTimes(1);
                 expect(f.events.listenerCount('shutdown')).toBe(0); expect(f.events.listenerCount('destroy')).toBe(0);
                 expect(f.service.recordAppearance).not.toHaveBeenCalled(); expect(f.service.resolveGeneratedVideo).not.toHaveBeenCalled();
                 f.player.close(); expect(f.onClose).toHaveBeenCalledTimes(1);
@@ -89,7 +90,7 @@ describe('optional film cleanup cannot trap Continue behind a closed overlay', (
             const f = fixture(kind);
             try {
                 f.player.close(); f.player.close();
-                expect(f.onClose).toHaveBeenCalledTimes(1); expect(f.scene.scene.resume).toHaveBeenCalledTimes(1);
+                expect(f.onClose).toHaveBeenCalledTimes(1); expect(f.scene.sys.resume).toHaveBeenCalledTimes(1);
                 expect(f.player.root.isConnected).toBe(false); expect(f.film.video).toBeNull();
                 expect(f.film.state).toBe('disposed'); expect(f.film.listeners.size).toBe(0);
             } finally { f.close(); }
@@ -101,7 +102,7 @@ describe('optional film cleanup cannot trap Continue behind a closed overlay', (
         try {
             f.video.pause.mockImplementation(() => { throw Error('SYNTHETIC_PAUSE_FAILURE'); });
             expect(() => f.events.emit('shutdown')).not.toThrow();
-            expect(f.player.root.isConnected).toBe(false); expect(f.scene.scene.resume).not.toHaveBeenCalled();
+            expect(f.player.root.isConnected).toBe(false); expect(f.scene.sys.resume).not.toHaveBeenCalled();
             expect(f.onClose).toHaveBeenCalledTimes(1); expect(f.film.video).toBeNull();
         } finally { f.close(); }
     });
@@ -124,7 +125,7 @@ describe('optional film cleanup cannot trap Continue behind a closed overlay', (
             f.film.subscribe(state => { if (state === 'disposed') f.events.emit('shutdown'); });
             f.player.close();
             expect(f.player.root.isConnected).toBe(false); expect(f.player.sceneRetired).toBe(true);
-            expect(f.scene.scene.resume).not.toHaveBeenCalled(); expect(f.onClose).toHaveBeenCalledTimes(1);
+            expect(f.scene.sys.resume).not.toHaveBeenCalled(); expect(f.onClose).toHaveBeenCalledTimes(1);
             expect(f.film.video).toBeNull();
         } finally { f.close(); }
     });

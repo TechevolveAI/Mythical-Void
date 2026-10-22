@@ -1,0 +1,680 @@
+{
+  "sourceCommit": "c4e3705cdf5773c2bec896d5fe05c3594bdc425a",
+  "sourcePath": "netlify/lib/generate-ai-art-core.cjs",
+  "sourceSha256": "12292c369e7bb8c08d79ac61c56b76d6cc3614b0a04ac2cdcb0d09ecf021db4b",
+  "providerRequests": 0,
+  "cases": [
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "d6ac5cdc9002979b4c1ed9fbd123d508688ecf81d20927d67ad43821c54fb9ae"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "91315ad1e8d4240890073cb7091031edaad560a3209efeea22128a9d38742d64"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "7cef93a5692cae4548850d3131395f0df4190330a795e1b9c2289da2515dae5c"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "bf2eef0246c150f4899859888b8b7229dcfb25c9a81ace3d639c59cef7da673c"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "65c925d408ccb421b066756f315eb9e080d6a867d2b1bf54ba5caa3d808878a8"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "f9ac531f06e1cb0a5ddacb9d20211737279751af76391c3bf1941b70b7830c4c"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "be9d9270ea445939cad40811029c1bc752a1c6e1db1f39cf3242ac4ed187d0e0"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "baby",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "58e8b96e60dc40478293d6a80087d68ef10ab4149702423ec25c3e59ae6b332f"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "ecfa4c4c70a432301667d626779af9d04ae4de6e391266a878815590662ddfea"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "74a6f31e3b3f9573c3b270946c1b06edff16ad9557c81d179bc240cc2b12a04b"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "7121fd40c1259be69260e175923d16226929bbe81ec23b345fbf92a1a4fae091"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "00a22f62e72d42bd9cf238153ee5ce08b18398565e79a4f9e808163bc5ddae22"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "484b45dd5462dbcf530de3e3ee7b0dd7ba73d35539ed88f727b4276daaa5057b"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "0356dcc1e5774557173f77936b035564e6fdef3ab4e85751c3aad8d0846931c2"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "14339b7795a0fe811048878ceba1698ec8fb5ccdb978bb260e3168e36c4aa0d9"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "juvenile",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "1d813bfc1056369b9a0a2d76286ba4bb5c3f79af1c30b53c4e295f81fe0ac534"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "93001cd0e773797cffa0cd720ab4b48c4297fa827ccc4874d0e12a4f831234e7"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "de791304074c0e0fc014b5055ec873d68f97b470a7bb4fc85056bd660abc0535"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "f982b421789f75bc856e306ca0653a90b48e00cd36b0c7fde360b58c102ac7c5"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "3a14a08f9ac48e4ece8b96fb7ac97602e4d40c466ace2396c43a2cd9e28c4576"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "d1d73e6809c8baf38bbbd570d5aa948c72ae86f574b9e4c2283b2c2be70bb6ac"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "180e0cfaa2787027ebeefab2e68453bac91e49014eda6f3898953710275c4aea"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "a238c4ef2c273c29ecde438a48488408f46909ab3f72d977c121786858d3524d"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "adult",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "d565eed28b399d97de83a30684e6a33eee39a989f6929c827419b2002e9a516f"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "023d5a0b3e62ce9bacfe1f0926d37d60f36e17b85c0696bbc3d211a3bde40657"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "b0fdf1994c1a67fe7092c7e20447dbe2bb928afea7bd213242c34b4a27f024a8"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "0208eb55445b4dd2b2baba345a0a6bbe1bf72059e4a1ff900b15283ae0dede5e"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "50694f26135d75f98c066f58054b5f1bd8eec32a058791cb9b114effd576d8ee"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "21c1b93ab2d32399f8ee7bfa4b3c072287329752cfcc3f0a006ba15f74cf19a9"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "f88cc1b1ec9e2c10e8803fd8e0ce5803f3cf76872ffc79365b3889159c218ffa"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "e0c40f8c52c48522ad3e9853961562b847d2fca4b3261c60e5bc005131d0cbab"
+    },
+    {
+      "kind": "ordinary",
+      "stage": "elder",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "9b6e4b35e4483b6b68f1043e89240ebf445a75a2614ed2a91064813f650c45aa"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "6bae368234d9733154aa73c66e1e5e43df98a0c8731dcaedf1f2c8d654a430f3"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "06daf8f3b4a537ca532f98a65aa891f95de2866d239d669ce20469261b344280"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "cbbdc6d9f257d5a01a4305ec2158ff68e8740caf4c974cee9e48dee42d53e1f3"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "d85ecefc6ef297ab827969463d20a3fb3692c611a52ec43db46b9b2cb431c91e"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "80495f1e7c4220148f180ced9bed522bfc07840365c6624198262cb7e758e166"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "644d6d171379a371f2c70e9df53fe6275d0a3bac05447d0d4ac0e4e113178eee"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "674afeefb748b50e23388a90e3ca94198c7d3294b1c285713a97a0af152c86ba"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "baby",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "48e26a70abbe795099f6852310d95be0034cecf9655ba20b25dc0d6f9c0e6eb4"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "49df7b9dd153ffebb19ad57d327d194f0ecc6f3de480fe83c5b6ef50d4ad8fb2"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "cef5d7ef9eb69a6d5b991499056b01ba6b900bb0a40a28e47e8e93eb8526e4be"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "1af60753285bcce738b6585de14a1d8cf86981b25f719309ca804b3b88a39179"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "5aa03ce1a94c0074509dc0a887ba3cc4ea8a6fe7351ec686f7208fd9a146d742"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "4fd54a1e0ac5b3c5f02b1e952cca27f19f8a9198764c543ef647b90c5245f245"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "fdc502798edd79818c650c1831960aedb8c74e80baf6303e5e9092eb0064d61e"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "eb922823413ba99d2571506a2ecab35a22b58571731ac43c92976a4a18f27018"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "juvenile",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "92102ffa9da84ab01c5360106011b13e756a72f2aab5ac9cd363ef2e84952742"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "d6294815397c79bbe1f254bc25b05232751fd8961d0617a899501b752fbffb32"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "3f916465e5131a5677a2841659f9927a06d54d68a505f10ff0dd11998ad994fd"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "a98c735079ec540c4fc50e261dfde14266a036c2acede4b2377bfbf3ddfd654e"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "0da2ca4331dd0ec169f84ba1112f64a6b2872ef65381d63bb3659b3b61a8308a"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "7bc1d633214bdd7dabb50bb1f76b6a4f69ab6624165f14b2dd16ae55ea931e01"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "e703d33b58a518daccb9449114e33808306e94093b025a99b0dfe6d8aefb0d4c"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "e51fe0c0ad5267a9910ff8c222ef73096652a2d1185e700351a7ace7f88e086a"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "adult",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "ead96e0bc69b90da19b48cdebfc28913024de9bd020b2d42b32039bd95ace05e"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "0381d3996d57c9b2ad883cddf22af72babc60121c5f82926f3b7512e0d63274e"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "b0ba42379af9623311c21042328d88ec30879cc0033d225c9ed6ca10df2121d4"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "11082b080c98172d08532c4966cf0e3828d8411ca382fe2bcbe2f167b16d1559"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "6b01a36b745aa6696de174ad9cca24ac242017f2c1cad675ef519ea004987457"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "71c19982181d977cbfa3bbb852320aec93daf2f40d5afb8b3bcd7eae318038df"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "ed578a6c667f6e62554fa82ce3e2eca46073ff2d50c4dc7eb701880073090f05"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "f17ad864ccec333d98a9c7f6fa5a448646aa35a71577e7a188b776562339ef9e"
+    },
+    {
+      "kind": "shiny-mutated",
+      "stage": "elder",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "f1bf70d0b67df4df2096007b35eda0e178b78d39b2143ed031e870d87ce2452c"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "118d15d132f668860d0ecc96ead4945a63a238cb512bd86ed503102cba5835a8"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "156b7321fa774161dcca096bff11f937bfb2201e957c28f2b835e943b56f4c1b"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "349b258f1bceab99918c08d0f0f744abc3f145ff113045594c1f9dfc9bccff3f"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "ab8af45f8845e1857baf802afd640792971370a25558cdf559af6a16bc943ca2"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "b29aacf2a4e3b7b4e38f40e56cd2f38089ae38ab54cf998535309e297327d889"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "125fe3eed76650ad8db97577d535865edf82a1f72c9fa51254781fe348f4c321"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "a05126b20fe7a79f6a2e7f270842c8f2d8279469da8402cd69fa3008a45a40bf"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "baby",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "be0a171c5a9da286aa0bd62ddb6c5866f1c8a196c125dfb2527dc17d2a8bb199"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "d0fcb59d820cddf11f2d47354973fc48dfadb1ba54209a38edbef94e1dc1038c"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "873ed126301ac9fe84d4160f5f8c5aa58e0e7be27f505fd270626bda0421ba11"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "4888b2f14513c4342e16cc6d10a31e9ae77c84ff2958737dacd49601b9b5458f"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "6fa4b9a0be268ec55c724ff7876bd7ac30bf0b2a3b64a6e48e3a940a2e554f28"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "c401f93fb96192a53c6bdb90d48f0c4eb79024775b43f95fd6ed52aec97cab5f"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "8b538323aeb3b96ab42f5d6e35685d1272d5864fd8248845eb7b1eb9ea4e5a92"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "1fd09b38f10fbf011ee1429596ad69713ee85eff4d17006126620b521cd1c8b5"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "juvenile",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "6d3731ce78c057688fa035211c7edc34563f2b2db06a8bcda9250d1bae2ef1df"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "4925dad1f7d7d5670b184eecc817bf4725847ba46f17aa41bfbc00a7dcbddbf1"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "ffa2a32b3b33296fd799862cf1c3b9036ba7e5e55d009a5dcbfa898d0e1ad4c2"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "2d7c56e68517547544b027c76617032a14d0440c863d301e20efe06edcfdd17b"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "3b4364ca19bfe884c08549e80d12b8012f5be65a74f0259e5e485eb97fecb86a"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "0cf435d6e942c5e4457fe5be5df28ce1a59ba924630eb1ae0c614e413165e4c0"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "710cbff0d7ff2e524b7e6fb13d5c1b3202ef536fe6baf5baac1ac2177b587ff6"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "0d87a9e9912761796ad01bc6c5e8c3c4b42f33e79f5933ed6b076a9f3fa3ef16"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "adult",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "2445846e822354dd30cb1f19f8a1c911f6a0a50fc817e1f7f6aed567d8104b1f"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "cinematic",
+      "hasReferenceImage": false,
+      "sha256": "e4a03e9e79247b73122cc1624bf3518c81fd558fe4771f44cf2e0125dd70937b"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "cinematic",
+      "hasReferenceImage": true,
+      "sha256": "b6fbbd9cd763be474029eb8c900c1c7d7298984543ee8510144ecda912bcedaa"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "storybook",
+      "hasReferenceImage": false,
+      "sha256": "9e7de1ea1916bb11a50feb8d97dbd2d5e810ce991da7173275a8a17ba83bfb8d"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "storybook",
+      "hasReferenceImage": true,
+      "sha256": "79eff6a6ec5e372af996d2963d315c33d158e0c1b728b514e933867ca462b5c7"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "cosmic",
+      "hasReferenceImage": false,
+      "sha256": "9b7e58d14316d30d4b0dfb552aa9787a724df2d7ece7fbd72e9cb394313edb96"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "cosmic",
+      "hasReferenceImage": true,
+      "sha256": "03158833dbc2320288283cb072789c16cda5ec5d32974548695cd1496c05697d"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "watercolor",
+      "hasReferenceImage": false,
+      "sha256": "1a96ef7e1a3c06fbb7f689ac7d4877f96028696dba738c6e897b8b2666ae4d0d"
+    },
+    {
+      "kind": "legacy-no-dna",
+      "stage": "elder",
+      "style": "watercolor",
+      "hasReferenceImage": true,
+      "sha256": "9cca217ecd22bf1fbd1bf946bf5b1e8feda1830b9f1047d5b7e021117264c26d"
+    }
+  ]
+}

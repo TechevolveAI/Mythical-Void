@@ -1472,18 +1472,8 @@ class GameScene extends Phaser.Scene {
                 ) return;
                 if (window.OnboardingManager) {
                     window.OnboardingManager.initialize(this);
-                    window.OnboardingManager.onQueueComplete = ({ firstSanctuaryVisit } = {}) => {
-                        if (!firstSanctuaryVisit || this._isShuttingDown) return;
-                        this.scheduleVillageArrivalReveal({
-                            initialDelay: 320,
-                            onComplete: () => {
-                                if (this._isShuttingDown) return;
-                                const storyQuest = window.QuestManager
-                                    ?.getQuestsByType?.('story')?.[0];
-                                this.questTracker?.showStoryMissionBriefing?.(storyQuest);
-                            }
-                        });
-                    };
+                    window.OnboardingManager.onQueueComplete = context =>
+                        this.finishSanctuaryOnboarding(context);
                     window.OnboardingManager.startOnboardingFlow();
                 }
             });
@@ -5119,10 +5109,32 @@ class GameScene extends Phaser.Scene {
         return true;
     }
 
+    finishSanctuaryOnboarding({ firstSanctuaryVisit = false } = {}) {
+        if (this._isShuttingDown) return;
+        if (!firstSanctuaryVisit) {
+            this.scheduleVillageArrivalReveal();
+            return;
+        }
+        const storyQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
+        this.questTracker?.showStoryMissionBriefing?.({
+            ...storyQuest,
+            type: 'story',
+            icon: '🌿',
+            name: 'Your first expedition',
+            objectiveLabel: 'Explore the Sanctuary, then find the gate.',
+            briefing: 'Get to know your creature and the Sanctuary. When you are ready, the Adventure Gate leads to the Mythical Forest.',
+            guidanceMobile: 'Walk to the gate, tap Explore, then choose Mythical Forest.',
+            guidanceDesktop: 'Walk to the gate, press SPACE, then choose Mythical Forest.'
+        });
+        window.GameState?.recordOpeningMilestone?.('first_objective_ready');
+        window.GameState?.save?.();
+    }
+
     shouldPlayVillageArrivalReveal() {
         if (
             this.currentBiome !== 'nebula' ||
             !this.villageHeartLandmark ||
+            window.GameState?.get('levels.mythicalForest.completed') !== true ||
             window.GameState?.get('tutorial.villageHeartArrivalSeen') === true
         ) {
             return false;
@@ -5783,14 +5795,16 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.hubPortal && !villageNeedsGuidance) {
+        if (this.hubPortal) {
             destinations.push({
-                name: 'Adventure Portal',
+                name: window.GameState?.get('levels.mythicalForest.completed') === true
+                    ? 'Adventure Gate'
+                    : 'Mythical Forest →',
                 icon: '⭐',
                 x: this.hubPortal.x,
                 y: this.hubPortal.y,
                 color: 0x9370DB,
-                description: 'Enter levels'
+                description: 'Explore through the Adventure Gate'
             });
         }
 

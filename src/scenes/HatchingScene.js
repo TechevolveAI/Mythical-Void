@@ -182,6 +182,7 @@ class HatchingScene extends Phaser.Scene {
 
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
         this.events.on(Phaser.Scenes.Events.RESUME, this.startThemeMusic, this);
+        this.scale.on('resize', this.resizeHatchingLayout, this);
 
         // Stop all other scenes to ensure clean display
         const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene'];
@@ -718,6 +719,7 @@ class HatchingScene extends Phaser.Scene {
                 this.showTutorialHint('preHatch');
             });
         }
+        this.resizeHatchingLayout();
     }
 
     createStartButton() {
@@ -1171,6 +1173,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Store for cleanup
         this.cosmicPlatform = platform;
+        this.hatchPlatformOrigin = { x: centerX, y: platformY };
 
         // Create floating energy particles around platform
         this.platformParticles = [];
@@ -1307,6 +1310,7 @@ class HatchingScene extends Phaser.Scene {
         // Use rarity-specific egg texture
         const textureName = this.eggTextureName || 'enhancedEgg_common';
         this.egg = this.add.image(eggX, eggY, textureName);  // Slightly above center
+        this.hatchEggOrigin = { x: eggX, y: eggY };
 
         // Apply golden tint for Stellar eggs
         if (this.isEggHatch && this.eggType === 'stellar') {
@@ -1478,7 +1482,7 @@ class HatchingScene extends Phaser.Scene {
         }
 
         const { width, height } = this.scale;
-        const eggX = width / 2;
+        const eggX = this.egg?.x ?? width / 2;
         const eggY = height * 0.45;
         const eggTop = this.egg
             ? this.egg.y - (this.egg.displayHeight / 2)
@@ -1607,6 +1611,10 @@ class HatchingScene extends Phaser.Scene {
         });
 
         console.log(`[HatchingScene] Showing tutorial hint: ${stage}`);
+        const layout = this.getEggHatchLayout();
+        this.tutorialHintText.setPosition(layout.eggX, layout.hintY)
+            .setFontSize(layout.landscape ? 14 : 16)
+            .setWordWrapWidth(layout.landscape ? this.scale.width * 0.42 : this.scale.width - 72);
     }
 
     createUI() {
@@ -2509,7 +2517,7 @@ class HatchingScene extends Phaser.Scene {
                     console.log('hatch:info [HatchingScene] Creature fade-in complete');
 
                     // 🎉 CELEBRATION BURST - Dramatic effect for creature reveal!
-                    this.createBirthCelebration(centerX, creatureY);
+                    this.createBirthCelebration(this.creature.x, this.creature.y);
 
                     // Add cute baby idle animations
                     this.addCuteIdleAnimations(this.creature, targetScale);
@@ -3024,6 +3032,16 @@ class HatchingScene extends Phaser.Scene {
      */
     addCuteIdleAnimations(creature, baseScale) {
         if (!creature) return;
+        (this.creatureIdleTweens || []).forEach(tween => tween.remove());
+        this.creatureIdleBounceTimer?.remove?.();
+        this.creatureIdleSparkleTimer?.remove?.();
+        this.creatureIdleReactionTween?.remove?.();
+        this.creatureIdleBounceTimer = null;
+        this.creatureIdleSparkleTimer = null;
+        this.creatureIdleReactionTween = null;
+        this.creatureIdleTweens = [];
+        baseScale = this.getFirstContactLayout(Boolean(this.rerollUI)).creatureScale;
+        creature.setScale(baseScale);
 
         const stage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
 
@@ -3036,7 +3054,7 @@ class HatchingScene extends Phaser.Scene {
         console.log('hatch:info [HatchingScene] Adding cute idle animations for stage:', stage);
 
         // Breathing animation - gentle scale oscillation (squash/stretch)
-        this.tweens.add({
+        this.creatureIdleTweens.push(this.tweens.add({
             targets: creature,
             scaleX: baseScale * (1 + breathingIntensity),
             scaleY: baseScale * (1 - breathingIntensity * 0.5),
@@ -3044,10 +3062,10 @@ class HatchingScene extends Phaser.Scene {
             ease: 'Sine.easeInOut',
             yoyo: true,
             repeat: -1
-        });
+        }));
 
         // Bobbing animation - gentle up/down movement
-        this.tweens.add({
+        this.creatureIdleTweens.push(this.tweens.add({
             targets: creature,
             y: creature.y - bobbingAmplitude,
             duration: breathingDuration * 1.3,
@@ -3055,18 +3073,18 @@ class HatchingScene extends Phaser.Scene {
             yoyo: true,
             repeat: -1,
             delay: 200 // Slight offset from breathing for natural feel
-        });
+        }));
 
         // For babies, add occasional cute reactions
         if (isBaby) {
             // Random "excited" bounce every 5-8 seconds
-            this.time.addEvent({
+            this.creatureIdleBounceTimer = this.time.addEvent({
                 delay: 5000 + Math.random() * 3000,
                 callback: () => {
                     if (!creature || !creature.active) return;
 
                     // Quick excited bounce
-                    this.tweens.add({
+                    this.creatureIdleReactionTween = this.tweens.add({
                         targets: creature,
                         scaleX: baseScale * 1.15,
                         scaleY: baseScale * 0.85,
@@ -3075,7 +3093,7 @@ class HatchingScene extends Phaser.Scene {
                         yoyo: true,
                         onComplete: () => {
                             // Rebound stretch
-                            this.tweens.add({
+                            this.creatureIdleReactionTween = this.tweens.add({
                                 targets: creature,
                                 scaleX: baseScale * 0.92,
                                 scaleY: baseScale * 1.08,
@@ -3096,7 +3114,7 @@ class HatchingScene extends Phaser.Scene {
 
             // Add sparkle particles around baby periodically
             if (window.FXLibrary) {
-                this.time.addEvent({
+                this.creatureIdleSparkleTimer = this.time.addEvent({
                     delay: 3000,
                     callback: () => {
                         if (!creature || !creature.active) return;
@@ -3149,18 +3167,7 @@ class HatchingScene extends Phaser.Scene {
             }
         }
 
-        // Add personality-based subtle effects
-        if (genetics.personality.core === 'energetic') {
-            // Gentle bounce animation
-            this.tweens.add({
-                targets: creature,
-                y: creature.y - 5,
-                duration: 1000,
-                ease: 'Sine.easeInOut',
-                yoyo: true,
-                repeat: -1
-            });
-        }
+        this.refreshCreaturePersonalityMotion(creature);
 
         // Add rarity-based glow
         if (genetics.rarity === 'legendary') {
@@ -3172,6 +3179,17 @@ class HatchingScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut',
                 yoyo: true,
                 repeat: -1
+            });
+        }
+    }
+
+    refreshCreaturePersonalityMotion(creature) {
+        this.creaturePersonalityTween?.remove?.();
+        this.creaturePersonalityTween = null;
+        if (this.creatureGenetics?.personality?.core === 'energetic') {
+            this.creaturePersonalityTween = this.tweens.add({
+                targets: creature, y: creature.y - 5, duration: 1000,
+                ease: 'Sine.easeInOut', yoyo: true, repeat: -1
             });
         }
     }
@@ -3380,10 +3398,11 @@ class HatchingScene extends Phaser.Scene {
 
         // Create background circle
         this.audioIndicatorBg = this.add.graphics();
+        this.audioIndicatorBg.setPosition(x, y);
         this.audioIndicatorBg.fillStyle(0x2A0A4E, 0.8);
-        this.audioIndicatorBg.fillCircle(x, y, size / 2);
+        this.audioIndicatorBg.fillCircle(0, 0, size / 2);
         this.audioIndicatorBg.lineStyle(2, 0x7B68EE);
-        this.audioIndicatorBg.strokeCircle(x, y, size / 2);
+        this.audioIndicatorBg.strokeCircle(0, 0, size / 2);
         this.audioIndicatorBg.setDepth(1000);
 
         // Create audio icon (speaker with waves)
@@ -3425,17 +3444,17 @@ class HatchingScene extends Phaser.Scene {
         this.audioIcon.on('pointerover', () => {
             this.audioIndicatorBg.clear();
             this.audioIndicatorBg.fillStyle(0x4A0080, 1);
-            this.audioIndicatorBg.fillCircle(x, y, size / 2);
+            this.audioIndicatorBg.fillCircle(0, 0, size / 2);
             this.audioIndicatorBg.lineStyle(3, 0xFFD700);
-            this.audioIndicatorBg.strokeCircle(x, y, size / 2);
+            this.audioIndicatorBg.strokeCircle(0, 0, size / 2);
         });
 
         this.audioIcon.on('pointerout', () => {
             this.audioIndicatorBg.clear();
             this.audioIndicatorBg.fillStyle(0x2A0A4E, 0.8);
-            this.audioIndicatorBg.fillCircle(x, y, size / 2);
+            this.audioIndicatorBg.fillCircle(0, 0, size / 2);
             this.audioIndicatorBg.lineStyle(2, 0x7B68EE);
-            this.audioIndicatorBg.strokeCircle(x, y, size / 2);
+            this.audioIndicatorBg.strokeCircle(0, 0, size / 2);
         });
 
         // Update icon based on current mute state
@@ -3463,6 +3482,13 @@ class HatchingScene extends Phaser.Scene {
         this.themeMusicSettingsCleanup?.();
         this.themeMusicSettingsCleanup = null;
         this.events.off(Phaser.Scenes.Events.RESUME, this.startThemeMusic, this);
+        this.scale?.off?.('resize', this.resizeHatchingLayout, this);
+        this.creatureIdleTweens = [];
+        this.creatureIdleBounceTimer = null;
+        this.creatureIdleSparkleTimer = null;
+        this.creatureIdleReactionTween = null;
+
+        this.creaturePersonalityTween = null;
 
         this.homeStartRecoveryTimer?.remove?.();
         this.homeStartRecoveryTimer = null;
@@ -3621,8 +3647,187 @@ class HatchingScene extends Phaser.Scene {
         }
     }
 
+    getEggHatchLayout() {
+        const { width, height } = this.scale;
+        const landscape = width > height && height < 600;
+        return {
+            landscape, textX: landscape ? width * 0.27 : width / 2,
+            textWidth: landscape ? width * 0.48 - 24 : Math.min(600, width - 40),
+            titleY: landscape ? 32 : Math.min(60, height * 0.08),
+            eggX: landscape ? width * 0.75 : width / 2,
+            eggY: height * (landscape ? 0.46 : 0.48),
+            eggScale: Math.min(1.2, height * (landscape ? 0.40 : 0.29) / 150),
+            platformY: height * (landscape ? 0.74 : 0.67),
+            promptY: height * (landscape ? 0.81 : 0.75),
+            hintY: landscape ? height - 28 : height * 0.9
+        };
+    }
+
+    layoutHatchPlatform(x, y) {
+        const origin = this.hatchPlatformOrigin;
+        if (!origin || !this.cosmicPlatform?.active) return;
+        const landscape = this.scale.width > this.scale.height && this.scale.height < 600;
+        const size = Math.min(1, this.scale.width * (landscape ? 0.35 : 0.9) / 280);
+        this.cosmicPlatform.setScale(size).setPosition(x - origin.x * size, y - origin.y * size);
+        (this.platformParticles || []).forEach((particle, index) => {
+            this.tweens.killTweensOf(particle);
+            const angle = index / 8 * Math.PI * 2;
+            particle.setPosition(x + Math.cos(angle) * 90 * size, y + Math.sin(angle) * 15 * size);
+        });
+    }
+
+    resizeHatchingLayout() {
+        if (this.hatchSceneRetired) return;
+        const { width, height } = this.scale;
+        if (width <= 0 || height <= 0) return;
+        const background = this.projectBeaconBackground;
+        if (background?.active) {
+            background.setPosition(width / 2, height / 2)
+                .setScale(Math.max(width / background.width, height / background.height));
+        }
+        [this.projectBeaconBackgroundFallback, this.projectBeaconContrastVeil].forEach(rect => {
+            if (rect?.active) rect.setPosition(width / 2, height / 2).setSize(width, height);
+        });
+        if (this.projectBeaconMotionBackdrop?.active) {
+            this.projectBeaconMotionBackdrop.setPosition(width < 600 ? width * 0.92 : width * 0.65, height / 2)
+                .setDisplaySize(Math.max(width, height * 16 / 9), Math.max(height, width * 9 / 16));
+        }
+        if (this.audioIcon?.active) {
+            this.audioIcon.setPosition(width - 32, 32);
+            this.audioIndicatorBg.setPosition(width - 32, 32);
+        }
+        if (this.creatureAppeared) {
+            this.resizeFirstContactLayout();
+            return;
+        }
+        if (!this.egg?.active) return;
+        const layout = this.getEggHatchLayout();
+        const positionText = (text, x, y, fontSize, wrap) => {
+            if (text?.active) text.setPosition(x, y).setFontSize(fontSize).setWordWrapWidth(wrap);
+        };
+        positionText(this.hatchTitleText, layout.textX, layout.titleY,
+            Math.min(30, (layout.textWidth - 40) / 8.5), layout.textWidth - 32);
+        positionText(this.hatchSubtitleText, layout.textX, layout.titleY + 34, 14, layout.textWidth);
+        positionText(this.instructionText, layout.textX, layout.landscape ? height * 0.43 : layout.titleY + 100,
+            16, layout.textWidth);
+        if (this.tapToHatchText?.active) {
+            this.tweens.killTweensOf(this.tapToHatchText);
+            this.tapToHatchText.setScale(1);
+            positionText(this.tapToHatchText, layout.textX, layout.promptY,
+                Math.min(24, layout.textWidth / 13), layout.textWidth);
+        }
+        positionText(this.progressText, layout.textX, layout.promptY, 22, layout.textWidth);
+        positionText(this.tutorialHintText, layout.eggX, layout.hintY, layout.landscape ? 14 : 16,
+            layout.landscape ? width * 0.42 : width - 72);
+        Object.values(this.controlPanelElements || {}).forEach(element => element?.setVisible(false));
+        this.layoutHatchPlatform(layout.eggX, layout.platformY);
+
+        // Only replace decorative motion. The hatch timer, DNA, input delay and
+        // completion fade retain their owners and are never restarted by resize.
+        if (!this.hatchingStarted || this.isHatching) {
+            this.tweens.killTweensOf(this.egg);
+            this.egg.setPosition(layout.eggX, layout.eggY).setScale(layout.eggScale);
+            this.tweens.add({ targets: this.egg, y: layout.eggY - 8, duration: 2000,
+                ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
+            if (this.isHatching) this.tweens.add({ targets: this.egg, x: layout.eggX + 5,
+                duration: 100, ease: 'Power2', yoyo: true, repeat: -1 });
+        } else {
+            this.egg.setPosition(layout.eggX, layout.eggY);
+        }
+        if (this.eggHatchFallback) {
+            this.eggHatchFallback.style.left = `${layout.eggX / width * 100}%`;
+            this.eggHatchFallback.style.top = `${layout.eggY / height * 100}%`;
+            this.eggHatchFallback.style.width = `${Math.max(150, 150 * layout.eggScale + 24)}px`;
+        }
+        if (this.stellarGlow?.active && this.hatchEggOrigin) {
+            this.stellarGlow.setPosition(layout.eggX - this.hatchEggOrigin.x, layout.eggY - this.hatchEggOrigin.y);
+            (this.stellarParticles || []).forEach((particle, index) => {
+                this.tweens.killTweensOf(particle);
+                const angle = index / 12 * Math.PI * 2;
+                particle.setPosition(layout.eggX + Math.cos(angle) * 70, layout.eggY + Math.sin(angle) * 70);
+            });
+        }
+        if (this.tutorialPointer?.active && !this.hatchingStarted) {
+            this.tweens.killTweensOf(this.tutorialPointer);
+            this.tutorialPointer.destroy();
+            this.tutorialPointer = null;
+            this.createTutorialPointer();
+        }
+    }
+
+    resizeFirstContactLayout() {
+        if (!this.creature?.active || this.hatchSceneRetired) return;
+        const canReroll = Boolean(this.rerollUI);
+        const layout = this.getFirstContactLayout(canReroll);
+        const { centerX, bannerY, bannerHeight, bannerWidth, buttonY, buttonWidth, buttonHeight, buttonGap } = layout;
+        this.applyFirstContactCreaturePresentation(this.creature, layout);
+        this.refreshCreaturePersonalityMotion(this.creature);
+        if (this.creatureIdleTweens?.length) {
+            this.addCuteIdleAnimations(this.creature, layout.creatureScale);
+        } else {
+            // Update the destination of an in-flight reveal without cancelling
+            // its completion callback or creating another reveal.
+            for (const tween of this.tweens.getTweensOf(this.creature)) {
+                tween.updateTo('scaleX', layout.creatureScale, true);
+                tween.updateTo('scaleY', layout.creatureScale, true);
+            }
+        }
+        const banner = this.rarityBanner;
+        if (banner) {
+            banner.bannerBg.clear().fillStyle(0x03151a, 0.66)
+                .fillRoundedRect(centerX - bannerWidth / 2, bannerY, bannerWidth, bannerHeight, 8)
+                .lineStyle(1, parseInt(this.rarityInfo.displayColor.replace('#', '0x')), 0.8)
+                .strokeRoundedRect(centerX - bannerWidth / 2, bannerY, bannerWidth, bannerHeight, 8);
+            banner.eyebrowText.setPosition(centerX, bannerY + 16);
+            banner.rarityText.setPosition(centerX, bannerY + bannerHeight * 0.43)
+                .setFontSize(layout.isCompact ? 17 : 21).setWordWrapWidth(bannerWidth - 24);
+            banner.speciesText.setPosition(centerX, bannerY + bannerHeight * 0.75)
+                .setFontSize(layout.isCompact ? 12 : 14).setWordWrapWidth(bannerWidth - 28);
+        }
+        const moveButton = (ui, prefix, x, colour, border, dimsKey) => {
+            if (!ui) return;
+            const dims = { x, y: buttonY, w: buttonWidth, h: buttonHeight };
+            this[dimsKey] = dims;
+            ui[`${prefix}Bg`].clear().fillStyle(colour, 0.96)
+                .fillRoundedRect(x, buttonY, buttonWidth, buttonHeight, 8)
+                .lineStyle(2, border).strokeRoundedRect(x, buttonY, buttonWidth, buttonHeight, 8);
+            ui[`${prefix}Text`].setPosition(x + buttonWidth / 2, buttonY + buttonHeight / 2)
+                .setFontSize(layout.isCompact ? 12 : 16);
+            ui[`${prefix}Zone`].setPosition(x, buttonY).setSize(buttonWidth, buttonHeight);
+        };
+        moveButton(this.keepUI, 'keep', canReroll ? centerX - buttonWidth - buttonGap / 2 : centerX - buttonWidth / 2,
+            0x146b55, 0xFFD54F, this.finalText ? 'finalKeepButtonDims' : 'keepButtonDims');
+        moveButton(this.rerollUI, 'reroll', centerX + buttonGap / 2, 0x273c74, 0x8FE3D4, 'rerollButtonDims');
+        this.adviceText?.setPosition(centerX, layout.scanY).setFontSize(12).setWordWrapWidth(layout.guidanceWidth);
+        this.finalText?.setPosition(centerX, layout.guidanceY).setFontSize(13).setWordWrapWidth(layout.guidanceWidth);
+        if (this.firstContactGuidance) {
+            const { guidanceBg, tutorialHint } = this.firstContactGuidance;
+            guidanceBg.clear().fillStyle(0x04171b, 0.72)
+                .fillRoundedRect(centerX - layout.guidanceWidth / 2, layout.guidanceY - 24, layout.guidanceWidth, 48, 8);
+            tutorialHint.setPosition(centerX, layout.guidanceY).setFontSize(12).setWordWrapWidth(layout.guidanceWidth - 24);
+        }
+    }
+
     getFirstContactLayout(canReroll = true) {
         const { width, height } = this.scale;
+        if (height < 600) {
+            const landscape = width > height;
+            const contentWidth = landscape ? width * 0.60 : width;
+            const bannerHeight = landscape ? 98 : 108;
+            const buttonY = height - 66;
+            const scanY = canReroll ? buttonY - 32 : null;
+            const guidanceY = (scanY || buttonY) - 50;
+            const creatureY = landscape ? height * 0.48 : (120 + guidanceY - 36) / 2;
+            const creatureRoom = landscape ? height * 0.54 : guidanceY - 164;
+            const creatureScale = Math.min(2, creatureRoom / 160, (landscape ? width * 0.32 : width - 40) / 160);
+            return { width, height, isCompact: true, centerX: contentWidth / 2,
+                creatureX: landscape ? width * 0.80 : width / 2,
+                bannerY: 12, bannerWidth: contentWidth - 24, bannerHeight,
+                creatureY, creatureScale, platformY: creatureY + creatureRoom / 2,
+                guidanceY, guidanceWidth: contentWidth - 30, scanY, buttonY,
+                buttonHeight: 50, buttonGap: 12,
+                buttonWidth: canReroll ? Math.min(190, (contentWidth - 44 - 12) / 2) : Math.min(240, contentWidth - 44) };
+        }
         const isCompact = width < 600;
         const bannerY = Math.max(isCompact ? 22 : 28, height * 0.04);
         const bannerHeight = isCompact ? 108 : 98;
@@ -3668,19 +3873,11 @@ class HatchingScene extends Phaser.Scene {
     applyFirstContactCreaturePresentation(creature, layout) {
         if (!creature) return;
 
-        creature.setPosition(layout.centerX, layout.creatureY);
+        creature.setPosition(layout.creatureX ?? layout.centerX, layout.creatureY);
         creature.setBlendMode(Phaser.BlendModes.SCREEN);
         creature.clearMask?.(true);
 
-        const targetShift = layout.platformY - (layout.height * 0.65);
-        const shiftDelta = targetShift - this.firstContactPlatformShift;
-        if (shiftDelta !== 0) {
-            this.cosmicPlatform?.setY?.((this.cosmicPlatform.y || 0) + shiftDelta);
-            (this.platformParticles || []).forEach(particle => {
-                if (particle) particle.y += shiftDelta;
-            });
-            this.firstContactPlatformShift = targetShift;
-        }
+        this.layoutHatchPlatform(layout.creatureX ?? layout.centerX, layout.platformY);
     }
 
     /**
@@ -4005,6 +4202,7 @@ class HatchingScene extends Phaser.Scene {
 
             this.keepUI = { keepBg, keepText, keepZone };
             this.adviceText = adviceText;
+            this.resizeFirstContactLayout();
 
         } catch (error) {
             console.error('hatch:error [HatchingScene] Error in showRerollOptions:', error);
@@ -4293,6 +4491,7 @@ class HatchingScene extends Phaser.Scene {
 
         this.keepUI = { keepBg, keepText, keepZone };
         this.finalText = finalText;
+        this.resizeFirstContactLayout();
     }
 
     /**

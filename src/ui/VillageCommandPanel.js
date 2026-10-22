@@ -4,7 +4,6 @@ import {
     getVillageResidentProposal,
     getVillageSupportSummary
 } from '../systems/VillageSettlement.js';
-import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../config/cinematic-media.js';
 import { getRescuedResidentVariantIndex } from '../systems/RescuedResidents.js';
 
 function createElement(tagName, className, text = null) {
@@ -12,6 +11,10 @@ function createElement(tagName, className, text = null) {
     if (className) element.className = className;
     if (text !== null) element.textContent = text;
     return element;
+}
+
+function readableLabel(value = '') {
+    return String(value).toLowerCase().replace(/(^|[.!?]\s+)\S/g, letter => letter.toUpperCase());
 }
 
 function createBuildingArtwork(definitionId, {
@@ -121,8 +124,9 @@ function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
     const residentCount = (snapshot?.community?.companions?.length || 0) +
         (snapshot?.community?.residents?.length || 0);
     [
-        ['plan', 'BUILD PLAN'],
-        ['community', `COMMUNITY ${residentCount}`]
+        ['plan', 'Build'],
+        ['helpers', 'Helpers'],
+        ['community', `Creatures (${residentCount})`]
     ].forEach(([id, label]) => {
         const button = createElement(
             'button',
@@ -131,10 +135,23 @@ function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
         );
         button.type = 'button';
         button.dataset.view = id;
+        button.id = `village-tab-${id}`;
+        button.dataset.focusKey = `tab-${id}`;
         button.setAttribute('role', 'tab');
         button.setAttribute('aria-selected', String(activeView === id));
+        button.setAttribute('aria-controls', 'village-current-view');
+        button.tabIndex = activeView === id ? 0 : -1;
         button.setAttribute('data-testid', `village-view-${id}`);
         button.addEventListener('click', () => onSelect?.(id));
+        button.addEventListener('keydown', event => {
+            const views = ['plan', 'helpers', 'community'];
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const index = event.key === 'Home' ? 0 : event.key === 'End' ? 2
+                : (views.indexOf(id) + (event.key === 'ArrowRight' ? 1 : -1) + 3) % 3;
+            onSelect?.(views[index]);
+            document.getElementById(`village-tab-${views[index]}`)?.focus();
+        });
         tabs.append(button);
     });
     return tabs;
@@ -233,38 +250,17 @@ function createCommunityDirectory(
     const intro = createElement('header', 'village-community-directory-header');
     const introCopy = createElement('div', 'village-community-directory-copy');
     introCopy.append(
-        createElement('span', 'village-community-directory-kicker', 'WHO BELONGS WHERE'),
-        createElement('h3', 'village-community-directory-title', 'YOUR SANCTUARY COMMUNITY'),
+        createElement('h3', 'village-community-directory-title', 'Everyone here'),
         createElement(
             'p',
             'village-community-directory-intro',
-            'Your creature and the creatures you rescue live and work here by choice. Restored Guardians protect their own regions; they do not move into the Sanctuary.'
+            'Your creatures can help, rest and feel at home here.'
         )
     );
-    const counts = createElement('div', 'village-community-directory-counts');
-    [
-        [String(members.length), 'LIVING HERE'],
-        [String(guardians.length), 'REGIONAL ALLIES']
-    ].forEach(([value, label]) => {
-        const count = createElement('span', 'village-community-directory-count');
-        count.append(
-            createElement('strong', '', value),
-            createElement('span', '', label)
-        );
-        counts.append(count);
-    });
-    intro.append(introCopy, counts);
+    intro.append(introCopy);
     directory.append(intro);
 
     const residentSection = createElement('section', 'village-community-group');
-    residentSection.append(
-        createElement('h4', 'village-community-group-title', 'SANCTUARY RESIDENTS'),
-        createElement(
-            'p',
-            'village-community-group-note',
-            'These are the lives building a home with you.'
-        )
-    );
     const residentGrid = createElement('div', 'village-community-grid');
     if (members.length === 0) {
         residentGrid.append(createElement(
@@ -284,10 +280,10 @@ function createCommunityDirectory(
                     'span',
                     'village-community-member-type',
                     member.isPlayerCompanion
-                        ? 'YOUR CREATURE'
+                        ? 'Your creature'
                         : isRescuedResident
-                            ? 'RESCUED RESIDENT'
-                            : 'CREATURE'
+                            ? 'Rescued friend'
+                            : 'Creature'
                 ),
                 createElement('strong', 'village-community-member-name', member.name || 'Unnamed creature'),
                 createElement(
@@ -312,12 +308,12 @@ function createCommunityDirectory(
                     'p',
                     'village-community-member-contribution',
                     member.contributionLine || member.supportLabel ||
-                        'Shares the journey and helps the Sanctuary understand this living world.'
+                        'Ready for another adventure together.'
                 ),
                 createElement(
                     'span',
                     'village-community-member-status',
-                    getCommunityMemberStatus(member, snapshot)
+                    readableLabel(getCommunityMemberStatus(member, snapshot))
                 )
             );
             residentGrid.append(card);
@@ -328,11 +324,11 @@ function createCommunityDirectory(
 
     const guardianSection = createElement('section', 'village-community-group is-guardians');
     guardianSection.append(
-        createElement('h4', 'village-community-group-title', 'REGIONAL GUARDIANS'),
+        createElement('h4', 'village-community-group-title', 'Guardians of other worlds'),
         createElement(
             'p',
             'village-community-group-note',
-            'Restored allies hold the places you helped. Their support reaches the Sanctuary without turning them into residents.'
+            'Guardians stay in their own worlds and help from there.'
         )
     );
     const guardianGrid = createElement('div', 'village-guardian-grid');
@@ -340,7 +336,7 @@ function createCommunityDirectory(
         guardianGrid.append(createElement(
             'p',
             'village-community-directory-empty',
-            'Guardian outcomes will be recorded here after each region is restored.'
+            'Explore to meet your first Guardian.'
         ));
     } else {
         guardians.forEach(guardian => {
@@ -359,8 +355,8 @@ function createCommunityDirectory(
                     'span',
                     'village-guardian-presence',
                     guardian.sanctuaryPresence === 'heart_projection'
-                        ? 'HEART LINK · NOT A RESIDENT'
-                        : 'PROTECTING THEIR REGION'
+                        ? 'Visits through the Heart'
+                        : 'Protecting their world'
                 ),
                 createElement('strong', 'village-guardian-name', guardian.name),
                 createElement('span', 'village-guardian-role', guardian.regionRole),
@@ -373,50 +369,6 @@ function createCommunityDirectory(
     guardianSection.append(guardianGrid);
     directory.append(guardianSection);
     return directory;
-}
-
-function createVillageVision() {
-    const vision = createElement('section', 'village-command-vision');
-    if (shouldPlayCinematicMedia()) {
-        const video = document.createElement('video');
-        video.className = 'village-command-vision-video';
-        video.src = CINEMATIC_MEDIA.villageHeart.url;
-        video.poster = CINEMATIC_MEDIA.villageHeart.poster;
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = 'metadata';
-        video.setAttribute('aria-hidden', 'true');
-        vision.append(video);
-    }
-    const copy = createElement('div', 'village-vision-copy');
-    copy.append(
-        createElement('span', 'village-vision-kicker', 'YOUR SAFE BASE'),
-        createElement('strong', 'village-vision-title', 'BUILD A HOME TOGETHER'),
-        createElement(
-            'span',
-            'village-vision-purpose',
-            'Use supplies to make shelter, recover safely, and prepare for the next journey.'
-        )
-    );
-    const impact = createElement('div', 'village-vision-impact');
-    [
-        ['NOW', 'Buildings give useful help in care and expeditions.'],
-        ['LATER', 'A stronger base can welcome more rescued creatures.']
-    ].forEach(([label, description]) => {
-        const line = createElement('span', 'village-impact-line');
-        line.append(createElement('b', '', label), createElement('span', '', description));
-        impact.append(line);
-    });
-    vision.append(
-        createElement('span', 'village-vision-current'),
-        createElement('span', 'village-vision-stars'),
-        createElement('span', 'village-vision-scan'),
-        copy,
-        impact
-    );
-    return vision;
 }
 
 function createCommunityPulse(
@@ -731,7 +683,7 @@ function getConstructionStepCopy(selectedDefinition, firstOpenPlot, definitionBy
     if (!firstOpenPlot) {
         return '1. No open building sites remain.';
     }
-    return `${selectedDefinition.label} will grow at ${firstOpenPlot.label}. Review the benefit and cost, then confirm below.`;
+    return `A new ${readableLabel(selectedDefinition.label).toLowerCase()} at ${readableLabel(firstOpenPlot.label)}.`;
 }
 
 function formatResult(result) {
@@ -789,22 +741,22 @@ function createHeartIntroduction(snapshot, portraitRecord, onAcknowledge) {
     const identity = createElement('div', 'village-heart-introduction-identity');
     identity.append(
         createCreatureAvatar(companion, portraitRecord),
-        createElement('span', 'village-heart-introduction-link', 'YOU ARRIVED TOGETHER')
+        createElement('span', 'village-heart-introduction-link', 'A home for you both')
     );
 
     const copy = createElement('div', 'village-heart-introduction-copy');
     copy.append(
-        createElement('span', 'village-guided-kicker', 'FIRST SANCTUARY OBJECTIVE · 1/4'),
-        createElement('h3', 'village-guided-title', 'MEET THE VILLAGE HEART'),
+        createElement('span', 'village-guided-kicker', 'First steps · 1/4'),
+        createElement('h3', 'village-guided-title', 'Let’s make a little home'),
         createElement(
             'p',
             'village-guided-detail',
-            'This living landmark keeps supplies for the whole Sanctuary. It will reveal only the next useful foundation.'
+            'The Heart keeps your supplies safe. Let’s use a few to build your first little place.'
         )
     );
 
     const cache = createElement('div', 'village-heart-starter-cache');
-    cache.append(createElement('strong', '', 'WANDERER-77 LANDING CACHE'));
+    cache.append(createElement('strong', '', 'Your starting supplies'));
     VILLAGE_RESOURCE_DEFINITIONS.forEach(resource => {
         const source = snapshot.onboarding?.resourceSources?.find(
             entry => entry.id === resource.id
@@ -815,7 +767,7 @@ function createHeartIntroduction(snapshot, portraitRecord, onAcknowledge) {
         icon.setAttribute('aria-hidden', 'true');
         item.append(
             icon,
-            createElement('b', '', `${snapshot.resources[resource.id]} ${resource.label}`),
+            createElement('b', '', `${snapshot.resources[resource.id]} ${resource.label.toLowerCase()}`),
             createElement('small', '', source?.currentSource || resource.starterSource)
         );
         cache.append(item);
@@ -825,7 +777,7 @@ function createHeartIntroduction(snapshot, portraitRecord, onAcknowledge) {
     const action = createElement(
         'button',
         'village-guided-primary',
-        'REVEAL THE FIRST SAFE FOUNDATION'
+        'See our first building'
     );
     action.type = 'button';
     action.setAttribute('data-testid', 'village-heart-begin');
@@ -869,6 +821,7 @@ export default class VillageCommandPanel {
         this.companionPortraitRecord = null;
         this.runtimeResidentAvatarCache = new Map();
         this.helperSelections = new Map();
+        this.expandedSections = new Set();
         this.activeView = 'plan';
         this.keyboardHandler = null;
         this.refreshTimer = null;
@@ -963,7 +916,7 @@ export default class VillageCommandPanel {
                 definition => !definition.placement.alreadyBuilt
             )?.id || snapshot.definitions[0]?.id || null;
 
-        const root = createElement('div', 'village-command-modal');
+        const root = createElement('div', 'village-command-modal is-friendly');
         if (this.contextual) root.classList.add('is-contextual');
         if (this.guided) root.classList.add('is-guided');
         root.setAttribute('role', 'dialog');
@@ -976,6 +929,24 @@ export default class VillageCommandPanel {
         this.inputWasEnabled = this.scene.input?.enabled;
         if (this.scene.input) this.scene.input.enabled = false;
         this.keyboardHandler = event => {
+            if (event.key === 'Tab') {
+                event.stopImmediatePropagation();
+                const controls = [...this.root.querySelectorAll('button, select, summary, [tabindex]')]
+                    .filter(element => {
+                        if (element.disabled || element.tabIndex < 0 || !element.getClientRects().length) return false;
+                        const closed = element.closest('details:not([open])');
+                        return !closed || closed.firstElementChild === element;
+                    });
+                const first = controls[0], last = controls[controls.length - 1];
+                if (!first) { event.preventDefault(); return; }
+                const current = document.activeElement;
+                if (!this.root.contains(current) || (!event.shiftKey && current === last) ||
+                    (event.shiftKey && current === first)) {
+                    event.preventDefault();
+                    (event.shiftKey ? last : first).focus();
+                }
+                return;
+            }
             if (event.key !== 'Escape') return;
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -1005,6 +976,27 @@ export default class VillageCommandPanel {
         }, 1000);
         root.querySelector('.village-command-close')?.focus({ preventScroll: true });
         return true;
+    }
+
+    createDetails(id, label, ...content) {
+        const details = createElement('details', 'village-extra-details');
+        details.open = this.expandedSections.has(id);
+        const summary = createElement('summary', '', label);
+        summary.dataset.focusKey = `details-${id}`;
+        details.append(summary, ...content);
+        details.addEventListener('toggle', () => {
+            // Detached nodes can emit a delayed toggle after the next redraw.
+            if (!this.root?.contains(details)) return;
+            if (details.open) this.expandedSections.add(id);
+            else this.expandedSections.delete(id);
+        });
+        return details;
+    }
+
+    markViewPanel(element) {
+        element.id = 'village-current-view';
+        element.setAttribute('role', 'tabpanel');
+        element.setAttribute('aria-labelledby', `village-tab-${this.activeView}`);
     }
 
     setCompanionPortrait(record) {
@@ -1061,8 +1053,8 @@ export default class VillageCommandPanel {
             const header = createElement('header', 'village-command-header village-guided-header');
             const heading = createElement('div', 'village-command-heading-copy');
             heading.append(
-                createElement('p', 'village-command-eyebrow', 'AWAKENED LANDMARK'),
-                createElement('h2', 'village-command-title', 'VILLAGE HEART')
+                createElement('p', 'village-command-eyebrow', 'A place to grow'),
+                createElement('h2', 'village-command-title', 'Village Heart')
             );
             const close = createElement('button', 'village-command-close compact-icon-button', '\u00d7');
             close.type = 'button';
@@ -1089,12 +1081,12 @@ export default class VillageCommandPanel {
             footer.append(createElement(
                 'p',
                 'village-guided-lock-note',
-                'One objective at a time. The wider building plan stays hidden for now.'
+                'One little step at a time.'
             ));
             const returnButton = createElement(
                 'button',
                 'village-guided-secondary is-return',
-                'RETURN TO SANCTUARY'
+                'Back to exploring'
             );
             returnButton.type = 'button';
             returnButton.addEventListener('click', () => this.destroy());
@@ -1228,22 +1220,22 @@ export default class VillageCommandPanel {
         stage.dataset.intent = intent;
         const standardActionCopy = {
             build: {
-                kicker: 'THE NEXT USEFUL CHANGE',
-                title: selectedDefinition ? `BUILD ${selectedDefinition.label}` : 'CHOOSE A STRUCTURE',
-                detail: selectedDefinition?.purpose || nextAction.detail
+                kicker: 'A little place to grow',
+                title: selectedDefinition ? `Build ${readableLabel(selectedDefinition.label)}` : 'Choose a building',
+                detail: selectedDefinition?.immediateImpact || nextAction.detail
             },
             assign: {
-                kicker: 'A STRUCTURE NEEDS A PERSON',
+                kicker: 'A little help goes a long way',
                 title: targetBuilding
-                    ? `INVITE HELP AT ${targetBuilding.definition.label}`
-                    : 'INVITE A HELPER',
+                    ? `Help at ${readableLabel(targetBuilding.definition.label)}`
+                    : 'Choose a helper',
                 detail: targetBuilding?.definition.workerRoutine?.emotionalPurpose || nextAction.detail
             },
             construction: {
-                kicker: 'THE CURRENT IS WORKING',
+                kicker: 'Growing together',
                 title: targetBuilding
-                    ? `${targetBuilding.definition.label} IS GROWING`
-                    : 'CONSTRUCTION IN PROGRESS',
+                    ? `${readableLabel(targetBuilding.definition.label)} is growing`
+                    : 'Building in progress',
                 detail: targetBuilding?.definition.completionCopy || nextAction.detail
             },
             supplies: {
@@ -1305,7 +1297,7 @@ export default class VillageCommandPanel {
             const copy = createElement('div', 'village-guided-copy');
             copy.append(
                 createElement('span', 'village-guided-kicker', actionCopy?.kicker || 'RIGHT NOW'),
-                createElement('h3', 'village-guided-title', actionCopy?.title || nextAction.label),
+                createElement('h3', 'village-guided-title', readableLabel(actionCopy?.title || nextAction.label)),
                 createElement('p', 'village-guided-detail', actionCopy?.detail || nextAction.detail)
             );
 
@@ -1315,8 +1307,9 @@ export default class VillageCommandPanel {
                 this.companionPortraitRecord,
                 creature => this.getRuntimeResidentAvatar(creature)
             );
+            const optionalDetails = [];
             if (residentProposal && ['build', 'supplies'].includes(intent)) {
-                copy.append(residentProposal);
+                optionalDetails.push(this.createDetails('guided-idea', 'A creature’s idea', residentProposal));
             }
 
             if (visualDefinition) {
@@ -1332,7 +1325,7 @@ export default class VillageCommandPanel {
                     );
                     impacts.append(impact);
                 });
-                copy.append(impacts);
+                optionalDetails.push(this.createDetails('guided-benefits', 'What does it do?', impacts));
             }
 
             const resourceLesson = !onboarding.firstLoopComplete || intent === 'supplies'
@@ -1360,13 +1353,13 @@ export default class VillageCommandPanel {
                         );
                         button.append(
                             createBuildingArtwork(definition.id, { compact: true }),
-                            createElement('strong', '', definition.shortLabel),
+                            createElement('strong', '', readableLabel(definition.shortLabel)),
                             createElement(
                                 'span',
                                 '',
                                 definition.placement.available
-                                    ? formatCost(definition.cost)
-                                    : formatPlacementReason(definition, definitionById)
+                                    ? readableLabel(formatCost(definition.cost))
+                                    : readableLabel(formatPlacementReason(definition, definitionById))
                             )
                         );
                         button.addEventListener('click', () => {
@@ -1387,8 +1380,8 @@ export default class VillageCommandPanel {
                     'button',
                     'village-guided-primary',
                     canBuild
-                        ? `BUILD AT ${selectedPlot.label} · ${formatCost(selectedDefinition.cost)}`
-                        : formatPlacementReason(selectedDefinition, definitionById)
+                        ? `Build ${readableLabel(selectedDefinition.label)}`
+                        : readableLabel(formatPlacementReason(selectedDefinition, definitionById))
                 );
                 build.type = 'button';
                 build.disabled = !canBuild;
@@ -1402,7 +1395,7 @@ export default class VillageCommandPanel {
                         this.render();
                     });
                 }
-                copy.append(build);
+                copy.append(createElement('p', 'village-build-cost', `Supplies: ${readableLabel(formatCost(selectedDefinition.cost))}`), build);
             } else if (intent === 'assign' && targetBuilding) {
                 const assignment = createElement('div', 'village-guided-assignment');
                 const select = this.createHelperSelect(
@@ -1410,7 +1403,7 @@ export default class VillageCommandPanel {
                     snapshot.roster,
                     `Choose a helper for ${targetBuilding.definition.label}`
                 );
-                const invite = createElement('button', 'village-guided-primary', 'INVITE TO HELP');
+                const invite = createElement('button', 'village-guided-primary', 'Invite to help');
                 invite.type = 'button';
                 invite.disabled = snapshot.roster.length === 0;
                 invite.addEventListener('click', () => {
@@ -1473,14 +1466,15 @@ export default class VillageCommandPanel {
                 });
                 copy.append(summary);
             }
-            if (resourceLesson) copy.append(resourceLesson);
+            copy.append(...optionalDetails);
+            if (resourceLesson) copy.append(this.createDetails('supplies-help', 'Where do supplies come from?', resourceLesson));
             stage.append(copy);
         }
         shell.append(stage);
 
         const footer = createElement('footer', 'village-guided-footer');
         if (onboarding.showFullPlan && intent !== 'decision') {
-            const planner = createElement('button', 'village-guided-secondary', '\u2630  OPEN FULL PLAN');
+            const planner = createElement('button', 'village-guided-secondary', 'Browse buildings');
             planner.type = 'button';
             planner.addEventListener('click', () => {
                 this.guided = false;
@@ -1500,7 +1494,7 @@ export default class VillageCommandPanel {
         const returnButton = createElement(
             'button',
             'village-guided-secondary is-return',
-            'RETURN TO SANCTUARY'
+            'Back to exploring'
         );
         returnButton.type = 'button';
         returnButton.addEventListener('click', () => this.destroy());
@@ -1519,6 +1513,7 @@ export default class VillageCommandPanel {
             '.village-command-shell',
             '.village-command-body',
             '.village-building-catalog',
+            '.village-building-options',
             '.village-site-plan',
             '.village-guided-stage'
         ].map(selector => ({
@@ -1526,13 +1521,22 @@ export default class VillageCommandPanel {
             top: this.root.querySelector(selector)?.scrollTop || 0,
             left: this.root.querySelector(selector)?.scrollLeft || 0
         }));
+        const focusKey = this.root.contains(document.activeElement)
+            ? document.activeElement?.dataset?.focusKey : null;
         const restoreScrollState = () => {
+            this.root.querySelectorAll('button, select, summary').forEach((element, index) => {
+                if (!element.dataset.focusKey) {
+                    element.dataset.focusKey = `control-${index}-${element.getAttribute('aria-label') || element.textContent.trim()}`;
+                }
+            });
             scrollState.forEach(({ selector, top, left }) => {
                 const element = this.root?.querySelector(selector);
                 if (!element) return;
                 element.scrollTop = top;
                 element.scrollLeft = left;
             });
+            if (focusKey) [...this.root.querySelectorAll('[data-focus-key]')]
+                .find(element => element.dataset.focusKey === focusKey)?.focus({ preventScroll: true });
         };
         const snapshot = this.getSnapshot();
         const definitionById = new Map(
@@ -1573,10 +1577,10 @@ export default class VillageCommandPanel {
                 'h2',
                 'village-command-title',
                 contextualBuilding
-                    ? contextualBuilding.definition.label
+                    ? readableLabel(contextualBuilding.definition.label)
                     : this.contextual
-                        ? 'WHAT SHOULD GROW HERE?'
-                        : 'VILLAGE HEART'
+                        ? 'What shall we build?'
+                        : 'Our little village'
             )
         );
         headingGroup.append(headingCopy);
@@ -1589,7 +1593,7 @@ export default class VillageCommandPanel {
         header.append(headingGroup, close);
 
         const resources = createElement('section', 'village-resource-ledger');
-        resources.setAttribute('aria-label', 'Settlement resources');
+        resources.setAttribute('aria-label', 'Village supplies');
         VILLAGE_RESOURCE_DEFINITIONS.forEach(resource => {
             const item = createElement('div', 'village-resource');
             item.dataset.resource = resource.id;
@@ -1599,7 +1603,7 @@ export default class VillageCommandPanel {
             icon.setAttribute('aria-hidden', 'true');
             item.append(
                 icon,
-                createElement('span', 'village-resource-label', resource.label),
+                createElement('span', 'village-resource-label', readableLabel(resource.label)),
                 createElement('strong', 'village-resource-value', String(snapshot.resources[resource.id])),
                 createElement(
                     'span',
@@ -1619,7 +1623,7 @@ export default class VillageCommandPanel {
         capacityIcon.setAttribute('aria-hidden', 'true');
         capacity.append(
             capacityIcon,
-            createElement('span', 'village-resource-label', 'HOME CAPACITY'),
+            createElement('span', 'village-resource-label', 'Space'),
             createElement('strong', 'village-resource-value', String(snapshot.capacity))
         );
         resources.append(capacity);
@@ -1678,32 +1682,43 @@ export default class VillageCommandPanel {
             })
             : null;
         if (viewTabs && this.activeView === 'community') {
-            shell.append(
-                header,
-                resources,
-                status,
-                viewTabs,
-                createCommunityDirectory(
-                    snapshot,
-                    this.companionPortraitRecord,
-                    creature => this.getRuntimeResidentAvatar(creature)
-                )
-            );
+            const communityView = createElement('section', 'village-creatures-view');
+            this.markViewPanel(communityView);
+            communityView.append(createCommunityDirectory(
+                snapshot, this.companionPortraitRecord,
+                creature => this.getRuntimeResidentAvatar(creature)
+            ));
+            if (this.onDecision) {
+                const decision = createHeartDecision(snapshot, {
+                    lastResult: this.lastDecisionResult,
+                    onChoose: request => {
+                        const result = this.onDecision?.(request);
+                        this.statusMessage = formatResult(result);
+                        if (result?.changed) this.lastDecisionResult = result;
+                        this.render();
+                    }
+                });
+                if (decision) communityView.append(decision);
+            }
+            shell.append(header, resources, viewTabs);
+            if (this.statusMessage) shell.append(status);
+            shell.append(communityView);
             this.root.append(shell);
             restoreScrollState();
             return;
         }
 
         const body = createElement('div', 'village-command-body');
+        if (!this.contextual) this.markViewPanel(body);
         const catalog = createElement('section', 'village-building-catalog');
         catalog.append(createElement(
             'h3',
             'village-section-title',
             contextualBuilding
-                ? 'STRUCTURE'
+                ? 'Your building'
                 : this.contextual
-                    ? 'CHOOSE A BUILDING'
-                    : 'STRUCTURES'
+                    ? 'Choose a building'
+                    : 'Pick a little place'
         ));
         const visibleDefinitions = snapshot.definitions
             .filter(definition => (
@@ -1731,43 +1746,30 @@ export default class VillageCommandPanel {
                 `village-building-card${selected ? ' is-selected' : ''}`
             );
             card.type = 'button';
+            card.dataset.focusKey = `building-${definition.id}`;
             card.setAttribute('aria-pressed', String(selected));
             card.addEventListener('click', () => {
                 this.selectedDefinitionId = definition.id;
                 this.statusMessage = definition.placement.available
-                    ? `${definition.label} selected. ${definition.immediateImpact}`
+                    ? ''
                     : formatPlacementReason(definition, definitionById);
                 this.render();
             });
             const top = createElement('span', 'village-building-card-top');
-            top.append(createElement('strong', 'village-building-name', definition.label));
-            const production = definition.production
-                ? `+${definition.production.amount} ${definition.production.resource.toUpperCase()} / MIN BASE`
-                : `+${definition.capacityBonus || 0} HOME CAPACITY`;
+            top.append(createElement('strong', 'village-building-name', readableLabel(definition.label)));
             const artwork = createBuildingArtwork(definition.id, {
                 status: definition.placement.alreadyBuilt ? 'complete' : 'ready'
             });
             artwork.append(createElement(
                 'span',
                 `village-building-artwork-state${definition.placement.available ? ' is-ready' : ''}`,
-                formatPlacementReason(definition, definitionById)
+                readableLabel(formatPlacementReason(definition, definitionById))
             ));
             const cardCopy = createElement('span', 'village-building-copy');
             cardCopy.append(
                 top,
-                createElement('span', 'village-building-description', definition.purpose),
-                createElement(
-                    'span',
-                    'village-building-impact',
-                    `HELPS NOW · ${definition.immediateImpact}`
-                ),
-                createElement(
-                    'span',
-                    'village-building-extension',
-                    `UNLOCKS · ${definition.extensionImpact}`
-                ),
-                createElement('span', 'village-building-output', production),
-                createElement('span', 'village-building-cost', formatCost(definition.cost))
+                createElement('span', 'village-building-cost', definition.placement.alreadyBuilt
+                    ? 'Already part of your village' : readableLabel(formatCost(definition.cost)))
             );
             card.append(artwork, cardCopy);
             buildingOptions.append(card);
@@ -1782,26 +1784,26 @@ export default class VillageCommandPanel {
                 'village-section-title',
                 contextualBuilding
                     ? contextualBuilding.definition.production
-                        ? 'COMMUNITY HELP'
-                        : 'ACTIVE BENEFIT'
+                        ? 'A helping hand'
+                        : 'How this helps'
                     : this.contextual
-                        ? 'YOUR CHOICE'
+                        ? 'Your choice'
                         : settlementComplete
-                            ? 'SETTLEMENT READY'
-                            : 'BUILD NEXT'
+                            ? 'A cosy little village'
+                            : 'Your next building'
             ),
             createElement(
                 'p',
                 'village-site-selection',
                 contextualBuilding
-                    ? `${contextualBuilding.definition.shortLabel} · ${contextualBuilding.status.toUpperCase()}`
+                    ? `${readableLabel(contextualBuilding.definition.shortLabel)} · ${readableLabel(contextualBuilding.status)}`
                     : this.contextual
                     ? selectedPlot?.label || 'OPEN GROUND'
                     : settlementComplete
-                        ? 'PHASE ONE COMPLETE'
+                        ? 'All five buildings are ready'
                     : selectedDefinition
-                        ? `PLACING · ${selectedDefinition.shortLabel}`
-                        : 'SELECT A STRUCTURE'
+                        ? readableLabel(selectedDefinition.label)
+                        : 'Choose a building'
             )
         );
         const firstOpenPlot = selectedPlot?.open
@@ -1815,7 +1817,7 @@ export default class VillageCommandPanel {
             contextualBuilding
                 ? contextualBuilding.definition.immediateImpact
                 : settlementComplete
-                    ? 'All five foundations are active. Meet the residents or review a structure\'s contribution.'
+                    ? 'Visit Helpers to give a creature a job, or Creatures to meet everyone.'
                 : getConstructionStepCopy(
                     selectedDefinition,
                     firstOpenPlot,
@@ -1824,6 +1826,7 @@ export default class VillageCommandPanel {
         );
         nextStep.setAttribute('aria-live', 'polite');
         plan.append(planHeader, nextStep);
+        let buildingIdea = null;
         if (!contextualBuilding && !settlementComplete && selectedDefinition) {
             const residentProposal = createResidentProposal(
                 snapshot,
@@ -1831,23 +1834,24 @@ export default class VillageCommandPanel {
                 this.companionPortraitRecord,
                 creature => this.getRuntimeResidentAvatar(creature)
             );
-            if (residentProposal) plan.append(residentProposal);
+            if (residentProposal) buildingIdea = this.createDetails('building-idea', 'A creature’s idea', residentProposal);
         }
 
         const constructAction = createElement(
             'button',
             'village-construct-action',
             contextualBuilding
-                ? `ACTIVE · ${contextualBuilding.definition.worldEffectLabel}`
+                ? 'Already part of your village'
                 : settlementComplete
-                    ? 'PHASE ONE COMPLETE · EXPEDITIONS SUPPORTED'
+                    ? 'Your village is ready'
                 : selectedDefinition?.placement.available && firstOpenPlot
-                ? `BUILD ${selectedDefinition.shortLabel} HERE · ${formatCost(selectedDefinition.cost)}`
+                ? `Build ${readableLabel(selectedDefinition.label)}`
                 : selectedDefinition
-                    ? formatPlacementReason(selectedDefinition, definitionById)
-                    : 'SELECT A STRUCTURE'
+                    ? readableLabel(formatPlacementReason(selectedDefinition, definitionById))
+                    : 'Choose a building'
         );
         constructAction.type = 'button';
+        constructAction.dataset.focusKey = 'build-confirm';
         const canConstruct = Boolean(
             !contextualBuilding && selectedDefinition?.placement.available && firstOpenPlot
         );
@@ -1867,7 +1871,12 @@ export default class VillageCommandPanel {
                 this.render();
             });
         }
-        plan.append(constructAction);
+        if (!contextualBuilding && !settlementComplete && selectedDefinition) {
+            const cost = createElement('p', 'village-build-cost', `Supplies: ${readableLabel(formatCost(selectedDefinition.cost))}`);
+            cost.setAttribute('data-testid', 'village-build-cost');
+            plan.append(cost);
+        }
+        if (!contextualBuilding) plan.append(constructAction);
 
         const constructionGuide = createElement(
             'p',
@@ -1875,12 +1884,13 @@ export default class VillageCommandPanel {
             contextualBuilding
                 ? contextualBuilding.definition.extensionImpact
                 : settlementComplete
-                    ? 'Each structure now changes care, capacity, or expedition support.'
+                    ? 'Your buildings help everyone rest, gather supplies and explore.'
                 : canConstruct
-                ? `${selectedDefinition.immediateImpact} This will use the supplies shown on the button.`
+                ? selectedDefinition.immediateImpact
                 : 'Choose a building marked READY. The exact cost will appear before you confirm.'
         );
-        plan.append(constructionGuide);
+        if (!contextualBuilding) plan.append(constructionGuide);
+        if (buildingIdea) plan.append(buildingIdea);
 
         const plotGrid = createElement('div', 'village-plot-grid');
         snapshot.plots.forEach(plot => {
@@ -1936,13 +1946,13 @@ export default class VillageCommandPanel {
             }
             plotGrid.append(plotButton);
         });
-        if (!this.contextual) plan.append(plotGrid);
+        if (!this.contextual) plan.append(this.createDetails('village-spots', 'Village spots', plotGrid));
 
         const assignments = createElement('section', 'village-assignments');
         assignments.append(createElement(
             'h3',
             'village-section-title',
-            contextualBuilding ? 'INVITE A RESIDENT OR CREATURE' : 'COMMUNITY HELP'
+            contextualBuilding ? 'Choose a helper' : 'A helping hand'
         ));
         const assignable = snapshot.buildings.filter(
             building => building.status === 'complete' && building.definition.production
@@ -1965,13 +1975,13 @@ export default class VillageCommandPanel {
                 const summary = createElement('div', 'village-assignment-summary');
                 const summaryCopy = createElement('span', 'village-assignment-copy');
                 summaryCopy.append(
-                    createElement('strong', 'village-assignment-building', building.definition.label),
+                    createElement('strong', 'village-assignment-building', readableLabel(building.definition.label)),
                     createElement(
                         'span',
                         'village-assignment-current',
                         building.creature
-                            ? `${building.creature.name} // ${Math.round(building.workProfile.multiplier * 100)}%`
-                            : 'NO CONTRIBUTION'
+                            ? `${building.creature.name} is helping`
+                            : 'Waiting for a helper'
                     ),
                     createElement(
                         'span',
@@ -1995,7 +2005,8 @@ export default class VillageCommandPanel {
                     snapshot.roster,
                     `Creature for ${building.definition.label}`
                 );
-                const invite = createElement('button', 'village-invite-button', 'INVITE');
+                const invite = createElement('button', 'village-invite-button', 'Invite');
+                invite.dataset.focusKey = `invite-${building.id}`;
                 invite.type = 'button';
                 invite.addEventListener('click', () => {
                     this.inviteHelper(building.id, select);
@@ -2006,12 +2017,30 @@ export default class VillageCommandPanel {
             });
         }
 
-        if (!this.contextual || contextualBuilding?.definition.production) {
+        if (this.contextual && contextualBuilding?.definition.production) {
             plan.append(assignments);
         }
-        body.append(catalog, plan);
-        shell.append(header, resources, status);
+        if (!this.contextual && this.activeView === 'helpers') {
+            this.markViewPanel(assignments);
+            shell.append(header, resources, viewTabs);
+            if (this.statusMessage) shell.append(status);
+            shell.append(assignments);
+            this.root.append(shell);
+            restoreScrollState();
+            return;
+        }
+        if (contextualBuilding) {
+            body.classList.add('is-building-details');
+            planHeader.prepend(createBuildingArtwork(contextualBuilding.definitionId, { compact: true }));
+            plan.append(this.createDetails('building-benefit', 'More about this building', constructionGuide));
+            body.append(plan);
+        } else {
+            body.append(catalog, plan);
+        }
+        shell.append(header, resources);
         if (viewTabs) shell.append(viewTabs);
+        if (this.statusMessage || !snapshot.unlock.unlocked) shell.append(status);
+        shell.append(body);
         if (!this.contextual) {
             const heartDecision = this.onDecision
                 ? createHeartDecision(snapshot, {
@@ -2024,7 +2053,7 @@ export default class VillageCommandPanel {
                     }
                 })
                 : null;
-            shell.append(
+            const more = this.createDetails('village-story', 'Our progress and village stories',
                 phase,
                 createVillageSupportImpactSummary(snapshot),
                 createCommunityPulse(
@@ -2033,8 +2062,8 @@ export default class VillageCommandPanel {
                     creature => this.getRuntimeResidentAvatar(creature)
                 )
             );
-            if (heartDecision) shell.append(heartDecision);
-            shell.append(createVillageVision());
+            if (heartDecision) more.append(heartDecision);
+            shell.append(more);
         } else if (contextualBuilding?.definitionId === 'habitat') {
             shell.append(createCommunityPulse(
                 snapshot,
@@ -2042,7 +2071,6 @@ export default class VillageCommandPanel {
                 creature => this.getRuntimeResidentAvatar(creature)
             ));
         }
-        shell.append(body);
         this.root.append(shell);
         restoreScrollState();
     }
@@ -2089,6 +2117,7 @@ export default class VillageCommandPanel {
         this.companionPortraitRecord = null;
         this.runtimeResidentAvatarCache.clear();
         this.helperSelections.clear();
+        this.expandedSections.clear();
         closeHandler?.();
     }
 }

@@ -81,8 +81,9 @@ export const SANCTUARY_FLORA_PLACEMENTS = Object.freeze([
     Object.freeze({
         artwork: 'listeningReeds',
         zone: 'livingArea',
-        offsetX: 224,
-        offsetY: 158,
+        // Leave the Fusion Pod's front sign and approach clear.
+        offsetX: 120,
+        offsetY: 210,
         width: 126,
         flipX: false
     }),

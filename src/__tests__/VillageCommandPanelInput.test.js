@@ -81,6 +81,31 @@ describe('Village command panel input ownership', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
+    test('Tab stays inside the open menu and skips hidden or disabled controls', () => {
+        show();
+        const first = panel.root.querySelector('button');
+        const last = document.createElement('button');
+        const disabled = document.createElement('button'); disabled.disabled = true;
+        const hidden = document.createElement('button');
+        [first, last, disabled].forEach(element => { element.getClientRects = () => [{}]; });
+        panel.root.append(last, disabled, hidden);
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        const collapsedButton = document.createElement('button');
+        // Closed details can retain layout rectangles in browsers.
+        collapsedButton.getClientRects = () => [{}];
+        details.append(summary, collapsedButton);
+        panel.root.append(details);
+        const tab = shiftKey => {
+            const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+            document.activeElement.dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(true);
+        };
+        last.focus(); tab(false); expect(document.activeElement).toBe(first);
+        first.focus(); tab(true); expect(document.activeElement).toBe(last);
+        first.blur(); tab(false); expect(document.activeElement).toBe(first);
+    });
+
     test('teardown removes refresh callbacks and tolerates an already-destroyed scene', () => {
         show(); jest.advanceTimersByTime(1100);
         expect(onTick).toHaveBeenCalledTimes(1);

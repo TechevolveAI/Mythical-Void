@@ -82,6 +82,11 @@ function createScene() {
                     setDepth() {
                         return this;
                     },
+                    updateSize() {
+                        this.width = parseFloat(root.style.width);
+                        this.height = parseFloat(root.style.height);
+                        return this;
+                    },
                     setPosition(x, y) {
                         this.x = x;
                         this.y = y;
@@ -134,6 +139,15 @@ describe('LivingFormHandoff mobile continuation', () => {
         resizeListener();
         expect(root.style.height).toBe('720px');
         expect(handoff.domElement.y).toBe(378);
+
+        window.visualViewport.width = 844;
+        window.visualViewport.height = 390;
+        window.visualViewport.offsetTop = 0;
+        resizeListener();
+        expect(root.style.width).toBe('844px');
+        expect(root.style.height).toBe('390px');
+        expect(handoff.domElement.x - handoff.domElement.width / 2).toBe(0);
+        expect(handoff.domElement.y - handoff.domElement.height / 2).toBe(0);
 
         handoff.destroy();
         expect(window.visualViewport.removeEventListener)

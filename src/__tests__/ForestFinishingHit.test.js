@@ -3,6 +3,7 @@ const path = require('node:path');
 const { parse } = require('@babel/parser');
 const EventEmitter = require('eventemitter3');
 const Clock = require('phaser/src/time/Clock');
+const { ForestCombatTime } = require('./support/forestCombatFixture.cjs');
 
 const source = fs.readFileSync(path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'), 'utf8');
 const declaration = parse(source, { sourceType: 'module' }).program.body
@@ -34,16 +35,22 @@ function fixture() {
             trace.push('restoration'); completions.push(onComplete); return true;
         }) };
     scene.boss.isRecovering = true;
-    scene.sys = { events: scene.events };
+    scene.sys = { events: scene.events, isActive: () => true };
+    scene.scene = {};
+    scene.physics = { world: { isPaused: false } };
+    for (const actor of [scene.boss, scene.player]) {
+        actor.body.enable = true;
+        actor.body.world = scene.physics.world;
+    }
     const clock = scene.time = new Clock(scene);
     for (const name of ['damageBoss', 'onBossDefeated']) {
         const node = declaration.body.body.find(node => node.key.name === name);
-        scene[name] = new Function('window', 'console',
-            `return ({${source.slice(node.start, node.end)}}).${name};`)(services, { log() {} });
+        scene[name] = new Function('ForestCombatTime', 'window', 'console',
+            `return ({${source.slice(node.start, node.end)}}).${name};`)(ForestCombatTime, services, { log() {} });
     }
     return { scene, services, trace, completions, actor, clock,
         advance(delta) { clock.preUpdate(); clock.update(clock.now + delta, delta); clock.preUpdate(); },
-        close() { clock.destroy(); } };
+        close() { scene.forestBossHitCooldown?.retire(); clock.destroy(); } };
 }
 
 describe('Forest finishing hits cannot be consumed by optional presentation', () => {

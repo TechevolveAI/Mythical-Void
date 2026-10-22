@@ -36,6 +36,9 @@ function runCase(name, env) {
             env: {
                 ...process.env,
                 MYTHICAL_VOID_SMOKE_URL: baseUrl,
+                // Our Vite server has no Netlify function runtime. The smoke
+                // allows only this one local endpoint's 404; hosted URLs stay strict.
+                SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404: managesPreview ? '1' : '0',
                 ...env
             },
             stdio: ['ignore', 'pipe', 'inherit']

@@ -93,6 +93,45 @@ describe('mountain entrance retains its original actors and presentation', () =>
         } finally { f.close(); }
     });
 
+    test('a scene pause longer than the spawn fallback resumes the native entrance and attacks once', () => {
+        const f = entranceFixture(), { scene } = f;
+        let paused = false;
+        scene.sys.isActive = () => !paused;
+        scene.sys.isPaused = () => paused;
+        try {
+            scene.startBossFight(); f.step(200);
+            paused = true; f.wallAdvance(5000);
+            expect(scene.physics.add.sprite).not.toHaveBeenCalled();
+            expect(f.begin).not.toHaveBeenCalled();
+            paused = false; scene.events.emit('resume');
+            f.step(2420);
+            expect(scene.bossCombatReady).toBe(true);
+            expect(scene.physics.add.sprite).toHaveBeenCalledTimes(1);
+            expect(f.begin).toHaveBeenCalledTimes(1);
+            f.step(1900);
+            expect(f.execute).toHaveBeenCalledTimes(1);
+        } finally { f.close(); }
+    });
+
+    test('retiring a paused entrance cancels its shared handoff listeners without another frame', () => {
+        const f = entranceFixture(), { scene } = f;
+        let paused = false;
+        scene.sys.isActive = () => !paused;
+        scene.sys.isPaused = () => paused;
+        try {
+            scene.startBossFight(); f.step(200);
+            paused = true; f.wallAdvance(5000);
+            expect(scene.events.listenerCount('resume')).toBe(1);
+            scene.clearTitanEntrance();
+            for (const event of ['resume', 'wake', 'postupdate']) expect(scene.events.listenerCount(event)).toBe(0);
+            expect(scene.guardianTransitionGuards.size).toBe(0);
+            expect(f.wallTimers.size).toBe(0);
+            paused = false; scene.events.emit('resume'); f.step(5000);
+            expect(scene.physics.add.sprite).not.toHaveBeenCalled();
+            expect(f.begin).not.toHaveBeenCalled();
+        } finally { f.close(); }
+    });
+
     test.each(['player-body', 'boss-body', 'plugin', 'encounter', 'phase', 'clock', 'world', 'tweens', 'events', 'camera', 'guards', 'completion', 'defeat', 'fight-ended'])(
         'native entrance rejects %s replacement or retirement before further motion', reason => {
             const f = entranceFixture(), { scene } = f;

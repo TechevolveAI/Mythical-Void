@@ -5671,7 +5671,7 @@ body.game-mode {
   container-type: inline-size;
   box-sizing: border-box;
   padding: 8px;
-  background: rgba(2, 5, 7, 0.96);
+  background: rgba(10, 5, 32, 0.96);
   color: #f2f7f5;
   font-family: Arial, sans-serif;
   opacity: 0;
@@ -5694,9 +5694,9 @@ body.game-mode {
   overflow-x: hidden;
   overflow-y: auto;
   transform: translate(-50%, -50%);
-  border: 1px solid #51626a;
+  border: 1px solid #9370db;
   border-radius: 8px;
-  background: #0a1115;
+  background: #1a0a2e;
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.56);
 }
 
@@ -5704,7 +5704,7 @@ body.game-mode {
   position: absolute;
   inset: 0 0 auto;
   height: 5px;
-  background: linear-gradient(to right, #d72638 0 25%, #050505 25% 50%, #ffffff 50% 75%, #138a36 75% 100%);
+  background: linear-gradient(to right, #6b00b3, #ffd700);
 }
 
 .fusion-consent-header {
@@ -5805,6 +5805,10 @@ body.game-mode {
 }
 
 .fusion-consent-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: #1a0a2e;
   display: grid;
   grid-template-columns: minmax(120px, 0.35fr) minmax(220px, 0.65fr);
   gap: 10px;

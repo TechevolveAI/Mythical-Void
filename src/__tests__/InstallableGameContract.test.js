@@ -50,7 +50,7 @@ describe('installable Mythical Void return route', () => {
         expect(index).toContain(
             '<meta name="mythical-void-release" content="__BUILD_TIMESTAMP__">'
         );
-        expect(injector).toContain("path.join(DIST_DIR, 'index.html')");
+        expect(injector).toContain("path.join(distDir, 'index.html')");
         expect(injector).toContain(
             "indexContent.replace('__BUILD_TIMESTAMP__', buildTimestamp)"
         );

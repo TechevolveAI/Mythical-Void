@@ -93,6 +93,7 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
     const filePath = path.join(__dirname, '../scenes/PlatformerLevelScene.js');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
+        .replace("import PlatformerPauseSession from './controllers/PlatformerPauseSession.js';", '')
         .replace("import ExpeditionDebriefPanel from '../ui/ExpeditionDebriefPanel.js';", '')
         .replace("import { getRegionalVictorySummary } from '../systems/RegionalVictorySummary.js';", '')
         .replace("import { shareGuardianRestoration } from '../utils/GuardianRestorationShare.js';", '')

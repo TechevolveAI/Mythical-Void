@@ -1527,7 +1527,12 @@ class GameStateManager {
             'stats', 'traits', 'genes', 'genetics', 'dna', 'colors', 'powerHistory', 'agencyHistory', 'portraits',
             'identityArchive', 'care', 'lifecycle', 'mood', 'bond', 'personality', 'personalityState', 'textureName',
             'species', 'rarity', 'cosmicElement', 'descriptiveName', 'spawnPosition']);
-        if (Object.keys(creature).some(key => !allowed.has(key))) return false;
+        // Start persists these empty lineage markers for an ordinary first hatch.
+        // Accept only those exact defaults; populated or unknown lineage still needs review.
+        const emptyLineage = { isOffspring: false, generation: null, parentIds: null,
+            offspringBonus: null, hasAncientLineage: false, ancientProphecy: null };
+        if (Object.keys(creature).some(key => !allowed.has(key) &&
+            !(Object.hasOwn(emptyLineage, key) && creature[key] === emptyLineage[key]))) return false;
         if (creature.genes.rarity && !['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].includes(creature.genes.rarity)) return false;
         if (!creature.care || typeof creature.care !== 'object' || Array.isArray(creature.care) ||
             !Array.isArray(creature.care.careHistory) || !creature.care.dailyCare ||
@@ -1716,10 +1721,67 @@ class GameStateManager {
         return true;
     }
 
+    /** Publish the existing story-media record without exposing an uncommitted receipt. */
+    saveCompanionMedia(next, { isCurrentCampaign = () => true } = {}) {
+        try {
+            const reader = this.captureSaveAdmissionOwner();
+            if (!this.canCommitHatchSave() || !reader.isCurrent()) return false;
+            const original = this.state, story = this.get('story');
+            const field = story && Object.getOwnPropertyDescriptor(story, 'companionMedia');
+            if (!field || !Object.hasOwn(field, 'value') || !field.writable || !field.enumerable) return false;
+            const media = JSON.parse(JSON.stringify(next));
+            if (!media || Array.isArray(media) || media.schemaVersion !== 2) return false;
+            const expected = JSON.stringify(media), previous = field.value;
+            const identity = this.getHatchActiveIdentity();
+            const game = typeof window === 'undefined' ? undefined : window.GameState;
+            const cloud = typeof window === 'undefined' ? undefined : window.CloudSave;
+            const cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+            const stagedStory = { ...story, companionMedia: media };
+            const staged = { ...original, player: { ...original.player }, session: { ...original.session }, story: stagedStory };
+            const ownsCampaign = () => typeof isCurrentCampaign.forVerifiedStoryWrite === 'function'
+                ? isCurrentCampaign.forVerifiedStoryWrite(this, story) : isCurrentCampaign();
+            const owns = () => ownsCampaign() && (this.state === original || this.state === staged) &&
+                (this.get('story') === story || this.get('story') === stagedStory) && this.getHatchActiveIdentity() === identity &&
+                (typeof window === 'undefined' || (window.GameState === game && window.CloudSave === cloud)) &&
+                cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser;
+            if (!reader.isCurrent() || !owns()) return false;
+            const result = this.commitHatchSaveDraft(staged, {
+                isCurrentCampaign: owns,
+                isCurrentResult: (live, durable) => JSON.stringify(live.story?.companionMedia) === expected &&
+                    JSON.stringify(durable?.story?.companionMedia) === expected,
+                isCurrentUpload: lease => typeof window !== 'undefined' && window.CloudSave === cloud &&
+                    cloud?.gameState === this && cloud?.activeCloudWrite === lease &&
+                    cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser,
+                onPublished: () => {
+                    // The writer has verified and adopted these exact bytes.
+                    // Retain the story root used by in-flight media ownership.
+                    story.companionMedia = media;
+                    staged.story = story;
+                },
+                notifications: [
+                    { event: 'stateChanged', args: [{ path: 'story.companionMedia', oldValue: previous,
+                        newValue: media, timestamp: Date.now() }] },
+                    { event: 'changed:story.companionMedia', args: [media, previous] }
+                ],
+                onNotification: notification => { this.emit(notification.event, ...notification.args); }
+            });
+            return result.success && result.isCurrent();
+        } catch { return false; }
+    }
+
     /**
      * Persist generated portrait metadata for the active creature.
      */
     saveCreaturePortrait(record) {
+        let reader;
+        try {
+            reader = this.captureSaveAdmissionOwner();
+            if (!this.canCommitHatchSave() || !reader.isCurrent()) return false;
+        } catch { return false; }
+        const original = this.state, identity = this.getHatchActiveIdentity();
+        const game = typeof window === 'undefined' ? undefined : window.GameState;
+        const cloud = typeof window === 'undefined' ? undefined : window.CloudSave;
+        const cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
         const allowedStages = new Set(['baby', 'juvenile', 'adult', 'elder']);
         if (!record || typeof record !== 'object' || !allowedStages.has(record.stage)) {
             return false;
@@ -1794,7 +1856,12 @@ class GameStateManager {
 
         portraits.activeStage = record.stage;
         portraits.byStage[record.stage] = normalized;
-        this.set('creature.portraits', portraits);
+
+        // Keep canonical state untouched until the existing verified writer
+        // has checked the exact durable bytes, including the roster copy.
+        const staged = { ...original, player: { ...original.player }, session: { ...original.session },
+            creature: { ...original.creature, portraits } };
+        const changes = [{ path: 'creature.portraits', oldValue: current, newValue: portraits }];
 
         const currentCreatures = this.get('creatures');
         const activeIndex = Number(this.get('activeCreatureIndex')) || 0;
@@ -1808,12 +1875,39 @@ class GameStateManager {
                     byStage: { ...portraits.byStage }
                 }
             };
-            this.set('creatures', creatures);
+            staged.creatures = creatures;
+            changes.push({ path: 'creatures', oldValue: currentCreatures, newValue: creatures });
         }
 
-        this.save();
+        const portraitBytes = JSON.stringify(portraits);
+        const durablePortrait = { creature: { portraits: JSON.parse(portraitBytes) } };
+        this.stripTransientPortraitUrls(durablePortrait);
+        const durableBytes = JSON.stringify(durablePortrait.creature.portraits);
+        const isCurrentCampaign = () => (this.state === original || this.state === staged) &&
+            this.getHatchActiveIdentity() === identity &&
+            (typeof window === 'undefined' || (window.GameState === game && window.CloudSave === cloud)) &&
+            cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser;
+        const isCurrentResult = (live, durable) => JSON.stringify(live.creature?.portraits) === portraitBytes &&
+            JSON.stringify(durable?.creature?.portraits) === durableBytes &&
+            (staged.creatures === currentCreatures || (
+                JSON.stringify(live.creatures?.[activeIndex]?.portraits) === portraitBytes &&
+                JSON.stringify(durable?.creatures?.[activeIndex]?.portraits) === durableBytes));
+        const notifications = changes.flatMap(change => [
+            { event: 'stateChanged', args: [{ ...change, timestamp: Date.now() }] },
+            { event: `changed:${change.path}`, args: [change.newValue, change.oldValue] }
+        ]);
+        if (!reader.isCurrent() || !isCurrentCampaign()) return false;
+        const result = this.commitHatchSaveDraft(staged, {
+            isCurrentCampaign, isCurrentResult,
+            isCurrentUpload: lease => typeof window !== 'undefined' && window.CloudSave === cloud &&
+                cloud?.gameState === this && cloud?.activeCloudWrite === lease &&
+                cloud?.campaignEpoch === cloudEpoch && cloud?.currentUser?.id === cloudUser,
+            notifications, onPublished: () => {},
+            onNotification: notification => { this.emit(notification.event, ...notification.args); }
+        });
+        if (!result.success || !result.isCurrent()) return false;
         this.emit('creaturePortraitReady', normalized);
-        return true;
+        return result.isCurrent();
     }
 
     getCreaturePortrait(stage = null) {
@@ -4568,7 +4662,7 @@ class GameStateManager {
     // Inspect envelopes as well as the index: a crash can leave an unindexed reservation.
     // Missing/corrupt evidence is not permission to start a replacement journal.
     inspectCloudRecovery() {
-        const entries = this.readLocalSaveBackupIndex();
+        let entries = this.readLocalSaveBackupIndex();
         const keys = [];
         let hasJournal = false;
         for (let i = 0; i < localStorage.length; i++) {
@@ -4576,8 +4670,9 @@ class GameStateManager {
             if (key?.startsWith(this.saveBackupKeyPrefix) && key !== this.saveBackupIndexKey) keys.push(key);
             if (key?.startsWith(`${this.saveKey}-cloud-journal-v1:`)) hasJournal = true;
         }
-        if (keys.length !== entries.length) {
-            throw this.cloudRecoveryError('Recovery copies and index differ.', 'cloud_recovery_damaged');
+        if (keys.length !== entries.length || entries.some(entry =>
+            !keys.includes(`${this.saveBackupKeyPrefix}${entry.id}`))) {
+            entries = this.reconcileLocalSaveBackupIndex(entries, keys, hasJournal);
         }
         const pending = [];
         for (const entry of entries) {
@@ -4611,6 +4706,35 @@ class GameStateManager {
         }
         return { entries, pending, evidenceLimited: Boolean(journal.control?.phase === 'pending' &&
             journal.control.evidenceLimited) };
+    }
+
+    reconcileLocalSaveBackupIndex(entries, keys, hasJournal) {
+        const damaged = () => this.cloudRecoveryError('Recovery copies and index differ.', 'cloud_recovery_damaged');
+        // An interrupted local backup rotation does not make the active save uncertain.
+        // Read the surviving envelopes without rewriting any bytes or choosing a backup.
+        // Cloud evidence, unknown records and conflicting metadata must still fail closed.
+        const localReasons = new Set(['before_local_save', 'before_automatic_migration',
+            'before_manual_backup_restore', 'before_new_game', 'manual_safety_copy']);
+        if (hasJournal || this.cloudRecoveryRequired || this.cloudWriteLease ||
+            entries.some(entry => !localReasons.has(entry.reason))) throw damaged();
+        const activeRaw = localStorage.getItem(this.saveKey);
+        if (!activeRaw) throw damaged();
+        this.prepareSaveCandidate(activeRaw);
+        const recovered = keys.map(key => {
+            let envelope;
+            try { envelope = JSON.parse(localStorage.getItem(key)); } catch { throw damaged(); }
+            const fields = ['id', 'createdAt', 'reason', 'sourceVersion', 'sourceSavedAt'];
+            if (envelope?.schemaVersion !== 1 || typeof envelope.id !== 'string' ||
+                !/^\d+(?:-\d+)?$/.test(envelope.id) || key !== `${this.saveBackupKeyPrefix}${envelope.id}` ||
+                !Number.isFinite(envelope.createdAt) || !localReasons.has(envelope.reason) ||
+                !(envelope.sourceVersion === null || typeof envelope.sourceVersion === 'string') ||
+                !(envelope.sourceSavedAt === null || Number.isFinite(envelope.sourceSavedAt)) ||
+                typeof envelope.payload !== 'string') throw damaged();
+            const indexed = entries.find(entry => entry.id === envelope.id);
+            if (indexed && fields.some(field => indexed[field] !== envelope[field])) throw damaged();
+            return Object.fromEntries(fields.map(field => [field, envelope[field]]));
+        });
+        return recovered.sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
     }
 
     assertCloudRecoveryClear({ allowOwned = false } = {}) {
@@ -4829,13 +4953,18 @@ class GameStateManager {
                 ...previousIndex.filter(entry => !protectedPrevious.includes(entry))
             ].slice(0, SAVE_BACKUP_LIMIT - 1);
             // Allocate and index first. A failed allocation must not delete an older copy.
-            localStorage.setItem(backupKey, JSON.stringify(envelope));
+            const writeVerified = (key, raw) => {
+                try { localStorage.setItem(key, raw); }
+                catch (error) { if (localStorage.getItem(key) !== raw) throw error; }
+                if (localStorage.getItem(key) !== raw) throw new Error('Recovery copy did not persist');
+            };
+            writeVerified(backupKey, JSON.stringify(envelope));
             const nextIndex = [metadata, ...retainedPrevious]
                 .filter((entry, index, entries) => (
                     entry?.id && entries.findIndex(item => item?.id === entry.id) === index
                 ));
             const retained = nextIndex.slice(0, SAVE_BACKUP_LIMIT);
-            localStorage.setItem(this.saveBackupIndexKey, JSON.stringify(retained));
+            writeVerified(this.saveBackupIndexKey, JSON.stringify(retained));
             previousIndex.filter(entry => !retained.some(item => item.id === entry.id))
                 .forEach(entry => {
                     try { localStorage.removeItem(`${this.saveBackupKeyPrefix}${entry.id}`); }
@@ -4847,13 +4976,9 @@ class GameStateManager {
             if (reason.startsWith('cloud_write_')) {
                 // Retain even an orphaned reservation: a restart must detect partial allocation.
                 this.holdSaveAdmission(this.cloudRecoveryError('Cloud recovery allocation needs review.', 'cloud_recovery_damaged'), 'cloud_recovery');
-            } else {
-                try {
-                    localStorage.removeItem(backupKey);
-                } catch (cleanupError) {
-                    console.warn('[GameState] Could not clean up incomplete backup:', cleanupError);
-                }
             }
+            // Keep an allocated envelope if indexing failed. A later local-only
+            // inspection can reconcile it; deleting it could break a landed index.
             console.warn('[GameState] Could not create recovery copy:', error);
             return null;
         }

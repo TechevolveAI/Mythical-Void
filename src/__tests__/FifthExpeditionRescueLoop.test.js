@@ -152,7 +152,7 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('VOID PRESSURE // ${exposure}/${this.bossMaxHealth}');
         expect(source).toContain('VOID PRESSURE // CLEARED');
         expect(source).toContain('`VOID PRESSURE -${finalAmount}`');
-        expect(source).toContain('this.boss.setTint(0xA9F3E4)');
+        expect(source).toContain('context.boss.setTint(0xA9F3E4)');
         expect(source).not.toContain('this.boss.setTint(0xFF0000)');
     });
 

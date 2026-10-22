@@ -7,6 +7,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { projectPortraitPromptTraits } = require('./portrait-prompt-traits.cjs');
 
 const REPLICATE_MODEL = process.env.REPLICATE_IMAGE_MODEL || 'openai/gpt-image-2';
 const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
@@ -346,16 +347,6 @@ async function authenticate(event, adminClient) {
     return user;
 }
 
-function cleanText(value, fallback, maxLength = 120) {
-    if (typeof value !== 'string') return fallback;
-    const cleaned = value
-        .replace(/[\u0000-\u001F\u007F]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, maxLength);
-    return cleaned || fallback;
-}
-
 function safeIdentifier(value, fallback) {
     return (
         typeof value === 'string' &&
@@ -532,6 +523,7 @@ function buildCreatureRealization(spec) {
 function buildCreaturePrompt(spec, style, {
     hasReferenceImage = false
 } = {}) {
+    spec = projectPortraitPromptTraits(spec);
     const palette = spec.palette;
     const silhouette = spec.silhouette || {};
     const eyes = spec.eyes || {};
@@ -585,7 +577,7 @@ function buildCreaturePrompt(spec, style, {
         `Cosmic affinity: ${formatPromptIdentifier(affinity.element, 'star')}; ${AFFINITY_DESCRIPTIONS[affinity.element]}.`,
         `Innate abilities expressed through believable anatomy or restrained environmental effects: ${abilities.length ? abilities.map(value => formatPromptIdentifier(value, 'unknown')).join(', ') : 'none recorded yet'}.`,
         variants.shiny
-            ? `Shiny variant: preserve the ${cleanText(variants.shinyType, 'cosmic shimmer', 48)} treatment.`
+            ? `Shiny variant: preserve the ${variants.shinyType} treatment.`
             : 'Use restrained magical effects so the creature remains readable.',
         '',
         'CREATIVE BIOLOGICAL REALIZATION // THIS INDIVIDUAL',

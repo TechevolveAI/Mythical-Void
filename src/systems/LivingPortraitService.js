@@ -28,6 +28,7 @@ const DEFAULT_TIMEOUTS = Object.freeze({
 });
 const DEFAULT_POLL_DELAYS = Object.freeze([750, 1000, 1500, 2000, 2500]);
 const RECONNECT_RETRY_DELAY_MS = 1500;
+const MAX_RETAINED_PORTRAITS = 32;
 
 class LivingPortraitService {
     constructor(options = {}) {
@@ -35,6 +36,10 @@ class LivingPortraitService {
         this.activeStageJobs = new Map();
         this.completedStageDiagnostics = new Map();
         this.assetResolutions = new Map();
+        this.volatilePortraits = new Map();
+        this.campaignContext = null;
+        this.unsubscribeCampaignReset = null;
+        this.authSubscription = null;
         this.reconnectRetries = new Map();
         this.retryDrainPromise = null;
         this.retryTimer = null;
@@ -58,6 +63,139 @@ class LivingPortraitService {
         return getCreatureMediaEligibility();
     }
 
+    captureCampaignContext() {
+        if (this.campaignContext?.isCurrent()) return this.campaignContext;
+        this.retireCampaignWork();
+        const owner = window.GameState, story = owner?.get?.('story');
+        const cloud = window.CloudSave, client = window.CreatureMediaClient || window.CloudSave?.client;
+        let cloudEpoch = cloud?.campaignEpoch, cloudUser = cloud?.currentUser?.id;
+        let admissionEpoch = owner?.getSaveAdmission?.().epoch, initialSessionPending = false, retired = false;
+        const admissionListener = cloud?.gameState === owner ? cloud?.unsubscribeFromAdmission : null;
+        const ownsReader = () => !retired && this.campaignContext === context && window.GameState === owner &&
+            owner?.get?.('story') === story && window.CloudSave === cloud &&
+            (window.CreatureMediaClient || cloud?.client) === client;
+        const ownsEpoch = () => {
+            if (cloud?.campaignEpoch === cloudEpoch) return true;
+            const nextAdmission = owner?.getSaveAdmission?.().epoch;
+            const delta = nextAdmission - admissionEpoch;
+            // The existing CloudSaveManager also retires uploads on admission
+            // changes. Only those exact correlated advances preserve media custody.
+            if (typeof admissionListener !== 'function' || cloud?.unsubscribeFromAdmission !== admissionListener ||
+                !Number.isSafeInteger(delta) || delta <= 0 || cloud?.campaignEpoch !== cloudEpoch + delta) return false;
+            cloudEpoch = cloud.campaignEpoch; admissionEpoch = nextAdmission;
+            return true;
+        };
+        const context = { owner, client, isCurrent: () => {
+            if (!ownsReader() || !ownsEpoch()) { retired = true; return false; }
+            const user = cloud?.currentUser?.id;
+            if (user === cloudUser) { initialSessionPending = false; return true; }
+            if (initialSessionPending && user == null) return true;
+            retired = true;
+            return false;
+        }, bindInitialSession: session => {
+            const user = session?.user?.id;
+            if (typeof user !== 'string' || !ownsReader() || !ownsEpoch()) return;
+            if (cloudUser == null && (cloud?.currentUser?.id == null || cloud.currentUser.id === user)) {
+                cloudUser = user; initialSessionPending = cloud?.currentUser?.id == null;
+            } else if (cloudUser !== user) {
+                throw new LivingPortraitError('The portrait session changed', { code: 'portrait_context_changed', status: 'canceled' });
+            }
+        } };
+        this.campaignContext = context;
+        this.unsubscribeCampaignReset = owner?.on?.('reset', () => {
+            if (this.campaignContext === context) this.retireCampaignWork();
+        });
+        const subscription = client?.auth?.onAuthStateChange?.((event, session) => {
+            if (this.campaignContext !== context) return;
+            if (event === 'SIGNED_OUT') { this.retireCampaignWork(); return; }
+            if (cloudUser == null && session?.user) {
+                try { context.bindInitialSession(session); }
+                catch { this.retireCampaignWork(); }
+            }
+        })?.data?.subscription;
+        if (this.campaignContext === context) this.authSubscription = subscription || null;
+        else subscription?.unsubscribe?.();
+        return context;
+    }
+
+    retireCampaignWork() {
+        this.campaignContext = null;
+        this.unsubscribeCampaignReset?.();
+        this.unsubscribeCampaignReset = null;
+        this.authSubscription?.unsubscribe?.();
+        this.authSubscription = null;
+        this.jobs.clear();
+        this.activeStageJobs.clear();
+        this.completedStageDiagnostics.clear();
+        this.assetResolutions.clear();
+        this.volatilePortraits.clear();
+        this.reconnectRetries.clear();
+        if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+        this.retryDrainPromise = null;
+    }
+
+    assertCampaignContext(context) {
+        if (!context.isCurrent()) throw new LivingPortraitError('This portrait belongs to an earlier journey', {
+            code: 'portrait_context_changed', status: 'canceled'
+        });
+    }
+
+    canPublishPortrait(context) {
+        const owner = context.owner;
+        return Boolean(context.isCurrent() && owner && owner.getSaveAdmission?.().status !== 'held' &&
+            owner.storageMode !== 'memory' && !owner.cloudWriteLease &&
+            owner.canCommitHatchSave?.() !== false && context.isCurrent());
+    }
+
+    saveDeferredError() {
+        return new LivingPortraitError('The portrait is waiting for progress to be safely saved', {
+            code: 'portrait_save_deferred', status: 'deferred', retryable: true
+        });
+    }
+
+    retainPortrait(record, context) {
+        this.assertCampaignContext(context);
+        if (!/^portrait-job-v1:[0-9a-f-]{36}$/i.test(record?.assetRef || '')) return null;
+        const entry = { record: { ...record }, context };
+        this.volatilePortraits.delete(record.identityKey);
+        this.volatilePortraits.set(record.identityKey, entry);
+        while (this.volatilePortraits.size > MAX_RETAINED_PORTRAITS) {
+            this.volatilePortraits.delete(this.volatilePortraits.keys().next().value);
+        }
+        return entry;
+    }
+
+    publishOwnedPortrait(record, context) {
+        const retained = this.retainPortrait(record, context);
+        if (!this.isCurrentCreaturePortrait(record)) return { record, published: false };
+        if (!this.canPublishPortrait(context)) throw this.saveDeferredError();
+        const saved = this.saveCurrentCreaturePortrait(record);
+        this.assertCampaignContext(context);
+        if (!saved) {
+            // A synchronous ready listener may select another creature. Its
+            // caller can still receive the original result, never that successor.
+            if (!this.isCurrentCreaturePortrait(record)) return { record, published: false };
+            throw this.saveDeferredError();
+        }
+        if (record.status === 'ready' && this.volatilePortraits.get(record.identityKey) === retained) {
+            this.volatilePortraits.delete(record.identityKey);
+        }
+        return { record: saved, published: true };
+    }
+
+    resumeRetainedPortrait(entry) {
+        try {
+            const { record, context } = entry;
+            const result = this.publishOwnedPortrait(record, context).record;
+            if (record.status === 'ready' && this.hasUsableDisplayUrl(result)) {
+                this.prepareFirstForestVideo(result);
+                return Promise.resolve(result);
+            }
+            return this.resolve(result);
+        } catch (error) { return Promise.reject(error); }
+    }
+
     isCurrentCreaturePortrait(record) {
         const genes = window.GameState?.get?.('creature.genes');
         if (!genes || !record?.identityKey) return false;
@@ -79,11 +217,13 @@ class LivingPortraitService {
         const saved = window.GameState?.saveCreaturePortrait?.(record);
         const current = saved && window.GameState?.getCreaturePortrait?.(record.stage);
         // Ready listeners can switch creatures synchronously during the save.
+        const expectedRef = typeof record.assetRef === 'string' ? record.assetRef.toLowerCase() : null;
         return current?.identityKey === record.identityKey &&
-            current?.assetRef === record.assetRef ? current : null;
+            (current?.assetRef ?? null) === expectedRef ? current : null;
     }
 
     getActiveJob(stage = 'baby') {
+        this.captureCampaignContext();
         const identityKey = this.activeStageJobs.get(stage);
         const job = identityKey ? this.jobs.get(identityKey) || null : null;
         if (
@@ -121,6 +261,7 @@ class LivingPortraitService {
     }
 
     finishJob(job) {
+        if (!job.context.isCurrent() || this.jobs.get(job.identityKey) !== job) return;
         this.completedStageDiagnostics.set(
             job.stage,
             this.createJobDiagnostics(job)
@@ -235,12 +376,13 @@ class LivingPortraitService {
         }
     }
 
-    queueReconnectRetry({ portraitSpec, referenceImage, style }) {
-        if (!portraitSpec?.identityKey) return;
+    queueReconnectRetry({ portraitSpec, referenceImage, style, context = this.captureCampaignContext() }) {
+        if (!context.isCurrent() || !portraitSpec?.identityKey) return;
         this.reconnectRetries.set(portraitSpec.identityKey, {
             portraitSpec,
             referenceImage,
-            style
+            style,
+            context
         });
         window.GameState?.emit?.('creaturePortraitReconnectRetryQueued', {
             identityKey: portraitSpec.identityKey,
@@ -272,6 +414,7 @@ class LivingPortraitService {
     }
 
     drainReconnectRetries() {
+        this.captureCampaignContext();
         if (this.retryDrainPromise) return this.retryDrainPromise;
         if (window.navigator?.onLine === false || this.reconnectRetries.size === 0) {
             return Promise.resolve([]);
@@ -279,20 +422,24 @@ class LivingPortraitService {
 
         const intents = Array.from(this.reconnectRetries.values());
         this.reconnectRetries.clear();
-        this.retryDrainPromise = Promise.allSettled(
+        const drain = Promise.allSettled(
             intents.map(intent => this.runReconnectRetry(intent))
         ).finally(() => {
-            this.retryDrainPromise = null;
+            if (this.retryDrainPromise === drain) this.retryDrainPromise = null;
         });
-        return this.retryDrainPromise;
+        this.retryDrainPromise = drain;
+        return drain;
     }
 
     async runReconnectRetry(intent) {
-        const { portraitSpec, referenceImage, style } = intent;
+        const { portraitSpec, referenceImage, style, context } = intent;
+        if (!context?.isCurrent()) return null;
         const existing = window.GameState?.getCreaturePortrait?.(
             portraitSpec.stage
         );
         try {
+            const retained = this.volatilePortraits.get(portraitSpec.identityKey);
+            if (retained) return await this.resumeRetainedPortrait(retained);
             if (
                 existing?.assetRef &&
                 existing.identityKey === portraitSpec.identityKey
@@ -300,7 +447,7 @@ class LivingPortraitService {
                 try {
                     return await this.resolve(existing);
                 } catch (error) {
-                    if (!this.isRetryableError(error) || this.isReconnectRetryable(error)) {
+                    if (error?.code !== 'generation_failed') {
                         throw error;
                     }
                 }
@@ -311,10 +458,10 @@ class LivingPortraitService {
                 sprite: null,
                 style,
                 referenceImage,
-                source: 'reconnect_retry'
+                source: 'reconnect_retry', context
             });
         } catch (error) {
-            window.GameState?.emit?.('creaturePortraitReconnectRetryFailed', {
+            if (context.isCurrent() && error?.code !== 'portrait_save_deferred') context.owner?.emit?.('creaturePortraitReconnectRetryFailed', {
                 identityKey: portraitSpec.identityKey,
                 stage: portraitSpec.stage,
                 message: error.message
@@ -340,6 +487,10 @@ class LivingPortraitService {
 
     describeError(error) {
         const status = this.getRetryStatus(error);
+        if (status.code === 'portrait_save_deferred') {
+            return 'Creature art is paused while saving is protected. Your creature is still playable. ' +
+                'Retry from the Creature Archive when saving is available.';
+        }
         if (status.code === 'new_identity_quota') {
             const minutes = status.retryAfterSeconds === null
                 ? null
@@ -373,6 +524,7 @@ class LivingPortraitService {
         referenceImage = null,
         source = 'manual'
     } = {}) {
+        const context = this.captureCampaignContext();
         const eligibility = this.getEligibility();
         if (!eligibility.eligible) {
             const message = eligibility.reason === 'age_selection_required'
@@ -391,39 +543,24 @@ class LivingPortraitService {
             return activeJob.promise;
         }
         this.reconnectRetries.delete(portraitSpec.identityKey);
+        const retryExisting = error => {
+            if (error?.code !== 'generation_failed') {
+                if (this.isReconnectRetryable(error)) {
+                    this.queueReconnectRetry({ portraitSpec, referenceImage, style, context });
+                }
+                throw error;
+            }
+            return this.startJob({ portraitSpec, sprite, style, referenceImage, source, context });
+        };
+        const retained = this.volatilePortraits.get(portraitSpec.identityKey);
+        if (retained) return this.resumeRetainedPortrait(retained).catch(retryExisting);
 
-        const existing = window.GameState?.getCreaturePortrait?.(
-            portraitSpec.stage
-        );
-        if (
-            this.hasUsableDisplayUrl(existing) &&
-            existing.identityKey === portraitSpec.identityKey
-        ) {
+        const existing = window.GameState?.getCreaturePortrait?.(portraitSpec.stage);
+        if (this.hasUsableDisplayUrl(existing) && existing.identityKey === portraitSpec.identityKey) {
             return Promise.resolve(existing);
         }
-        if (
-            existing?.assetRef &&
-            existing.identityKey === portraitSpec.identityKey
-        ) {
-            return this.resolve(existing).catch(error => {
-                if (error?.code !== 'generation_failed') {
-                    if (this.isReconnectRetryable(error)) {
-                        this.queueReconnectRetry({
-                            portraitSpec,
-                            referenceImage,
-                            style
-                        });
-                    }
-                    throw error;
-                }
-                return this.startJob({
-                    portraitSpec,
-                    sprite,
-                    style,
-                    referenceImage,
-                    source
-                });
-            });
+        if (existing?.assetRef && existing.identityKey === portraitSpec.identityKey) {
+            return this.resolve(existing).catch(retryExisting);
         }
 
         return this.startJob({
@@ -431,11 +568,15 @@ class LivingPortraitService {
             sprite,
             style,
             referenceImage,
-            source
+            source, context
         });
     }
 
-    startJob({ portraitSpec, sprite, style, referenceImage, source }) {
+    startJob({ portraitSpec, sprite, style, referenceImage, source, context = this.captureCampaignContext() }) {
+        try {
+            this.assertCampaignContext(context);
+            if (!this.canPublishPortrait(context)) throw this.saveDeferredError();
+        } catch (error) { return Promise.reject(error); }
         const activeJob = this.jobs.get(portraitSpec.identityKey);
         if (activeJob) return activeJob.promise;
 
@@ -455,6 +596,7 @@ class LivingPortraitService {
             initialResponseMs: null,
             pollCount: 0,
             referenceImageCaptured: Boolean(capturedReference),
+            context,
             promise: null
         };
 
@@ -476,7 +618,9 @@ class LivingPortraitService {
 
     async runJob({ job, portraitSpec, referenceImage }) {
         try {
-            const accessToken = await this.getAccessToken();
+            const accessToken = await this.getAccessToken(job.context);
+            this.assertCampaignContext(job.context);
+            if (!this.canPublishPortrait(job.context)) throw this.saveDeferredError();
             const { response, result: initialResult } = await this.requestJson(
                 '/.netlify/functions/generate-ai-art',
                 {
@@ -497,6 +641,7 @@ class LivingPortraitService {
                     timeoutMessage: 'Portrait request timed out'
                 }
             );
+            this.assertCampaignContext(job.context);
             job.initialResponseMs = Date.now() - job.startedAt;
             if (!response.ok) {
                 throw this.createServiceError(
@@ -508,7 +653,7 @@ class LivingPortraitService {
 
             job.status = initialResult.status || 'processing';
             if (initialResult.assetRef) {
-                this.saveCurrentCreaturePortrait({
+                this.publishOwnedPortrait({
                     identityKey: portraitSpec.identityKey,
                     stage: portraitSpec.stage,
                     style: job.style,
@@ -522,7 +667,7 @@ class LivingPortraitService {
                     storage: 'supabase-private',
                     jobId: initialResult.jobId,
                     status: 'processing'
-                });
+                }, job.context);
             }
             const result = (
                 initialResult.status !== 'succeeded' &&
@@ -563,12 +708,12 @@ class LivingPortraitService {
                 status: 'ready',
                 aiGenerated: true
             };
-            const record = this.saveCurrentCreaturePortrait(completedRecord) || completedRecord;
+            const { record, published } = this.publishOwnedPortrait(completedRecord, job.context);
 
             job.status = 'succeeded';
             job.completedAt = completedAt;
             job.record = record;
-            window.GameState?.emit?.('creaturePortraitGenerationSucceeded', {
+            if (published) job.context.owner?.emit?.('creaturePortraitGenerationSucceeded', {
                 identityKey: job.identityKey,
                 stage: job.stage,
                 source: job.source,
@@ -578,14 +723,21 @@ class LivingPortraitService {
                 referenceImageCaptured: job.referenceImageCaptured
             });
             this.finishJob(job);
-            this.reconnectRetries.delete(job.identityKey);
-            this.prepareFirstForestVideo(record);
+            if (job.context.isCurrent()) {
+                this.reconnectRetries.delete(job.identityKey);
+                if (published) this.prepareFirstForestVideo(record);
+            }
             return record;
         } catch (error) {
-            job.status = 'failed';
+            const deferred = error?.code === 'portrait_save_deferred';
+            if (error?.code === 'generation_failed' && job.context.isCurrent() &&
+                this.volatilePortraits.get(job.identityKey)?.context === job.context) {
+                this.volatilePortraits.delete(job.identityKey);
+            }
+            job.status = deferred ? 'deferred' : error?.code === 'portrait_context_changed' ? 'canceled' : 'failed';
             job.error = error.message;
             job.completedAt = Date.now();
-            window.GameState?.emit?.('creaturePortraitGenerationFailed', {
+            if (job.context.isCurrent() && !deferred) job.context.owner?.emit?.('creaturePortraitGenerationFailed', {
                 identityKey: job.identityKey,
                 stage: job.stage,
                 message: error.message,
@@ -595,12 +747,12 @@ class LivingPortraitService {
             this.finishJob(job);
             if (
                 this.isReconnectRetryable(error) &&
-                job.source !== 'reconnect_retry'
+                job.source !== 'reconnect_retry' && job.context.isCurrent()
             ) {
                 this.queueReconnectRetry({
                     portraitSpec,
                     referenceImage,
-                    style: job.style
+                    style: job.style, context: job.context
                 });
             }
             throw error;
@@ -608,22 +760,43 @@ class LivingPortraitService {
     }
 
     prepareFirstForestVideo(record) {
-        if (
-            !record?.assetRef ||
-            !this.isCurrentCreaturePortrait(record) ||
-            window.GameState?.get?.('story.projectBeacon.firstForestCinematicSeen')
-        ) {
-            return null;
+        try {
+            const owner = window.GameState;
+            const media = window.CompanionMediaService;
+            const isCurrent = media?.captureCampaignGuard?.() || (() => window.GameState === owner);
+            return Promise.resolve().then(() => {
+                const current = owner?.getCreaturePortrait?.();
+                if (
+                    window.GameState !== owner || window.CompanionMediaService !== media ||
+                    !isCurrent() || record?.status !== 'ready' || !record.assetRef ||
+                    !this.isCurrentCreaturePortrait(record) ||
+                    current?.identityKey !== record.identityKey ||
+                    current?.stage !== record.stage || current?.assetRef !== record.assetRef ||
+                    owner?.get?.('levels.mythicalForest.completed') === true ||
+                    media?.canPublishMedia?.(isCurrent) === false
+                ) return null;
+
+                const momentId = 'first_forest_arrival';
+                const watched = Object.values(media?.getState?.()?.appearances || {}).some(appearance => (
+                    appearance.momentId === momentId && appearance.identityKey === record.identityKey &&
+                    appearance.renderMode === 'generated_video'
+                ));
+                const existing = media?.getVideoRecord?.(momentId, record.identityKey);
+                if (watched || ['failed', 'canceled'].includes(existing?.status)) return null;
+
+                // Seeing the authored intro is not the same as watching this
+                // personal film. A late portrait must still get its first job.
+                return media?.prepareGeneratedVideo?.({ momentId, stage: record.stage, record }) ?? null;
+            }).catch(() => null);
+        } catch {
+            // Optional media cannot turn a completed portrait into a failed job.
+            return Promise.resolve(null);
         }
-        return window.CompanionMediaService?.prepareGeneratedVideo?.({
-            momentId: 'first_forest_arrival',
-            stage: record.stage || 'baby',
-            record
-        })?.catch?.(() => null) || null;
     }
 
-    async getAccessToken() {
-        const client = window.CreatureMediaClient || window.CloudSave?.client;
+    async getAccessToken(context = this.captureCampaignContext()) {
+        this.assertCampaignContext(context);
+        const client = context.client;
         if (!client?.auth) {
             throw new Error('Private portrait authentication is unavailable');
         }
@@ -639,6 +812,8 @@ class LivingPortraitService {
         }
 
         let session = sessionData?.session || null;
+        context.bindInitialSession(session);
+        this.assertCampaignContext(context);
         if (!session?.access_token) {
             const { data, error } = await this.withDeadline(
                 client.auth.signInAnonymously(),
@@ -652,6 +827,8 @@ class LivingPortraitService {
                 throw new Error('Private portrait authentication failed');
             }
             session = data.session;
+            context.bindInitialSession(session);
+            this.assertCampaignContext(context);
         }
         return session.access_token;
     }
@@ -668,6 +845,7 @@ class LivingPortraitService {
     }
 
     resolve(record) {
+        const context = this.captureCampaignContext();
         if (this.hasUsableDisplayUrl(record)) {
             return Promise.resolve(record);
         }
@@ -683,15 +861,23 @@ class LivingPortraitService {
         const activeResolution = this.assetResolutions.get(record.assetRef);
         if (activeResolution) return activeResolution;
 
-        const resolution = this.resolveProtectedAsset(record)
+        const resolution = this.resolveProtectedAsset(record, context)
+            .catch(error => {
+                const retained = this.volatilePortraits.get(record.identityKey);
+                if (error?.code === 'generation_failed' && context.isCurrent() &&
+                    retained?.context === context && retained.record.assetRef === record.assetRef) {
+                    this.volatilePortraits.delete(record.identityKey);
+                }
+                throw error;
+            })
             .finally(() => {
-                this.assetResolutions.delete(record.assetRef);
+                if (this.assetResolutions.get(record.assetRef) === resolution) this.assetResolutions.delete(record.assetRef);
             });
         this.assetResolutions.set(record.assetRef, resolution);
         return resolution;
     }
 
-    async resolveProtectedAsset(record) {
+    async resolveProtectedAsset(record, context = this.captureCampaignContext()) {
         const eligibility = this.getEligibility();
         if (!eligibility.eligible) {
             throw new Error(
@@ -701,7 +887,11 @@ class LivingPortraitService {
             );
         }
 
-        const accessToken = await this.getAccessToken();
+        this.assertCampaignContext(context);
+        if (!this.canPublishPortrait(context)) throw this.saveDeferredError();
+        const accessToken = await this.getAccessToken(context);
+        this.assertCampaignContext(context);
+        if (!this.canPublishPortrait(context)) throw this.saveDeferredError();
         const { response, result } = await this.requestJson(
             `/.netlify/functions/generate-ai-art?assetRef=${
                 encodeURIComponent(record.assetRef)
@@ -718,6 +908,7 @@ class LivingPortraitService {
                 timeoutMessage: 'Portrait access request timed out'
             }
         );
+        this.assertCampaignContext(context);
         if (!response.ok || !result.success || result.assetRef !== record.assetRef) {
             throw this.createServiceError(
                 result,
@@ -730,7 +921,8 @@ class LivingPortraitService {
         if (result.status !== 'succeeded' || typeof result.imageUrl !== 'string') {
             const recoveryJob = {
                 status: result.status || 'processing',
-                pollCount: 0
+                pollCount: 0,
+                context
             };
             resolvedResult = await this.waitForPrediction(
                 result.jobId,
@@ -757,12 +949,8 @@ class LivingPortraitService {
             expiresAt: resolvedResult.expiresAt,
             status: 'ready'
         };
-        const resolvedRecord = this.saveCurrentCreaturePortrait(nextRecord) || {
-            ...nextRecord,
-            status: 'ready',
-            aiGenerated: true
-        };
-        this.prepareFirstForestVideo(resolvedRecord);
+        const { record: resolvedRecord, published } = this.publishOwnedPortrait(nextRecord, context);
+        if (published) this.prepareFirstForestVideo(resolvedRecord);
         return resolvedRecord;
     }
 
@@ -774,6 +962,8 @@ class LivingPortraitService {
                 Math.min(job.pollCount, this.pollDelays.length - 1)
             ];
             await new Promise(resolve => setTimeout(resolve, delay));
+            this.assertCampaignContext(job.context);
+            if (!this.canPublishPortrait(job.context)) throw this.saveDeferredError();
             job.pollCount += 1;
             const remainingMs = Math.max(1, timeoutMs - (Date.now() - startedAt));
             const { response, result } = await this.requestJson(
@@ -795,6 +985,7 @@ class LivingPortraitService {
                     timeoutMessage: 'Portrait status request timed out'
                 }
             );
+            this.assertCampaignContext(job.context);
             if (!response.ok) {
                 throw this.createServiceError(
                     result,

@@ -15,6 +15,9 @@ class AgeGateModal {
         this.isCompleting = false;
         this.elements = [];
         this.onComplete = null;
+        this.view = null;
+        this.resizeHandler = gameSize => this.refreshLayout(gameSize);
+        this.shutdownHandler = () => this.cleanup();
     }
 
     /**
@@ -46,10 +49,29 @@ class AgeGateModal {
         this.isVisible = true;
         this.isCompleting = false;
         this.onComplete = onComplete;
+        this.view = { type: 'choices' };
+        this.scene.scale.on('resize', this.resizeHandler);
+        this.scene.events.once('shutdown', this.shutdownHandler);
+        this.scene.events.once('destroy', this.shutdownHandler);
+        this.refreshLayout();
+    }
 
-        const { width, height } = this.scene.cameras.main;
+    refreshLayout(gameSize = this.scene.scale.gameSize) {
+        if (!this.isVisible || this.isCompleting) return;
+        const size = gameSize?.width > 0 && gameSize?.height > 0
+            ? gameSize : this.scene.cameras.main;
+        this.clearElements();
+        if (this.view.type === 'notice') {
+            this.renderNotice(this.view.message, this.view.onDismiss, size);
+        } else {
+            this.renderAgeChoices(size);
+        }
+    }
+
+    renderAgeChoices({ width, height }) {
         const centerX = width / 2;
         const centerY = height / 2;
+        const compact = height < 450;
 
         // Dark overlay
         const overlay = this.scene.add.graphics();
@@ -60,8 +82,8 @@ class AgeGateModal {
         this.elements.push(overlay);
 
         // Panel
-        const panelWidth = Math.min(420, width - 24);
-        const panelHeight = Math.min(430, height - 24);
+        const panelWidth = Math.min(compact ? 600 : 420, width - 24);
+        const panelHeight = Math.min(compact ? 300 : 430, height - 24);
         const panelX = centerX - panelWidth / 2;
         const panelY = centerY - panelHeight / 2;
 
@@ -87,21 +109,25 @@ class AgeGateModal {
         const subtitle = this.scene.add.text(centerX, panelY + 72, legalConfig.ageGate.subtitle, {
             fontSize: '14px',
             fontFamily: 'Arial, sans-serif',
-            color: '#AAAAAA'
+            color: '#AAAAAA',
+            align: 'center',
+            wordWrap: { width: panelWidth - 48 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(18002);
         this.elements.push(subtitle);
 
         // Create age option buttons
         const options = legalConfig.ageGate.options;
-        const optionSpacing = Math.min(58, (panelHeight - 170) / options.length);
-        let buttonY = panelY + 122;
+        const columns = compact ? 2 : 1;
+        const buttonWidth = Math.min(320, (panelWidth - 48 - (columns - 1) * 12) / columns);
+        const rowWidth = columns * buttonWidth + (columns - 1) * 12;
 
         options.forEach((option, index) => {
             const btn = this.createAgeButton(
-                centerX,
-                buttonY + (index * optionSpacing),
+                centerX - rowWidth / 2 + buttonWidth / 2 + (index % columns) * (buttonWidth + 12),
+                panelY + 122 + Math.floor(index / columns) * 58,
                 option.label,
-                () => this.selectAge(option)
+                () => this.selectAge(option),
+                buttonWidth
             );
             this.elements.push(...btn);
         });
@@ -120,9 +146,8 @@ class AgeGateModal {
     /**
      * Create a styled age selection button
      */
-    createAgeButton(x, y, text, onClick) {
+    createAgeButton(x, y, text, onClick, btnWidth) {
         const elements = [];
-        const btnWidth = Math.min(320, this.scene.cameras.main.width - 56);
         const btnHeight = 46;
 
         const bg = this.scene.add.graphics();
@@ -185,7 +210,7 @@ class AgeGateModal {
                 this.complete();
             });
         } else {
-            // Continue directly for 13+
+            // Continue directly for age groups without a local-play notice.
             this.complete();
         }
     }
@@ -194,9 +219,11 @@ class AgeGateModal {
      * Show the local-play privacy notice
      */
     showNotice(message, onDismiss) {
-        this.cleanup();
+        this.view = { type: 'notice', message, onDismiss };
+        this.refreshLayout();
+    }
 
-        const { width, height } = this.scene.cameras.main;
+    renderNotice(message, onDismiss, { width, height }) {
         const centerX = width / 2;
         const centerY = height / 2;
 
@@ -209,8 +236,8 @@ class AgeGateModal {
         this.elements.push(overlay);
 
         // Panel
-        const panelWidth = Math.min(420, width - 40);
-        const panelHeight = 300;
+        const panelWidth = Math.min(420, width - 24);
+        const panelHeight = Math.min(300, height - 24);
         const panelX = centerX - panelWidth / 2;
         const panelY = centerY - panelHeight / 2;
 
@@ -224,7 +251,7 @@ class AgeGateModal {
         this.elements.push(panel);
 
         // Title
-        const title = this.scene.add.text(centerX, panelY + 45, 'Local Play', {
+        const title = this.scene.add.text(centerX, panelY + 34, 'Local Play', {
             fontSize: '20px',
             fontFamily: 'Arial, sans-serif',
             color: '#4CAF50',
@@ -233,14 +260,14 @@ class AgeGateModal {
         this.elements.push(title);
 
         // Message
-        const messageText = this.scene.add.text(centerX, panelY + 115, message, {
+        const messageText = this.scene.add.text(centerX, panelY + 76, message, {
             fontSize: '15px',
             fontFamily: 'Arial, sans-serif',
             color: '#CCCCCC',
             wordWrap: { width: panelWidth - 50 },
             align: 'center',
             lineSpacing: 4
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(18002);
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(18002);
         this.elements.push(messageText);
 
         // Continue button
@@ -329,13 +356,22 @@ class AgeGateModal {
      * Cleanup all elements
      */
     cleanup() {
+        this.scene.scale.off('resize', this.resizeHandler);
+        this.scene.events.off('shutdown', this.shutdownHandler);
+        this.scene.events.off('destroy', this.shutdownHandler);
+        this.clearElements();
+        this.isVisible = false;
+        this.view = null;
+        this.onComplete = null;
+    }
+
+    clearElements() {
         this.elements.forEach(el => {
             if (el && el.destroy) {
                 el.destroy();
             }
         });
         this.elements = [];
-        this.isVisible = false;
     }
 }
 

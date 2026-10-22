@@ -94,7 +94,7 @@ describe('late guardian pacing contracts', () => {
             execute.indexOf('this.dispatchBossAttack(attackType, attackTarget)')
         );
         expect(execute).toContain('const attackTarget = {');
-        expect(execute).toContain('this.tweens.killTweensOf(this.boss);');
+        expect(execute).toContain('tweens.killTweensOf(context.boss);');
         expect(execute).toContain('this.startBossHover();');
         expect(execute).toContain(
             'PHOENIX_ATTACK_WINDUP + attackWindow + PHOENIX_RECOVERY_WINDOW'
@@ -118,11 +118,11 @@ describe('late guardian pacing contracts', () => {
         expect(phase).toContain('this.boss.isAttacking = true;');
         expect(phase).toContain('this.clearBossEncounterTimers();');
         expect(phase).toContain('this.clearBossEncounterEffects();');
-        expect(phase).toContain('this.tweens.killTweensOf(this.boss);');
+        expect(phase).toContain('this.tweens.killTweensOf(context.boss);');
         expect(phase).toContain(
             'this.time.delayedCall(PHOENIX_PHASE_RECOVERY'
         );
-        expect(phase).toContain('this.boss.isAttacking = false;');
+        expect(phase).toContain('context.boss.isAttacking = false;');
         expect(phase).toContain('this.startBossHover();');
         expect(methodSource(phoenix, 'triggerPhase2', 'triggerPhase3'))
             .toContain('this.beginPhoenixPhase(2');

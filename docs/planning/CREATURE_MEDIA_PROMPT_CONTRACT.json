@@ -1,0 +1,86 @@
+{
+  "status": "private-follow-up-not-released",
+  "baselineCommit": "c4e3705cdf5773c2bec896d5fe05c3594bdc425a",
+  "portrait": {
+    "clientIdentitySource": "src/systems/CreaturePortraitSpec.js",
+    "schemaVersion": 1,
+    "promptVersion": "living-portrait-v6-alien-field-atlas",
+    "artDirectionVersion": "living-interpretation-v1",
+    "providerTraitPolicy": "portrait-provider-traits-v1",
+    "providerTraitVocabulary": "netlify/lib/portrait-prompt-traits.cjs",
+    "authoredPromptBuilder": "netlify/lib/generate-ai-art-core.cjs#buildCreaturePrompt",
+    "jobOwner": "src/systems/LivingPortraitService.js",
+    "providerInput": [
+      "developer-authored prompt with closed fictional biology values and bounded numerical or hexadecimal visual values",
+      "optional game-captured synthetic creature reference image"
+    ],
+    "notProviderInput": [
+      "player name or age",
+      "creature name",
+      "account or creature identity identifiers",
+      "DNA identifier",
+      "free-text trait descriptions, quirks or effects",
+      "unrecognised trait labels, features, mutations or ability strings",
+      "save history or relationships"
+    ],
+    "unknownTraits": "Use a generic authored category or omit the unsupported optional feature in the model prompt only. Never edit saved genetics, labels, family relationships, cache keys or the source spec.",
+    "compatibility": "Frozen 96-case prompt hashes from the released baseline cover ordinary, shiny/mutated and legacy-no-DNA creatures, four stages, four styles, with and without a reference image. Source-derived domain tests cover all currently authored DNA, genetics, feature and mutation choices.",
+    "publication": {
+      "durability": "GameState stages the existing v2 active-creature and roster portrait fields with detached accounting. The existing verified local writer must confirm exact bytes before adoption or ready events. A refused save must not publish optional portrait data in canonical memory.",
+      "deferredResult": "LivingPortraitService keeps at most 32 opaque processing or ready results in this tab, bound to the exact game, story, reset and cloud owner. A save hold does not retire that custody. Retry first adopts the same result or resolves its existing asset with GET, without posting another generation.",
+      "retirement": "Reset, restored story tree, game owner, cloud owner, cloud user or unrelated cloud campaign changes invalidate old work and temporary results. Only exact admission-correlated counter changes from the attached existing cloud manager preserve hold/release custody. Ordinary creature switches preserve the original result without publishing over the selected creature. Old finalisers cannot delete replacement jobs or resolutions.",
+      "initialSession": "Before the first request, the original media client may bind only its authenticated initial anonymous session. A delayed cloud notification must match that session. Explicit SIGNED_OUT retires pending authentication even when the cloud user is still null; later results cannot revive that context. Observed ownership rejection is irreversible. Auth subscriptions are retired with the context. Another established owner, client, reset or unrelated campaign cannot borrow it.",
+      "failure": "Blocked publication is retryable portrait_save_deferred, not generation success or failure. No new portrait request starts while save admission is held, storage is memory-only or a cloud write is active. A new generation remains possible after an explicitly failed existing provider job, using the unchanged retry contract.",
+      "limits": "Temporary custody is not durable: closing the tab, reset, owner change or bounded eviction can discard an unpublished result. Already-sent requests cannot be revoked. This private synthetic qualification does not establish live provider or migration acceptance."
+    }
+  },
+  "video": {
+    "authoredTemplates": "src/config/companion-video-moments.json",
+    "authoredPromptBuilder": "netlify/lib/generate-companion-video-core.cjs#buildPrompt",
+    "promptVersion": "creature-story-video-v3",
+    "shotVersion": 3,
+    "jobOwner": "src/systems/CompanionMediaService.js",
+    "firstForestPreparation": {
+      "trigger": "A successfully saved active-creature portrait starts the existing first_forest_arrival preparation helper without needing a reveal screen to remain open.",
+      "latePortrait": "Seeing the authored Forest intro or a moving portrait is not a generated-film viewing receipt. A late first portrait can still prepare the unseen film while the Forest is unfinished.",
+      "suppressed": [
+        "Forest already completed",
+        "same creature's generated arrival film already viewed",
+        "portrait replaced or no longer active",
+        "campaign or cloud owner changed",
+        "protected save admission",
+        "existing failed or cancelled job: no automatic paid resubmission"
+      ],
+      "presentation": "LivingFormHandoff delegates to the same helper. Existing in-flight job de-duplication, feature switches, quotas and optional Watch/archive delivery remain unchanged.",
+      "failureIsolation": "Optional video errors cannot change a successfully saved portrait job into a failure."
+    },
+    "publication": {
+      "writer": "GameState.saveCompanionMedia stages the existing v2 companion-media data and accounting through the exact-byte verified writer. Live story data and change/ready/watched notifications are not exposed before verification.",
+      "storyOwnership": "Only the trusted verified-publication callback reuses the original story root with identical verified media metadata. During that synchronous writer only, its own exact original/detached-root fence owns the temporary story root; game/cloud/admission/active-identity fences remain enforced. Async guards always require their original story root. Unrelated story and creature branches remain untouched so in-flight jobs keep their legitimate session ownership.",
+      "postCommitChanges": "A listener may retire, hold or change the current game after verification. The old call cannot announce success, roll back the committed receipt or overwrite the successor. A post-commit hold is not an uncommitted write failure.",
+      "temporaryResults": "Volatile video responses are internal retry custody, not Watch-ready notices. A refused result resumes its existing asset with GET; only committed canonical ready metadata is listed as ready to watch.",
+      "restoreOwnership": "Unpublished responses belong to their original story root as well as game/cloud ownership. Restoring a save retires the old story's cache and callbacks. Normal verified media publication preserves that root; creature switches within the same campaign remain supported.",
+      "signOut": "Video work observes the already-configured media auth client. Explicit SIGNED_OUT retires in-flight responses and volatile cache even while the cloud user's initial notification is pending. Replacing the auth client also retires old work and unsubscribes its observer. Already-sent requests are not claimed to be cancelled.",
+      "requestAdmission": "No new video request or authentication lookup is started while save admission is held, storage is memory-only or a cloud write is active. Publication refusal returns no ready response and retains the existing opaque result for later retry.",
+      "authority": "These are client-side correctness checks only. Server authentication, ownership, idempotency and quota enforcement remain authoritative and unchanged. This is not proof of provider availability, physical-phone playback or native migration acceptance."
+    },
+    "providerInput": [
+      "opaque synthetic creature portrait input",
+      "bounded recorded creature stage",
+      "developer-authored scene text selected by moment and known realm"
+    ],
+    "browserText": "Moment suffixes, player names, creature names, account identifiers and save history must never be interpolated into provider prompt text.",
+    "changesInThisSlice": "First-Forest trigger and optional-error isolation only. Existing video configuration, templates, provider selection and request shapes are not changed."
+  },
+  "reviewBoundaries": {
+    "providersCalledForThisWork": false,
+    "realPlayerRecordsUsed": false,
+    "savesIdentityOrMediaReferencesChanged": false,
+    "modelOrFeatureSwitchChanged": false,
+    "googleMigrationActivated": false,
+    "productionChangedByThisSlice": false,
+    "contractCoordination": "Operations notified before implementation; this safeguard is a dependency for the migration AI boundary, not proof that migration is qualified.",
+    "imageLimitation": "Text projection does not prove that arbitrary forged PNG input depicts only fictional creatures. Normal app capture has no player-photo input; semantic image-origin enforcement remains a separate security review.",
+    "creativeLimitation": "Prompt parity and schema tests do not approve generated image quality, physical-device playback, provider availability or legal compliance."
+  }
+}

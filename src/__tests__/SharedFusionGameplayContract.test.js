@@ -25,7 +25,7 @@ describe('Shared Fusion gameplay contract', () => {
         expect(pod).toContain(
             'createSharedFusionButton'
         );
-        expect(pod).toContain("'LINK'");
+        expect(pod).toContain("'Shared\\nFusion'");
         expect(service).toContain(
             "if (!ageEligible) reason = 'age_restricted'"
         );
@@ -51,7 +51,7 @@ describe('Shared Fusion gameplay contract', () => {
             'this.createSharedFusionButton()'
         );
         expect(pod).toContain(
-            'const sharedLinkLane = this.isSharedFusionAvailable() ? 65 : 0'
+            'const sharedLinkLane = this.isSharedFusionAvailable() ? 106 : 0'
         );
         expect(pod).toContain(
             'const actionX = this.layout.action.x + sharedLinkLane'

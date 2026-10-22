@@ -4,12 +4,14 @@
  * Ensures critical game flow code hasn't been accidentally modified
  * Run with: node scripts/validate-game-flow.js
  *
- * Enhanced with function fingerprinting for better change detection
+ * Checks source patterns and review markers alongside behavior tests.
+ * This is not a semantic or runtime correctness proof.
  */
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const PROJECT_ROOT = path.resolve(__dirname, '..');
 
 // Critical code fingerprints (hashes would be better, but this is simpler)
 const CRITICAL_PATTERNS = {
@@ -20,11 +22,14 @@ const CRITICAL_PATTERNS = {
         'else if (gameStarted && creatureHatched && !creatureNamed) {',
         'else if (gameStarted && creatureHatched && creatureNamed) {',
         
-        // START button critical logic
-        'GameState.set(\'session.gameStarted\', true);',
-        'GameState.set(\'creature.hatched\', false);',
-        'GameState.save();',
-        'this.time.delayedCall(100, () => {',
+        // The active Start path commits its detached draft before continuing.
+        "draft.set('session.gameStarted', true);",
+        "['creature.hatched', false], ['creature.hatchTransaction', null]",
+        'const draft = this.createOpeningStartDraft(attempt.state);',
+        'const result = attempt.state.commitHatchSaveDraft(draft.state, {',
+        'isCurrentCampaign: attempt.ownsScene,',
+        'if (!result.success) return this.recoverOpeningStart(attempt);',
+        'if (!attempt.isCurrent()) return false;',
         'this.scene.restart();',
         
         // New cinematic integration
@@ -97,7 +102,12 @@ function validateFile(filePath, patterns) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
         const missing = [];
-        const protectedSections = PROTECTED_SECTIONS[filePath] || [];
+        // Honour both the declared repo path and the real target of an alias.
+        const policyPaths = [
+            path.relative(PROJECT_ROOT, path.resolve(filePath)),
+            path.relative(fs.realpathSync(PROJECT_ROOT), fs.realpathSync(filePath))
+        ].map(value => value.split(path.sep).join('/'));
+        const protectedSections = [...new Set(policyPaths.flatMap(key => PROTECTED_SECTIONS[key] || []))];
         
         // Check critical patterns exist
         for (const pattern of patterns) {

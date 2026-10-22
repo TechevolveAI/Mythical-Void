@@ -5,6 +5,7 @@ const GameObject = require('phaser/src/gameobjects/GameObject');
 const Tint = require('phaser/src/gameobjects/components/Tint');
 const Clock = require('phaser/src/time/Clock');
 const { parse } = require('@babel/parser');
+const { ForestCombatTime } = require('./support/forestCombatFixture.cjs');
 
 const source = fs.readFileSync(path.join(__dirname, '../systems/CombatJuice.js'), 'utf8');
 const CombatJuice = new Function('window', 'console',
@@ -39,7 +40,7 @@ function fixture() {
         clock.preUpdate(); clock.update(clock.now + delta, delta); clock.preUpdate();
     };
     return { scene, clock, events, timers, actors, actor, target, juice, advance,
-        close() { juice.cleanup(); actors.forEach(value => value.destroy()); clock.destroy(); } };
+        close() { scene.forestBossHitCooldown?.retire(); juice.cleanup(); actors.forEach(value => value.destroy()); clock.destroy(); } };
 }
 
 describe('shared hit flashes preserve the current actor appearance', () => {
@@ -112,13 +113,16 @@ describe('shared hit flashes preserve the current actor appearance', () => {
                 enterLevelCompletionState() { this.levelCompletionActive = true; },
                 showForestRestorationSequence: jest.fn(() => true) });
             f.target.isRecovering = true;
-            f.target.body = { setAllowGravity() {}, destroy() {} };
+            f.scene.physics = { world: { isPaused: false } };
+            f.scene.sys.isActive = () => true;
+            f.target.body = { enable: true, world: f.scene.physics.world, setAllowGravity() {}, destroy() {} };
+            f.scene.player.body = { enable: true, world: f.scene.physics.world, destroy() {} };
             f.target.setVelocity = () => f.target;
             for (const method of ['registerHit', 'screenShake', 'hitStop']) f.juice[method] = jest.fn();
             for (const name of ['damageBoss', 'onBossDefeated']) {
                 const node = declaration.body.body.find(node => node.key.name === name);
-                f.scene[name] = new Function('window', 'console',
-                    `return ({${forest.slice(node.start, node.end)}}).${name};`)({}, { log() {} });
+                f.scene[name] = new Function('ForestCombatTime', 'window', 'console',
+                    `return ({${forest.slice(node.start, node.end)}}).${name};`)(ForestCombatTime, {}, { log() {} });
             }
             expect(f.scene.damageBoss(3)).toBe(true);
             expect(f.scene.bossDefeated).toBe(true);

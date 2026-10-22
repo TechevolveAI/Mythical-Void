@@ -178,7 +178,7 @@ describe('campaign traversal quality contracts', () => {
             "message: 'Forest authored enemies settled on their supports'"
         );
         expect(smoke).toContain('enemy.body.bottom - support.body.top');
-        expect(smoke).toContain('timeoutMs: 3500');
+        expect(smoke).toContain('timeoutMs: 15000');
         expect(smoke).toContain(
             'entry effects retired within render budget'
         );
@@ -194,7 +194,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain(
             "message: 'Forest Rootwake completes and restores controls'"
         );
-        expect(smoke).toContain("forestRootwake.objective.includes('ROOTWAY OPEN')");
+        expect(smoke).toContain("forestRootwake.objective.includes('CROSS THE LIVING ROOTS')");
         expect(read('levels/MythicalForestLevel.js')).toContain(
             'this.time.now + 1750'
         );
@@ -1073,7 +1073,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('const actionPrompt = compactWorldLabels');
         expect(source).toContain('setText(value) {');
         expect(source).toContain(': anchor.label;');
-        expect(smokeSource).toContain('physicsOnlySupportCount !== 78');
+        expect(smokeSource).toContain('physicsOnlySupportCount !== 79');
+        expect(smokeSource).toContain('rootwakeRecoverySupportCount !== 1');
         expect(smokeSource).toContain('physicsOnlySupportDisplayCount !== 0');
     });
 
@@ -3181,7 +3182,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('id: activeTouchIdentifier');
         expect(smoke).toContain('scene.performSpecialAttack();');
         expect(smoke).toContain(
-            'guardianBlast.healthAfter !== guardianBlast.healthBefore - 3'
+            'guardianBlast.healthAfter !== guardianBlast.healthBefore - guardianBlast.expectedDamage'
         );
         expect(smoke).toContain(
             '`${sceneName} Super Blast did not damage its guardian predictably: `'

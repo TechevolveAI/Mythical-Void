@@ -20,7 +20,7 @@ describe('cinematic media integration', () => {
         });
     });
 
-    test('keeps playable cinematic media attached to the game entry and village', () => {
+    test('keeps the opening cinematic while village planning menus remain still', () => {
         const hatchingScene = readSource('src/scenes/HatchingScene.js');
         const villagePanel = readSource('src/ui/VillageCommandPanel.js');
 
@@ -28,9 +28,8 @@ describe('cinematic media integration', () => {
         expect(hatchingScene).toContain('CINEMATIC_MEDIA.projectBeaconHome.url');
         expect(hatchingScene).toContain("video.setMute?.(true)");
         expect(hatchingScene).toContain('shouldPlayCinematicMedia()');
-        expect(villagePanel).toContain('village-command-vision-video');
-        expect(villagePanel).toContain('CINEMATIC_MEDIA.villageHeart.url');
-        expect(villagePanel).toContain('BUILD A HOME TOGETHER');
+        expect(villagePanel).not.toContain('village-command-vision-video');
+        expect(villagePanel).not.toContain('CINEMATIC_MEDIA.villageHeart.url');
     });
 
     test('plays creature story clips silently and inline on mobile', () => {

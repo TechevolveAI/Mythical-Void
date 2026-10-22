@@ -28,6 +28,7 @@ import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometr
 import { createDecorativeFlag } from '../systems/world/DecorativeFlags.js';
 import { getExpeditionCheckpointDefinition } from '../systems/ExpeditionCheckpoints.js';
 import { PATROL_SENTINEL_FRAME, drawPatrolSentinelArtwork } from '../systems/PatrolSentinelArtwork.js';
+import PlatformerPauseSession from './controllers/PlatformerPauseSession.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -385,6 +386,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Pause menu state
         this.pauseMenuActive = false;
+        this.pauseMenuSession = null;
         this.pauseMenuElements = [];
         this.pauseEscHandler = null;
         this.powerupStatusMessage = null;
@@ -724,6 +726,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.traversalLandingGuides = [];
 
         // Reset pause menu state
+        this.pauseMenuSession?.retire();
+        this.pauseMenuSession = null;
         this.pauseMenuActive = false;
         this.pauseMenuElements = [];
         this.powerupStatusMessage = null;
@@ -1662,14 +1666,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (typeof callback !== 'function') return null;
         const transitionKey = String(key || 'guardian-transition');
         this.cancelGuardianTransition(transitionKey);
+        const guards = this.guardianTransitionGuards;
+        const systems = this.sys, clock = this.time;
+        const events = this.events || systems?.events;
 
         const record = {
             key: transitionKey,
             settled: false,
+            waiting: false,
             sceneTimer: null,
             wallTimer: null
         };
         const cleanup = () => {
+            events?.off?.('resume', settle);
+            events?.off?.('wake', settle);
+            events?.off?.('postupdate', settle);
+            events?.off?.('shutdown', record.cancel);
+            events?.off?.('destroy', record.cancel);
+            record.waiting = false;
             if (record.sceneTimer?.hasDispatched === false) {
                 record.sceneTimer.remove?.();
             }
@@ -1678,15 +1692,30 @@ class PlatformerLevelScene extends Phaser.Scene {
                 window.clearTimeout(record.wallTimer);
                 record.wallTimer = null;
             }
-            if (this.guardianTransitionGuards?.get(transitionKey) === record) {
-                this.guardianTransitionGuards.delete(transitionKey);
+            if (guards.get(transitionKey) === record) {
+                guards.delete(transitionKey);
             }
         };
         const settle = () => {
             if (record.settled) return false;
-            if (this.sys?.isActive?.() === false) {
-                record.settled = true;
-                cleanup();
+            if (this.guardianTransitionGuards !== guards || guards.get(transitionKey) !== record ||
+                this.sys !== systems || this.time !== clock || (this.events || this.sys?.events) !== events) {
+                record.cancel();
+                return false;
+            }
+            // Films pause the Scene; the menu pauses only physics. Neither may
+            // discard a due handoff or let its fallback start combat behind UI.
+            if (systems?.isPaused?.() || systems?.isSleeping?.() || this.pauseMenuActive || clock?.paused) {
+                if (!record.waiting) {
+                    record.waiting = true;
+                    events?.on?.('resume', settle);
+                    events?.on?.('wake', settle);
+                    events?.on?.('postupdate', settle);
+                }
+                return false;
+            }
+            if (systems?.isActive?.() === false) {
+                record.cancel();
                 return false;
             }
             record.settled = true;
@@ -1694,20 +1723,30 @@ class PlatformerLevelScene extends Phaser.Scene {
             callback();
             return true;
         };
+        record.cancel = () => {
+            record.settled = true;
+            cleanup();
+        };
 
         const safeDelay = Math.max(0, Number(delay) || 0);
+        guards.set(transitionKey, record);
+        events?.once?.('shutdown', record.cancel);
+        events?.once?.('destroy', record.cancel);
         record.sceneTimer = this.time?.delayedCall?.(safeDelay, settle) || null;
         record.wallTimer = window.setTimeout(
             settle,
             safeDelay + Math.max(100, Number(fallbackGrace) || 600)
         );
-        this.guardianTransitionGuards.set(transitionKey, record);
         return record;
     }
 
     cancelGuardianTransition(key) {
         const record = this.guardianTransitionGuards?.get(String(key));
         if (!record) return false;
+        if (record.cancel) {
+            record.cancel();
+            return true;
+        }
         record.settled = true;
         record.sceneTimer?.remove?.();
         if (record.wallTimer != null) {
@@ -5102,7 +5141,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     update(time, delta) {
         this.updateGeneratedVideoDelivery(time);
-        if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
+        if (!this.player || this.isPlayerDead || this.levelCompletionActive || this.pauseMenuActive) return;
 
         // Anti-stuck detection: Check if player is embedded in ground and rescue them
         this.checkAndFixStuckPlayer();
@@ -6270,7 +6309,10 @@ class PlatformerLevelScene extends Phaser.Scene {
      * @param {boolean} bypassInvincibility - If true, ignore invincibility (for pit falls)
      */
     takeDamage(amount, bypassInvincibility = false) {
-        if (this.isPlayerDead || this.levelCompletionActive) return;
+        // Late timer/tween impacts must not spend health or guards behind UI.
+        if (this.isPlayerDead || this.levelCompletionActive || this.isRespawning ||
+            this.pauseMenuActive || this.physics?.world?.isPaused === true ||
+            this.time?.paused === true || this.sys?.isActive?.() === false) return;
         if (!bypassInvincibility && (
             this.isInvincible || (Number(this.time?.now) || 0) < this.guardRecoveryUntil
         )) return;
@@ -7064,7 +7106,9 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     onPitFall() {
         // Prevent multiple pit fall triggers
-        if (this.isRespawning) return;
+        if (this.isRespawning || this.isPlayerDead || this.levelCompletionActive ||
+            this.pauseMenuActive || this.physics?.world?.isPaused === true ||
+            this.time?.paused === true || this.sys?.isActive?.() === false) return;
         this.isRespawning = true;
         this.resetPlatformerRecoveryInput();
 
@@ -7522,17 +7566,40 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     showPauseMenu() {
         // Prevent multiple pause menus
-        if (this.pauseMenuActive || this.levelCompletionActive) return;
+        if (this.pauseMenuActive || this.levelCompletionActive || this.isPlayerDead) return;
+        const session = PlatformerPauseSession.open(this);
+        if (!session) return;
         this.pauseMenuActive = true;
         this.pauseMenuView = 'pause';
 
-        this.hidePlatformerMobileControls();
+        try {
+            this.hidePlatformerMobileControls();
+            if (!session.isCurrent()) { session.retire(); return; }
+            this.drawPauseMenu();
+        } catch (error) {
+            if (session.isCurrent()) {
+                try { this.clearPauseMenuElements(); } catch { /* Keep the original setup error visible. */ }
+                if (session.isCurrent()) {
+                    this.pauseMenuActive = false;
+                    try { session.release(); } catch { /* Restoration already attempted every owned resource. */ }
+                }
+            }
+            if (!session.isCurrent()) session.retire();
+            throw error;
+        }
+    }
 
-        // Pause physics but keep rendering
-        this.physics.pause();
-
+    drawPauseMenu() {
         const { width, height } = this.scale?.gameSize || this.cameras.main;
         this.pauseMenuElements = [];
+        const elements = this.pauseMenuElements, session = this.pauseMenuSession;
+        const current = () => this.pauseMenuActive && this.pauseMenuElements === elements &&
+            this.pauseMenuSession === session && session?.isCurrent();
+        const clickFeedback = () => {
+            if (!current()) return false;
+            try { window.AudioManager?.playButtonClick?.(); } catch { /* Feedback cannot block a menu action. */ }
+            return current();
+        };
 
         // Dark overlay
         const overlay = this.add.graphics();
@@ -7577,7 +7644,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         resumeBtn.on('pointerover', () => resumeBtn.setColor('#88FF88').setScale(1.05));
         resumeBtn.on('pointerout', () => resumeBtn.setColor('#00FF88').setScale(1.0));
         resumeBtn.on('pointerdown', () => {
-            if (window.AudioManager) window.AudioManager.playButtonClick();
+            if (!clickFeedback()) return;
             this.hidePauseMenu();
         });
 
@@ -7592,7 +7659,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         powerupBtn.on('pointerover', () => powerupBtn.setColor('#FFF0A6').setScale(1.05));
         powerupBtn.on('pointerout', () => powerupBtn.setColor('#FFD166').setScale(1));
         powerupBtn.on('pointerdown', () => {
-            window.AudioManager?.playButtonClick?.();
+            if (!clickFeedback()) return;
             this.powerupStatusMessage = null;
             this.powerupPage = 0;
             this.showPowerupMenu();
@@ -7610,9 +7677,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         exitBtn.on('pointerover', () => exitBtn.setColor('#FF9999').setScale(1.05));
         exitBtn.on('pointerout', () => exitBtn.setColor('#FF6666').setScale(1.0));
         exitBtn.on('pointerdown', () => {
-            if (window.AudioManager) window.AudioManager.playButtonClick();
+            if (!clickFeedback()) return;
             this.hidePauseMenu();
-            this.returnToHub();
+            if (!this.pauseMenuActive && !this.pauseMenuSession) this.returnToHub();
         });
 
         // Hint text
@@ -7624,7 +7691,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // ESC to resume while paused
         this.pauseEscHandler = (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && current()) {
                 this.hidePauseMenu();
             }
         };
@@ -7667,6 +7734,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.pauseMenuView = 'powerups';
 
         this.clearPauseMenuElements();
+        const elements = this.pauseMenuElements, session = this.pauseMenuSession;
+        const current = () => this.pauseMenuActive && !this.levelCompletionActive && this.pauseMenuElements === elements &&
+            this.sys?.isActive?.() !== false && (session ? this.pauseMenuSession === session && session.isCurrent() : !this.pauseMenuSession);
 
         const { width, height } = this.scale?.gameSize || this.cameras.main;
         const manager = window.InventoryManager;
@@ -7767,6 +7837,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 .setInteractive({ useHandCursor: true });
 
             useButton.on('pointerdown', () => {
+                if (!current()) return;
                 let activation = null;
                 const success = manager.useItem(slot, {
                     applyPowerup: (effect, powerupItem) => {
@@ -7774,12 +7845,13 @@ class PlatformerLevelScene extends Phaser.Scene {
                         return activation;
                     }
                 });
+                if (!current()) return;
                 this.powerupStatusMessage = activation?.message ||
                     (success ? `${item.name} activated` : `${item.name} cannot be used now`);
-                window.AudioManager?.[
-                    success ? 'playLevelUp' : 'playError'
-                ]?.();
-                this.showPowerupMenu();
+                try {
+                    window.AudioManager?.[success ? 'playLevelUp' : 'playError']?.();
+                } catch { /* The item result and Back control remain usable without sound. */ }
+                if (current()) this.showPowerupMenu();
             });
 
             this.pauseMenuElements.push(row, name, useButton);
@@ -7798,7 +7870,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(5003)
             .setInteractive({ useHandCursor: true });
-        backButton.on('pointerdown', () => this.returnToPauseMenu());
+        backButton.on('pointerdown', () => { if (current()) this.returnToPauseMenu(); });
         this.pauseMenuElements.push(backButton);
 
         if (pageCount > 1) {
@@ -7817,6 +7889,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 if (enabled) {
                     arrow.setInteractive({ useHandCursor: true });
                     arrow.on('pointerdown', () => {
+                        if (!current()) return;
                         this.powerupPage = page + direction;
                         this.showPowerupMenu();
                     });
@@ -7826,7 +7899,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         this.pauseEscHandler = (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && current()) {
                 this.returnToPauseMenu();
             }
         };
@@ -7845,15 +7918,13 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     hidePauseMenu() {
         if (!this.pauseMenuActive) return;
+        const session = this.pauseMenuSession;
+        if (!session?.isCurrent()) return;
 
         this.clearPauseMenuElements();
-
+        if (!session.isCurrent()) return;
         this.pauseMenuActive = false;
-
-        this.showPlatformerMobileControls();
-
-        // Resume physics
-        this.physics.resume();
+        session.release();
     }
 
     getCurrentEcologyNodeConfig() {
@@ -8756,6 +8827,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('[PlatformerLevel] Shutting down - cleaning up resources');
+        this.pauseMenuSession?.retire();
         this.residentReleasePresentation?.retire();
         this.endInvincibility();
         this.regionalVictoryPanel?.destroy();

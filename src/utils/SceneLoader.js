@@ -29,6 +29,7 @@ class SceneLoaderClass {
 
         // Track loading promises (prevent duplicate loads)
         this.loadingPromises = new Map();
+        this.registrationPromises = new WeakMap();
         this.importTimeoutMs = 15000;
         this.backgroundRetryAfter = new Map();
         this.backgroundRetryDelayMs = 15000;
@@ -274,58 +275,76 @@ class SceneLoaderClass {
      * Load a scene and register it with Phaser
      * @param {Phaser.Game} game - The Phaser game instance
      * @param {string} sceneName - Name of the scene to load
-     * @returns {Promise<boolean>} - Whether the scene was loaded successfully
+     * @returns {Promise<boolean>} - Whether registration exists or was accepted;
+     * a queued registration still awaits Phaser's next processing frame.
      */
     async loadScene(game, sceneName) {
-        if (!game || !game.scene) {
+        const manager = game?.scene;
+        if (!manager || manager.game === null) {
             console.error('[SceneLoader] Invalid game instance');
             return false;
         }
 
         // Phaser versions differ on whether getScene throws for an unknown key.
         // Inspect the manager registry first so a lazy scene can always register.
-        const registeredScene = game.scene.keys?.[sceneName] ||
-            game.scene.scenes?.find?.(
+        const registeredScene = () => manager.keys?.[sceneName] ||
+            manager.scenes?.find?.(
                 scene => scene?.sys?.settings?.key === sceneName
             );
-        if (registeredScene) {
-            devLog(`[SceneLoader] ${sceneName} already registered`);
+        // Phaser 3.90 defers add() while processing a frame or before boot.
+        // Read its queue, never mutate it; the native regression tests cover it.
+        const registrationRequested = () => registeredScene() ||
+            manager._pending?.some(entry => entry.key === sceneName);
+        if (registrationRequested()) {
+            devLog(`[SceneLoader] ${sceneName} already registered or queued`);
             return true;
         }
 
-        const loadingOwner = {};
-        try {
-            // Show loading state
-            this.updateLoading('showLoading', `Loading ${sceneName}...`, loadingOwner);
-
-            // Load the module
-            const module = await this.preload(sceneName);
-            if (!module) {
-                throw new Error(`Module not found for ${sceneName}`);
-            }
-
-            // Get the scene class (default export)
-            const SceneClass = module.default;
-            if (!SceneClass) {
-                throw new Error(`No default export found for ${sceneName}`);
-            }
-
-            // Register with Phaser
-            game.scene.add(sceneName, SceneClass, false);
-            devLog(`[SceneLoader] ${sceneName} registered with Phaser`);
-
-            // Hide loading state
-            this.updateLoading('hideLoading', loadingOwner);
-
-            return true;
-        } catch (error) {
-            console.error(`[SceneLoader] Failed to load ${sceneName}:`, error);
-
-            // Hide loading state
-            this.updateLoading('hideLoading', loadingOwner);
-
-            return false;
+        let registrations = this.registrationPromises.get(manager);
+        if (!registrations) {
+            registrations = new Map();
+            this.registrationPromises.set(manager, registrations);
         }
+        if (registrations.has(sceneName)) return registrations.get(sceneName);
+
+        const isCurrent = () => game.scene === manager && manager.game !== null;
+        // Publish before optional UI can reenter. Module downloads are shared
+        // globally, but each manager owns exactly one registration request.
+        let resolveOperation, rejectOperation;
+        const operation = new Promise((resolve, reject) => {
+            resolveOperation = resolve;
+            rejectOperation = reject;
+        }).finally(() => {
+            if (registrations.get(sceneName) === operation) registrations.delete(sceneName);
+        });
+        registrations.set(sceneName, operation);
+        const register = async () => {
+            const loadingOwner = {};
+            let loaded = false;
+            try {
+                if (!isCurrent()) return false;
+                this.updateLoading('showLoading', `Loading ${sceneName}...`, loadingOwner);
+                if (!isCurrent()) return false;
+
+                const module = await this.preload(sceneName);
+                if (!isCurrent()) return false;
+                if (!module) throw new Error(`Module not found for ${sceneName}`);
+                if (!module.default) throw new Error(`No default export found for ${sceneName}`);
+
+                if (!registrationRequested()) {
+                    manager.add(sceneName, module.default, false);
+                }
+                devLog(`[SceneLoader] ${sceneName} registration requested`);
+                loaded = true;
+            } catch (error) {
+                console.error(`[SceneLoader] Failed to load ${sceneName}:`, error);
+            } finally {
+                this.updateLoading('hideLoading', loadingOwner);
+            }
+            return loaded && isCurrent();
+        };
+        register().then(resolveOperation, rejectOperation);
+        return operation;
     }
 
     /**

@@ -6094,7 +6094,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     update(time, delta) {
         super.update(time, delta);
-        if (this.levelCompletionActive) return;
+        if (this.levelCompletionActive || this.pauseMenuActive) return;
 
         this.updateCaveEnemyActivation();
         this.updateCaveEnemyAI(time);

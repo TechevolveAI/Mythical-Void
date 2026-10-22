@@ -8,66 +8,66 @@ export const VILLAGE_PRODUCTION_CAP_MS = 4 * 60 * 60 * 1000;
 export const VILLAGE_BUILDING_ARTWORK = Object.freeze({
     forager_hut: Object.freeze({
         key: 'village-forager-hut',
-        url: '/game/village/forager-hut.webp'
+        url: '/game/village/playful/forager-hut.svg'
     }),
     sawmill: Object.freeze({
         key: 'village-living-sawmill',
-        url: '/game/village/living-sawmill.webp'
+        url: '/game/village/playful/living-sawmill.svg'
     }),
     current_masonry: Object.freeze({
         key: 'village-current-masonry',
-        url: '/game/village/current-masonry.webp'
+        url: '/game/village/playful/current-masonry.svg'
     }),
     habitat: Object.freeze({
         key: 'village-shared-habitat',
-        url: '/game/village/shared-habitat.webp'
+        url: '/game/village/playful/shared-habitat.svg'
     }),
     workshop: Object.freeze({
         key: 'village-discovery-workshop',
-        url: '/game/village/discovery-workshop.webp'
+        url: '/game/village/playful/discovery-workshop.svg'
     })
 });
 
 export const VILLAGE_WORLD_ARTWORK = Object.freeze({
     heart: Object.freeze({
         key: 'village-world-heart',
-        url: '/game/village/world/village-heart.webp',
+        url: '/game/village/playful/village-heart.svg',
         compactKey: 'village-world-heart-compact',
-        compactUrl: '/game/village/world/compact/village-heart.png'
+        compactUrl: '/game/village/playful/village-heart.svg'
     }),
     forager_hut: Object.freeze({
         key: 'village-world-forager-hut',
-        url: '/game/village/world/forager-hut.webp',
+        url: '/game/village/playful/forager-hut.svg',
         compactKey: 'village-world-forager-hut-compact',
-        compactUrl: '/game/village/world/compact/forager-hut.png',
+        compactUrl: '/game/village/playful/forager-hut.svg',
         displaySize: 176
     }),
     sawmill: Object.freeze({
         key: 'village-world-living-sawmill',
-        url: '/game/village/world/living-sawmill.webp',
+        url: '/game/village/playful/living-sawmill.svg',
         compactKey: 'village-world-living-sawmill-compact',
-        compactUrl: '/game/village/world/compact/living-sawmill.png',
+        compactUrl: '/game/village/playful/living-sawmill.svg',
         displaySize: 168
     }),
     current_masonry: Object.freeze({
         key: 'village-world-current-masonry',
-        url: '/game/village/world/current-masonry.webp',
+        url: '/game/village/playful/current-masonry.svg',
         compactKey: 'village-world-current-masonry-compact',
-        compactUrl: '/game/village/world/compact/current-masonry.png',
+        compactUrl: '/game/village/playful/current-masonry.svg',
         displaySize: 172
     }),
     habitat: Object.freeze({
         key: 'village-world-shared-habitat',
-        url: '/game/village/world/shared-habitat.webp',
+        url: '/game/village/playful/shared-habitat.svg',
         compactKey: 'village-world-shared-habitat-compact',
-        compactUrl: '/game/village/world/compact/shared-habitat.png',
+        compactUrl: '/game/village/playful/shared-habitat.svg',
         displaySize: 178
     }),
     workshop: Object.freeze({
         key: 'village-world-discovery-workshop',
-        url: '/game/village/world/discovery-workshop.webp',
+        url: '/game/village/playful/discovery-workshop.svg',
         compactKey: 'village-world-discovery-workshop-compact',
-        compactUrl: '/game/village/world/compact/discovery-workshop.png',
+        compactUrl: '/game/village/playful/discovery-workshop.svg',
         displaySize: 160
     })
 });
