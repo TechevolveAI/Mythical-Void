@@ -188,6 +188,8 @@ class FusionPodScene extends Phaser.Scene {
         this.fusionConsentReceipt = null;
         this.previewConsentOnly = false;
         this.previewSharedFusionAvailable = false;
+        this.requirementView = null;
+        this.layoutRefreshPending = false;
     }
 
     init(data = {}) {
@@ -204,6 +206,8 @@ class FusionPodScene extends Phaser.Scene {
         this.fusionResultSeed = null;
         this.fusionOffspringSequence = 0;
         this.cleanupComplete = false;
+        this.requirementView = null;
+        this.layoutRefreshPending = false;
         this.fusionConsentReceipt = null;
         this.previewCreatures = Array.isArray(data.previewCreatures)
             ? data.previewCreatures
@@ -234,6 +238,7 @@ class FusionPodScene extends Phaser.Scene {
         this.releaseSanctuaryOpeningGuard();
         this.events?.once?.('shutdown', this.shutdown, this);
         this.events?.once?.('destroy', this.shutdown, this);
+        this.installLayoutResize();
 
         // Stop other scenes to ensure clean display
         const scenesToStop = ['GameScene'];
@@ -301,14 +306,7 @@ class FusionPodScene extends Phaser.Scene {
         }
 
         // Create the breeding UI
-        this.createOverlay(width, height);
-        this.createMainPanel(width, height);
-        this.createTitle(width);
-        this.createParentSlots(width, height);
-        this.createCompatibilityDisplay(width, height);
-        this.createBreedButton(width, height);
-        this.createSharedFusionButton();
-        this.createCloseButton(width);
+        this.renderReadyView(width, height);
 
         if (this.previewConsentOnly) {
             this.time.delayedCall(80, () => {
@@ -381,6 +379,57 @@ class FusionPodScene extends Phaser.Scene {
         this.scene?.get?.('GameScene')?.releaseFusionPodOpeningGuard?.();
     }
 
+    renderReadyView(width, height) {
+        this.requirementView = null;
+        this.createOverlay(width, height);
+        this.createMainPanel(width, height);
+        this.createTitle(width);
+        this.createParentSlots(width, height);
+        this.createCompatibilityDisplay(width, height);
+        this.createBreedButton(width, height);
+        this.createSharedFusionButton();
+        this.createCloseButton(width);
+        this.updateCompatibilityDisplay();
+    }
+
+    installLayoutResize() {
+        this.layoutResizeHandler = () => {
+            this.layoutRefreshPending = true;
+            const { width, height } = this.scale;
+            // Keep the current consent/invitation and focused control intact.
+            for (const modal of [this.fusionConsentModal, this.sharedFusionModal]) {
+                if (!modal?.root) continue;
+                modal.root.style.width = `${width}px`;
+                modal.root.style.height = `${height}px`;
+                modal.domElement?.updateSize?.();
+                modal.domElement?.setPosition?.(width / 2, height / 2);
+            }
+            if (this.selectionModalOpen && this.selectionView) {
+                const { slotNum, page } = this.selectionView;
+                this.closeSelectionModal();
+                this.openCreatureSelector(slotNum, page);
+            }
+        };
+        this.layoutRefreshHandler = () => {
+            if (!this.layoutRefreshPending || this.cleanupComplete || this.breedingInProgress ||
+                this.pendingFusionView || this.selectionModalOpen ||
+                this.fusionConsentModal?.root || this.sharedFusionModal?.root) return;
+            this.layoutRefreshPending = false;
+            const requirement = this.requirementView;
+            [...this.parentSlotElements, ...this.elements].forEach(element => {
+                this.tweens?.killTweensOf?.(element);
+                element?.destroy?.();
+            });
+            this.parentSlotElements = [];
+            this.elements = [];
+            const { width, height } = this.scale;
+            if (requirement) this.showRequirementNotMet(width, height, requirement.reason, requirement.context);
+            else this.renderReadyView(width, height);
+        };
+        this.scale?.on?.('resize', this.layoutResizeHandler);
+        this.events?.on?.('postupdate', this.layoutRefreshHandler);
+    }
+
     isSharedFusionAvailable() {
         if (this.previewSharedFusionAvailable) {
             return true;
@@ -399,9 +448,9 @@ class FusionPodScene extends Phaser.Scene {
 
     createSharedFusionButton() {
         if (!this.isSharedFusionAvailable()) return;
-        const width = 58;
-        const height = 50;
-        const x = this.panelBounds.x + 7;
+        const width = 94;
+        const height = this.layout.action.height;
+        const x = this.layout.action.x;
         const y = this.breedButtonBounds.y;
         const background = this.add.graphics()
             .setDepth(201);
@@ -435,9 +484,11 @@ class FusionPodScene extends Phaser.Scene {
         const label = this.add.text(
             x + width / 2,
             y + height / 2,
-            'LINK',
+            'Shared\nFusion',
             {
-                fontSize: '10px',
+                fontSize: '13px',
+                fontFamily: 'Arial',
+                align: 'center',
                 color: '#FFFFFF',
                 fontStyle: 'bold'
             }
@@ -462,6 +513,7 @@ class FusionPodScene extends Phaser.Scene {
                 'Protected Shared Fusion',
                 {
                     fontSize: '10px',
+                    fontFamily: 'Arial',
                     color: '#FFFFFF',
                     backgroundColor: '#050807',
                     padding: { x: 7, y: 4 }
@@ -683,21 +735,13 @@ class FusionPodScene extends Phaser.Scene {
             window.UXEnhancements.hideLoading();
         }
 
+        this.requirementView = { reason, context };
         this.createOverlay(width, height);
-
-        const panelWidth = Math.min(350, width - 40);
-        const panelHeight = ['need_adults', 'reserved_recovery'].includes(reason)
-            ? 330
-            : 280;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
-        const panel = this.add.graphics();
-        panel.fillStyle(0x1A1A3E, 0.95);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        panel.lineStyle(3, 0xFF6666, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        panel.setDepth(200);
+        this.createMainPanel(width, height);
+        this.createTitle(width);
+        this.createCloseButton(width);
+        const { y: panelY, width: panelWidth } = this.panelBounds;
+        const compact = this.layout.shortLandscape;
 
         let title, message, icon;
 
@@ -747,44 +791,47 @@ class FusionPodScene extends Phaser.Scene {
             ].join('\n');
         }
 
-        this.add.text(width / 2, panelY + 40, `${icon} ${title}`, {
-            fontSize: '20px',
+        const heading = this.add.text(width / 2, panelY + 28, `${icon} ${title}`, {
+            fontSize: compact ? '18px' : '22px',
+            fontFamily: 'Arial Black',
             color: '#FFD700',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: panelWidth - 32 }
         }).setOrigin(0.5).setDepth(201);
 
-        this.add.text(
+        const details = this.add.text(
             width / 2,
-            panelY + (
-                ['need_adults', 'reserved_recovery'].includes(reason)
-                    ? 155
-                    : 130
-            ),
+            panelY + (compact ? 58 : 82),
             message,
             {
-            fontSize: '14px',
+            fontSize: compact ? '14px' : '16px',
+            fontFamily: 'Arial',
             color: '#FFFFFF',
             align: 'center',
-            wordWrap: { width: panelWidth - 40 }
+            lineSpacing: compact ? 1 : 5,
+            wordWrap: { width: Math.min(520, panelWidth - 40) }
             }
-        ).setOrigin(0.5).setDepth(201);
+        ).setOrigin(0.5, 0).setDepth(201);
 
         // Close button
-        const closeBtn = this.add.text(width / 2, panelY + panelHeight - 40, 'Got it', {
-            fontSize: '16px',
+        const closeBtn = this.add.text(width / 2, this.layout.action.y + 24, 'Got it', {
+            fontSize: '18px',
+            fontFamily: 'Arial Black',
             color: '#FFFFFF',
             backgroundColor: '#4B0082',
-            padding: { x: 30, y: 10 }
+            padding: { x: 44, y: 13 }
         }).setOrigin(0.5).setDepth(201).setInteractive();
 
         closeBtn.on('pointerdown', () => this.closeScene());
         closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#6B21A8' }));
         closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#4B0082' }));
+        this.elements.push(heading, details, closeBtn);
     }
 
     createOverlay(width, height) {
         this.overlay = this.add.graphics();
-        this.overlay.fillStyle(0x050214, 0.9);
+        this.overlay.fillStyle(0x0A0520, 1);
         this.overlay.fillRect(0, 0, width, height);
         this.overlay.setDepth(100);
 
@@ -815,77 +862,44 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     getResponsiveLayout(width, height) {
-        const shortLandscape = height < 520 && width > height;
-        const panelWidth = shortLandscape
-            ? Math.min(760, width - 30)
-            : Math.min(400, width - 30);
-        const panelHeight = shortLandscape
-            ? Math.min(370, height - 16)
-            : Math.min(550, height - 60);
+        const shortLandscape = height < 540 && width > height;
+        const twoColumn = width >= 700 || (shortLandscape && width >= 600);
+        const margin = width < 600 ? 10 : 20;
+        const headerHeight = shortLandscape ? 64 : width < 600 ? 88 : 80;
+        const panelWidth = Math.min(1100, width - margin * 2);
         const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
-        if (shortLandscape) {
-            const leftCenterX = panelX + panelWidth * 0.27;
-            const rightCenterX = panelX + panelWidth * 0.75;
-            return {
-                shortLandscape,
-                panel: {
-                    x: panelX,
-                    y: panelY,
-                    width: panelWidth,
-                    height: panelHeight
-                },
-                titleY: panelY + 20,
-                subtitleY: panelY + 43,
-                slots: {
-                    centerX: leftCenterX,
-                    y: panelY + 76,
-                    width: 116,
-                    height: 150,
-                    gap: 18
-                },
-                compatibility: {
-                    centerX: rightCenterX,
-                    topY: panelY + 78,
-                    barWidth: Math.min(230, panelWidth * 0.34)
-                },
-                action: {
-                    x: panelX + panelWidth / 2 + 18,
-                    y: panelY + panelHeight - 66,
-                    width: panelWidth / 2 - 36,
-                    height: 48
-                }
-            };
-        }
-
+        const panelY = headerHeight + 12;
+        const slotHeight = height < 700 ? 148 : 180;
+        const gap = width < 360 ? 16 : 24;
+        const slotAreaWidth = twoColumn ? panelWidth * 0.51 : panelWidth - 24;
+        const slotWidth = Math.min(twoColumn ? 180 : 190, (slotAreaWidth - gap - 20) / 2);
+        const contentY = panelY + 16;
+        const compatibilityWidth = twoColumn ? panelWidth * 0.40 : panelWidth - 36;
         return {
             shortLandscape,
-            panel: {
-                x: panelX,
-                y: panelY,
-                width: panelWidth,
-                height: panelHeight
-            },
-            titleY: panelY + 28,
-            subtitleY: panelY + 52,
+            twoColumn,
+            headerHeight,
+            panel: { x: panelX, y: panelY, width: panelWidth, height: height - panelY - margin },
+            titleY: shortLandscape ? 19 : 26,
+            subtitleY: shortLandscape ? 46 : width < 600 ? 70 : 60,
             slots: {
-                centerX: width / 2,
-                y: panelY + 85,
-                width: 130,
-                height: 160,
-                gap: 30
+                centerX: twoColumn ? panelX + panelWidth * 0.27 : width / 2,
+                y: contentY,
+                width: slotWidth,
+                height: slotHeight,
+                gap
             },
             compatibility: {
-                centerX: width / 2,
-                topY: panelY + 265,
-                barWidth: 200
+                centerX: twoColumn ? panelX + panelWidth * 0.76 : width / 2,
+                topY: twoColumn ? contentY + 4 : contentY + slotHeight + 24,
+                barWidth: Math.min(280, compatibilityWidth),
+                textWidth: compatibilityWidth
             },
             action: {
-                x: panelX + 7,
-                y: panelY + panelHeight - 80,
-                width: panelWidth - 14,
-                height: 50
+                x: panelX + 16,
+                y: height - margin - 58,
+                width: panelWidth - 32,
+                height: 48
             }
         };
     }
@@ -900,9 +914,9 @@ class FusionPodScene extends Phaser.Scene {
         } = this.layout.panel;
 
         this.panel = this.add.graphics();
-        this.panel.fillStyle(0x1A1A3E, 0.95);
+        this.panel.fillStyle(0x1A0A2E, 0.95);
         this.panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        this.panel.lineStyle(3, 0x9370DB, 1);
+        this.panel.lineStyle(2, 0x6B00B3, 1);
         this.panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
         this.panel.lineStyle(1, 0xFFD700, 0.3);
         this.panel.strokeRoundedRect(panelX + 4, panelY + 4, panelWidth - 8, panelHeight - 8, 18);
@@ -913,32 +927,27 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     createTitle(width) {
-        const centerX = this.panelBounds.x + this.panelBounds.width / 2;
-        const titleText = this.add.text(centerX, this.layout.titleY, FUSION_STORY_COPY.title, {
-            fontSize: this.layout.shortLandscape ? '15px' : '16px',
+        const header = this.add.graphics().setDepth(200);
+        header.fillStyle(0x1A0A2E, 0.98);
+        header.fillRect(0, 0, width, this.layout.headerHeight);
+        header.lineStyle(2, 0x6B00B3);
+        header.lineBetween(0, this.layout.headerHeight, width, this.layout.headerHeight);
+        const margin = width < 600 ? 12 : 24;
+        const titleText = this.add.text(margin, this.layout.titleY, FUSION_STORY_COPY.title, {
+            fontSize: width >= 1000 ? '32px' : '22px',
+            fontFamily: 'Arial Black',
             color: '#FFD700',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setDepth(201);
-
-        const subtitleText = this.add.text(
-            centerX,
-            this.layout.subtitleY,
-            FUSION_STORY_COPY.subtitle,
-            {
-                fontSize: this.layout.shortLandscape ? '9px' : '10px',
-                color: '#AFC3CF',
-                align: 'center',
-                wordWrap: {
-                    width: this.layout.shortLandscape
-                        ? this.panelBounds.width - 120
-                        : this.panelBounds.width - 70
-                }
-            }
-        ).setOrigin(0.5).setDepth(201);
-
-        this.elements.push(titleText, subtitleText);
+            stroke: '#4A0080',
+            strokeThickness: 4
+        }).setOrigin(0, 0.5).setDepth(201);
+        const subtitleText = this.add.text(margin, this.layout.subtitleY,
+            FUSION_STORY_COPY.subtitle, {
+                fontSize: width < 600 ? '13px' : '15px',
+                fontFamily: 'Arial',
+                color: '#D6C8ED',
+                wordWrap: { width: width - margin * 2 }
+            }).setOrigin(0, 0.5).setDepth(201);
+        this.elements.push(header, titleText, subtitleText);
     }
 
     createParentSlots(width, height) {
@@ -957,6 +966,7 @@ class FusionPodScene extends Phaser.Scene {
         // Center "+" symbol
         const plusText = this.add.text(centerX, startY + slotHeight / 2, '+', {
             fontSize: '32px',
+            fontFamily: 'Arial',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
@@ -977,9 +987,10 @@ class FusionPodScene extends Phaser.Scene {
         slot.setDepth(201);
 
         // Label
-        const label = this.add.text(x + width / 2, y + 15, `LINEAGE ${slotNum === 1 ? 'A' : 'B'}`, {
-            fontSize: '10px',
-            color: '#88CCFF'
+        const label = this.add.text(x + width / 2, y + 15, `PARENT ${slotNum}`, {
+            fontSize: '13px',
+            fontFamily: 'Arial',
+            color: '#D6C8ED'
         }).setOrigin(0.5).setDepth(202);
 
         // Selection indicator
@@ -990,9 +1001,10 @@ class FusionPodScene extends Phaser.Scene {
             displayContent = this.createCreatureDisplay(x, y, width, height, parentData, slotNum);
         } else {
             // Empty slot - tap to select
-            const placeholder = this.add.text(x + width / 2, y + height / 2, '👆\nTap to\nSelect', {
+            const placeholder = this.add.text(x + width / 2, y + height / 2, 'Choose\ncreature', {
                 fontSize: '14px',
-                color: '#888888',
+                fontFamily: 'Arial',
+                color: '#D6C8ED',
                 align: 'center'
             }).setOrigin(0.5).setDepth(202);
             displayContent = [placeholder];
@@ -1049,9 +1061,12 @@ class FusionPodScene extends Phaser.Scene {
 
         // Creature name
         const name = this.add.text(centerX, slotY + 90, creature.name || 'Unknown', {
-            fontSize: '11px',
+            fontSize: '14px',
+            fontFamily: 'Arial',
             color: '#FFFFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            wordWrap: { width: slotWidth - 12 },
+            maxLines: 1
         }).setOrigin(0.5).setDepth(202);
         elements.push(name);
 
@@ -1060,12 +1075,13 @@ class FusionPodScene extends Phaser.Scene {
         const rarityColors = {
             common: '#AAAAAA',
             uncommon: '#00FF00',
-            rare: '#0088FF',
-            epic: '#AA00FF',
+            rare: '#80C4FF',
+            epic: '#CF9AFF',
             legendary: '#FFD700'
         };
         const rarityText = this.add.text(centerX, slotY + 105, rarity.toUpperCase(), {
-            fontSize: '9px',
+            fontSize: '11px',
+            fontFamily: 'Arial',
             color: rarityColors[rarity] || '#FFFFFF'
         }).setOrigin(0.5).setDepth(202);
         elements.push(rarityText);
@@ -1074,7 +1090,8 @@ class FusionPodScene extends Phaser.Scene {
         const stage = this.getCreatureStage(creature);
         const stageEmoji = stage === 'elder' ? '👑' : '✨';
         const stageText = this.add.text(centerX, slotY + 120, `${stageEmoji} ${stage}`, {
-            fontSize: '10px',
+            fontSize: '12px',
+            fontFamily: 'Arial',
             color: '#88FF88'
         }).setOrigin(0.5).setDepth(202);
         elements.push(stageText);
@@ -1082,8 +1099,9 @@ class FusionPodScene extends Phaser.Scene {
         // Generation indicator
         const generation = creature.generation || 1;
         const genText = this.add.text(centerX, slotY + 135, `Gen ${generation}`, {
-            fontSize: '9px',
-            color: '#888888'
+            fontSize: '11px',
+            fontFamily: 'Arial',
+            color: '#B8A9CC'
         }).setOrigin(0.5).setDepth(202);
         elements.push(genText);
 
@@ -1158,6 +1176,7 @@ class FusionPodScene extends Phaser.Scene {
         // Modal title
         const modalTitle = this.add.text(width / 2, modalY + 25, `Select Parent ${slotNum}`, {
             fontSize: '18px',
+            fontFamily: 'Arial',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(302);
@@ -1169,11 +1188,13 @@ class FusionPodScene extends Phaser.Scene {
             requestedPage,
             pageSize
         );
+        this.selectionView = { slotNum, page: selectorPage.page };
         const pageLabel = selectorPage.totalPages > 1
             ? ` • Page ${selectorPage.page + 1}/${selectorPage.totalPages}`
             : '';
         const modalSubtitle = this.add.text(width / 2, modalY + 48, `Adults and elders${pageLabel}`, {
             fontSize: '11px',
+            fontFamily: 'Arial',
             color: '#888888'
         }).setOrigin(0.5).setDepth(302);
 
@@ -1232,6 +1253,7 @@ class FusionPodScene extends Phaser.Scene {
             // Creature info
             const name = this.add.text(modalX + 65, currentRowY + 8, creature.name || 'Unknown', {
                 fontSize: '13px',
+                fontFamily: 'Arial',
                 color: isSelectedElsewhere ? '#666666' : '#FFFFFF',
                 fontStyle: 'bold'
             }).setDepth(303);
@@ -1240,6 +1262,7 @@ class FusionPodScene extends Phaser.Scene {
             const generation = creature.generation || 1;
             const info = this.add.text(modalX + 65, currentRowY + 26, `${rarity} • Gen ${generation}`, {
                 fontSize: '10px',
+                fontFamily: 'Arial',
                 color: '#888888'
             }).setDepth(303);
 
@@ -1247,6 +1270,7 @@ class FusionPodScene extends Phaser.Scene {
             if (!isSelectedElsewhere) {
                 const selectBtn = this.add.text(modalX + modalWidth - 60, currentRowY + 18, 'SELECT', {
                     fontSize: '12px',
+                    fontFamily: 'Arial',
                     color: '#00FF00',
                     backgroundColor: '#1A3A1A',
                     padding: { x: 12, y: 8 }  // Larger padding for easier mobile tapping
@@ -1273,6 +1297,7 @@ class FusionPodScene extends Phaser.Scene {
             } else {
                 const usedLabel = this.add.text(modalX + modalWidth - 55, currentRowY + 18, 'In Use', {
                     fontSize: '10px',
+                    fontFamily: 'Arial',
                     color: '#666666'
                 }).setOrigin(0.5).setDepth(303);
                 this.selectionModalElements.push(usedLabel);
@@ -1287,6 +1312,7 @@ class FusionPodScene extends Phaser.Scene {
             const addPageButton = (x, label, nextPage, enabled) => {
                 const button = this.add.text(x, navigationY, label, {
                     fontSize: '13px',
+                    fontFamily: 'Arial',
                     color: enabled ? '#FFFFFF' : '#666666',
                     backgroundColor: enabled ? '#4B3A78' : '#252535',
                     padding: { x: 14, y: 8 }
@@ -1319,6 +1345,7 @@ class FusionPodScene extends Phaser.Scene {
         // Close button with larger touch target for mobile
         const closeBtn = this.add.text(width / 2, modalY + modalHeight - 24, 'Cancel', {
             fontSize: '16px',
+            fontFamily: 'Arial',
             color: '#FFFFFF',
             backgroundColor: '#555555',
             padding: { x: 30, y: 12 }  // Larger padding for mobile
@@ -1372,6 +1399,7 @@ class FusionPodScene extends Phaser.Scene {
 
         this.selectionModalElements = [];
         this.selectionModalOpen = false;
+        this.selectionView = null;
         console.log('[FusionPodScene] Selection modal closed');
     }
 
@@ -1442,6 +1470,7 @@ class FusionPodScene extends Phaser.Scene {
         // Brief checkmark near the slot (non-blocking, fades quickly)
         const check = this.add.text(slotPos.x + 50, slotPos.y + 20, '✓', {
             fontSize: '28px',
+            fontFamily: 'Arial',
             color: '#00FF00',
             stroke: '#004400',
             strokeThickness: 3
@@ -1561,13 +1590,15 @@ class FusionPodScene extends Phaser.Scene {
 
         // Compatibility label
         const label = this.add.text(centerX, topY, 'Genetic Compatibility', {
-            fontSize: '12px',
-            color: '#AAAAAA'
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#D6C8ED'
         }).setOrigin(0.5).setDepth(201);
 
         // Placeholder when no selection
         this.compatibilityText = this.add.text(centerX, topY + 25, '--', {
             fontSize: '28px',
+            fontFamily: 'Arial',
             color: '#666666',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
@@ -1587,15 +1618,17 @@ class FusionPodScene extends Phaser.Scene {
 
         // Explanation text
         this.explanationText = this.add.text(centerX, topY + 75, FUSION_STORY_COPY.empty, {
-            fontSize: '10px',
-            color: '#8B99A3',
+            fontSize: '12px',
+            fontFamily: 'Arial',
+            color: '#D6C8ED',
             align: 'center',
-            wordWrap: { width: 250 }
+            wordWrap: { width: this.layout.compatibility.textWidth }
         }).setOrigin(0.5).setDepth(201);
 
         // Offspring Predictions Section
         this.predictionsLabel = this.add.text(centerX, topY + 105, 'PROJECTED LINEAGE', {
-            fontSize: '11px',
+            fontSize: '13px',
+            fontFamily: 'Arial',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201).setAlpha(0);
@@ -1617,8 +1650,8 @@ class FusionPodScene extends Phaser.Scene {
         const rarityColors = {
             common: '#888888',
             uncommon: '#00FF00',
-            rare: '#0088FF',
-            epic: '#AA00FF',
+            rare: '#80C4FF',
+            epic: '#CF9AFF',
             legendary: '#FFD700'
         };
 
@@ -1740,10 +1773,11 @@ class FusionPodScene extends Phaser.Scene {
         const addProjectionLine = (text, color) => {
             const line = this.add.text(
                 0,
-                this.predictionsContainer.list.length * 17,
+                this.predictionsContainer.list.length * 18,
                 text,
                 {
-                    fontSize: '10px',
+                    fontSize: '12px',
+                    fontFamily: 'Arial',
                     color,
                     fontStyle: 'bold',
                     align: 'center'
@@ -1773,12 +1807,12 @@ class FusionPodScene extends Phaser.Scene {
 
     createBreedButton(width, height) {
         const buttonY = this.layout.action.y;
-        const sharedLinkLane = this.isSharedFusionAvailable() ? 65 : 0;
+        const sharedLinkLane = this.isSharedFusionAvailable() ? 106 : 0;
         const actionX = this.layout.action.x + sharedLinkLane;
         const actionWidth = this.layout.action.width - sharedLinkLane;
         const centerX = actionX + actionWidth / 2;
         const btnWidth = Math.min(
-            this.layout.shortLandscape ? 300 : 230,
+            400,
             actionWidth
         );
         const btnHeight = this.layout.action.height;
@@ -1786,8 +1820,9 @@ class FusionPodScene extends Phaser.Scene {
         this.breedButtonBg = this.add.graphics();
         this.breedButtonBg.setDepth(201);
 
-        this.breedButton = this.add.text(centerX, buttonY + btnHeight / 2, '🥚 Select Parents First', {
+        this.breedButton = this.add.text(centerX, buttonY + btnHeight / 2, 'Choose two parents', {
             fontSize: '14px',
+            fontFamily: 'Arial',
             color: '#888888',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
@@ -1877,12 +1912,12 @@ class FusionPodScene extends Phaser.Scene {
             !awaitingReconciliation
         ) {
             this.drawBreedButtonBackground(0x4B0082, 0xFFD700);
-            this.breedButton.setText('BEGIN CURRENT SYNTHESIS');
+            this.breedButton.setText('Begin Fusion');
             this.breedButton.setColor('#FFFFFF');
             this.setBreedButtonEnabled(true);
         } else if (awaitingReconciliation) {
             this.drawBreedButtonBackground(0x333333, 0xFF6666);
-            this.breedButton.setText('VERIFY PRIOR LINEAGE');
+            this.breedButton.setText('Checking previous Fusion');
             this.breedButton.setColor('#FFB3B3');
             this.setBreedButtonEnabled(false);
         } else if (onCooldown) {
@@ -1897,7 +1932,7 @@ class FusionPodScene extends Phaser.Scene {
             this.setBreedButtonEnabled(false);
         } else {
             this.drawBreedButtonBackground(0x333333, 0x666666);
-            this.breedButton.setText('SELECT TWO FAMILY RECORDS');
+            this.breedButton.setText('Choose two parents');
             this.breedButton.setColor('#888888');
             this.setBreedButtonEnabled(false);
         }
@@ -2821,6 +2856,7 @@ class FusionPodScene extends Phaser.Scene {
         // Title
         this.add.text(width / 2, panelY + 35, '🎉 New Life Created! 🎉', {
             fontSize: '20px',
+            fontFamily: 'Arial',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
@@ -2834,6 +2870,7 @@ class FusionPodScene extends Phaser.Scene {
         // From Parent 1
         this.add.text(width / 2, y, `From ${offspringData.parentNames?.[0] || 'Parent 1'}:`, {
             fontSize: '12px',
+            fontFamily: 'Arial',
             color: '#88CCFF'
         }).setOrigin(0.5).setDepth(202);
         y += 20;
@@ -2841,6 +2878,7 @@ class FusionPodScene extends Phaser.Scene {
         (inherited.fromParent1 || []).forEach(trait => {
             this.add.text(width / 2, y, `• ${trait}`, {
                 fontSize: '11px',
+                fontFamily: 'Arial',
                 color: '#FFFFFF'
             }).setOrigin(0.5).setDepth(202);
             y += 18;
@@ -2851,6 +2889,7 @@ class FusionPodScene extends Phaser.Scene {
         // From Parent 2
         this.add.text(width / 2, y, `From ${offspringData.parentNames?.[1] || 'Parent 2'}:`, {
             fontSize: '12px',
+            fontFamily: 'Arial',
             color: '#FF88CC'
         }).setOrigin(0.5).setDepth(202);
         y += 20;
@@ -2858,6 +2897,7 @@ class FusionPodScene extends Phaser.Scene {
         (inherited.fromParent2 || []).forEach(trait => {
             this.add.text(width / 2, y, `• ${trait}`, {
                 fontSize: '11px',
+                fontFamily: 'Arial',
                 color: '#FFFFFF'
             }).setOrigin(0.5).setDepth(202);
             y += 18;
@@ -2869,13 +2909,14 @@ class FusionPodScene extends Phaser.Scene {
         const rarityColors = {
             common: '#AAAAAA',
             uncommon: '#00FF00',
-            rare: '#0088FF',
-            epic: '#AA00FF',
+            rare: '#80C4FF',
+            epic: '#CF9AFF',
             legendary: '#FFD700'
         };
 
         this.add.text(width / 2, y, `Rarity: ${(offspringData.rarity || 'common').toUpperCase()}`, {
             fontSize: '14px',
+            fontFamily: 'Arial',
             color: rarityColors[offspringData.rarity] || '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
@@ -2883,6 +2924,7 @@ class FusionPodScene extends Phaser.Scene {
 
         this.add.text(width / 2, y, `Generation ${offspringData.generation || 2}`, {
             fontSize: '12px',
+            fontFamily: 'Arial',
             color: '#FFD700'
         }).setOrigin(0.5).setDepth(202);
         y += 20;
@@ -2892,6 +2934,7 @@ class FusionPodScene extends Phaser.Scene {
         if (bonus) {
             this.add.text(width / 2, y, `✨ ${bonus.description}`, {
                 fontSize: '11px',
+                fontFamily: 'Arial',
                 color: '#88FF88'
             }).setOrigin(0.5).setDepth(202);
             y += 18;
@@ -2900,6 +2943,7 @@ class FusionPodScene extends Phaser.Scene {
             if (powerBonus > 0) {
                 this.add.text(width / 2, y, `+${powerBonus}% Cosmic Power`, {
                     fontSize: '10px',
+                    fontFamily: 'Arial',
                     color: '#AAFFAA'
                 }).setOrigin(0.5).setDepth(202);
             }
@@ -2915,6 +2959,7 @@ class FusionPodScene extends Phaser.Scene {
         if (collectionStatus.hasSpace) {
             const addBtn = this.add.text(width / 2, btnY, '🐾 Add to Collection', {
                 fontSize: '16px',
+                fontFamily: 'Arial',
                 color: '#FFFFFF',
                 backgroundColor: '#00AA00',
                 padding: { x: 20, y: 10 }
@@ -2930,6 +2975,7 @@ class FusionPodScene extends Phaser.Scene {
             // Skip button
             const skipBtn = this.add.text(width / 2, btnY + 45, 'Skip', {
                 fontSize: '12px',
+                fontFamily: 'Arial',
                 color: '#888888'
             }).setOrigin(0.5).setDepth(202).setInteractive();
 
@@ -2937,11 +2983,13 @@ class FusionPodScene extends Phaser.Scene {
         } else {
             this.add.text(width / 2, btnY, '⚠️ Collection full (8/8)', {
                 fontSize: '14px',
+                fontFamily: 'Arial',
                 color: '#FF6666'
             }).setOrigin(0.5).setDepth(202);
 
             const continueBtn = this.add.text(width / 2, btnY + 35, 'Continue', {
                 fontSize: '14px',
+                fontFamily: 'Arial',
                 color: '#FFFFFF',
                 backgroundColor: '#4B0082',
                 padding: { x: 25, y: 8 }
@@ -3001,6 +3049,7 @@ class FusionPodScene extends Phaser.Scene {
         if (added) {
             const successMsg = this.add.text(width / 2, height / 2, `✅ ${offspringName} joined your collection!`, {
                 fontSize: '18px',
+                fontFamily: 'Arial',
                 color: '#00FF00',
                 fontStyle: 'bold',
                 stroke: '#000000',
@@ -3024,6 +3073,7 @@ class FusionPodScene extends Phaser.Scene {
         } else {
             const errorMsg = this.add.text(width / 2, height / 2, '❌ Failed to add to collection', {
                 fontSize: '16px',
+                fontFamily: 'Arial',
                 color: '#FF6666'
             }).setOrigin(0.5).setDepth(300);
 
@@ -3041,6 +3091,7 @@ class FusionPodScene extends Phaser.Scene {
 
         const errorText = this.add.text(width / 2, height / 2 + 100, message, {
             fontSize: '14px',
+            fontFamily: 'Arial',
             color: '#FF6666',
             backgroundColor: 'rgba(0,0,0,0.8)',
             padding: { x: 15, y: 10 }
@@ -3051,19 +3102,27 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     createCloseButton(width) {
-        const closeX = this.panelBounds.x + this.panelBounds.width - 25;
-        const closeY = this.panelBounds.y + 20;
-
-        const closeButton = this.add.text(closeX, closeY, '✕', {
-            fontSize: '24px',
-            color: '#FFFFFF'
-        }).setOrigin(0.5).setDepth(202).setInteractive();
-
-        closeButton.on('pointerdown', () => this.closeScene());
-        closeButton.on('pointerover', () => closeButton.setColor('#FF6666'));
-        closeButton.on('pointerout', () => closeButton.setColor('#FFFFFF'));
-
-        this.elements.push(closeButton);
+        const size = 48;
+        const x = width - size - (width < 600 ? 10 : 20);
+        const y = 6;
+        const background = this.add.graphics().setDepth(202);
+        const draw = highlighted => {
+            background.clear();
+            background.fillStyle(highlighted ? 0xDD0000 : 0xAA0000, 0.95);
+            background.fillRoundedRect(x, y, size, size, 8);
+            background.lineStyle(2, 0xFF0000);
+            background.strokeRoundedRect(x, y, size, size, 8);
+        };
+        draw(false);
+        const label = this.add.text(x + size / 2, y + size / 2, 'X', {
+            fontSize: '24px', fontFamily: 'Arial Black', color: '#FFFFFF'
+        }).setOrigin(0.5).setDepth(203);
+        const button = this.add.zone(x, y, size, size).setOrigin(0, 0)
+            .setDepth(204).setInteractive({ useHandCursor: true });
+        button.on('pointerdown', () => this.closeScene());
+        button.on('pointerover', () => draw(true));
+        button.on('pointerout', () => draw(false));
+        this.elements.push(background, label, button);
     }
 
     closeScene() {
@@ -3110,6 +3169,9 @@ class FusionPodScene extends Phaser.Scene {
     shutdown() {
         if (this.cleanupComplete) return;
         this.cleanupComplete = true;
+        this.scale?.off?.('resize', this.layoutResizeHandler);
+        this.events?.off?.('postupdate', this.layoutRefreshHandler);
+        this.layoutRefreshPending = false;
         this.finishFusionLoading();
         this.fusionViewEpoch = {};
         console.log('[FusionPodScene] Shutting down...');

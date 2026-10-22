@@ -105,6 +105,8 @@ describe('Fusion Pod maturity requirements', () => {
         const texts = [];
         const handlers = new Map();
         scene.createOverlay = jest.fn();
+        scene.createTitle = jest.fn();
+        scene.createCloseButton = jest.fn();
         scene.closeScene = jest.fn();
         const graphic = {};
         ['fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'setDepth']
@@ -225,35 +227,70 @@ describe('Fusion Pod maturity requirements', () => {
         expect(first.percentage).toBeLessThanOrEqual(90);
     });
 
-    test('uses a two-column short-landscape layout without changing portrait geometry', () => {
-        const scene = new FusionPodScene();
-        const landscape = scene.getResponsiveLayout(844, 390);
-        const portrait = scene.getResponsiveLayout(390, 844);
+    test.each([[320, 568], [390, 844], [667, 375], [844, 390], [1280, 800]])(
+        'keeps parent cards, compatibility and the action apart at %sx%s', (width, height) => {
+            const scene = new FusionPodScene();
+            const layout = scene.getResponsiveLayout(width, height);
+            const { panel, slots, compatibility, action } = layout;
+            expect(panel.x).toBeGreaterThanOrEqual(0);
+            expect(panel.x + panel.width).toBeLessThanOrEqual(width);
+            expect(slots.centerX - slots.width - slots.gap / 2).toBeGreaterThan(panel.x);
+            expect(slots.y).toBeGreaterThan(layout.headerHeight);
+            expect(action.height).toBeGreaterThanOrEqual(44);
+            expect(action.y + action.height).toBeLessThanOrEqual(height);
+            expect(compatibility.topY + 200).toBeLessThan(action.y);
+            if (layout.twoColumn) {
+                expect(slots.centerX + slots.width + slots.gap / 2)
+                    .toBeLessThan(compatibility.centerX - compatibility.textWidth / 2);
+            } else {
+                expect(slots.y + slots.height).toBeLessThan(compatibility.topY);
+            }
+        }
+    );
 
-        expect(landscape).toEqual(expect.objectContaining({
-            shortLandscape: true,
-            panel: expect.objectContaining({
-                width: 760,
-                height: 370
-            })
-        }));
-        expect(landscape.slots.centerX).toBeLessThan(
-            landscape.compatibility.centerX
-        );
-        expect(landscape.action.y + landscape.action.height).toBeLessThanOrEqual(
-            landscape.panel.y + landscape.panel.height
-        );
-        expect(portrait).toEqual(expect.objectContaining({
-            shortLandscape: false,
-            panel: expect.objectContaining({
-                width: 360,
-                height: 550
-            }),
-            slots: expect.objectContaining({
-                width: 130,
-                height: 160
-            })
-        }));
+    test('rotation preserves selected parents and waits for selection or consent to finish', () => {
+        const scene = new FusionPodScene();
+        scene.scale = { width: 844, height: 390, on: jest.fn() };
+        scene.events = { on: jest.fn() };
+        scene.renderReadyView = jest.fn();
+        const parent = { id: 'sample-parent' };
+        scene.parent1Data = parent;
+        scene.parent1Index = 2;
+        scene.installLayoutResize();
+        scene.selectionModalOpen = true;
+        scene.layoutResizeHandler();
+        scene.layoutRefreshHandler();
+        expect(scene.renderReadyView).not.toHaveBeenCalled();
+        scene.selectionModalOpen = false;
+        scene.fusionConsentModal = { root: { style: {} },
+            domElement: { updateSize: jest.fn(), setPosition: jest.fn() } };
+        scene.layoutResizeHandler();
+        expect(scene.fusionConsentModal.root.style).toEqual({ width: '844px', height: '390px' });
+        expect(scene.fusionConsentModal.domElement.updateSize).toHaveBeenCalledTimes(1);
+        expect(scene.fusionConsentModal.domElement.setPosition).toHaveBeenCalledWith(422, 195);
+        scene.layoutRefreshHandler();
+        expect(scene.renderReadyView).not.toHaveBeenCalled();
+        scene.fusionConsentModal = null;
+        scene.layoutRefreshHandler();
+        expect(scene.renderReadyView).toHaveBeenCalledWith(844, 390);
+        expect(scene.parent1Data).toBe(parent);
+        expect(scene.parent1Index).toBe(2);
+        expect(scene.layoutRefreshPending).toBe(false);
+    });
+
+    test('rotation keeps the current parent selector and page without selecting a creature', () => {
+        const scene = new FusionPodScene();
+        scene.scale = { width: 844, height: 390, on: jest.fn() };
+        scene.events = { on: jest.fn() };
+        scene.selectionModalOpen = true;
+        scene.selectionView = { slotNum: 2, page: 1 };
+        scene.closeSelectionModal = jest.fn();
+        scene.openCreatureSelector = jest.fn();
+        scene.installLayoutResize();
+        scene.layoutResizeHandler();
+        expect(scene.closeSelectionModal).toHaveBeenCalledTimes(1);
+        expect(scene.openCreatureSelector).toHaveBeenCalledWith(2, 1);
+        expect(scene.parent2Data).toBeNull();
     });
 
     test('uses local preview creatures without requiring or changing GameState', () => {
@@ -349,7 +386,7 @@ describe('Fusion Pod maturity requirements', () => {
             useHandCursor: true
         });
         expect(scene.breedButton.setText).toHaveBeenLastCalledWith(
-            'BEGIN CURRENT SYNTHESIS'
+            'Begin Fusion'
         );
     });
 
