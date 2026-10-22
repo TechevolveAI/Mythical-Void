@@ -6013,6 +6013,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         target.body.setAllowGravity?.(false);
         target.setImmovable?.(true);
         target.setVelocity?.(0, 0);
+        target.speed = 0;
         target.body.reset?.(targetX, targetY);
         target.setPosition?.(targetX, targetY);
         target.body.updateFromGameObject?.();
@@ -6044,6 +6045,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 playerBottom: Number(scene.player.body.bottom),
                 playerPreviousTop: Number(scene.player.body.prev?.y),
                 playerVelocityY: Number(scene.player.body.velocity?.y),
+                playerLeft: Number(scene.player.body.left),
+                playerRight: Number(scene.player.body.right),
+                enemyLeft: Number(target.body.left),
+                enemyRight: Number(target.body.right),
                 enemyTop: Number(target.body.top),
                 enemyBottom: Number(target.body.bottom),
                 horizontalOverlap: scene.player.body.right > target.body.left + 2 &&
@@ -6068,8 +6073,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         const playerFootOffset = Number(scene.player.body.bottom) -
             Number(scene.player.y);
         const playerY = Number(target.body.top) - playerFootOffset - 85;
-        scene.player.body.reset?.(targetX, playerY);
-        scene.player.setPosition?.(targetX, playerY);
+        // Artwork origins need not be the collision-box centre. Align the real
+        // bodies for this staged fall, then let normal physics resolve the stomp.
+        const playerBodyOffsetX = (scene.player.body.left + scene.player.body.right) / 2 - scene.player.x;
+        const playerX = (target.body.left + target.body.right) / 2 - playerBodyOffsetX;
+        scene.player.body.reset?.(playerX, playerY);
+        scene.player.setPosition?.(playerX, playerY);
         scene.player.body.updateFromGameObject?.();
         scene.player.setVelocity?.(0, 0);
         scene.updateForestEnemyActivation?.(true);
@@ -6079,7 +6088,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         target.forestNextAiAt = Number.POSITIVE_INFINITY;
         scene.isInvincible = false;
         scene.player.setVelocity?.(0, 680);
-        return { targetX, targetY, playerY, enemyType: state.enemyType };
+        return { targetX, targetY, playerX, playerY, enemyType: state.enemyType };
     })()`);
     if (!liveStompSetup) {
         throw new Error(`${sceneName} has no live armored stomp encounter`);
