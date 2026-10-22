@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import biomeConfigs from '../../config/biomes.json';
 import SanctuaryZones from './SanctuaryZones.js';
 import { createLivingWorkshop } from './RepairerResident.js';
+import { createFusionPodArtwork, refreshFusionPodLights } from './FusionPodArtwork.js';
 import { createDecorativeFlag, syncRescueWelcomeFlag } from './DecorativeFlags.js';
 import { FEND_RESIDENT_DEFINITIONS } from '../FendResidents.js';
 import {
@@ -8424,54 +8425,27 @@ class WorldBuilder {
         zone.landmarkData = landmarkData;
 
         const group = this.scene.add.container(x, y).setDepth(y + 2);
-        const foundation = this.scene.add.graphics();
-        foundation.fillStyle(0x050505, 0.96);
-        foundation.fillEllipse(0, 42, 134, 38);
-        foundation.lineStyle(3, 0xF4F4F4, 0.85);
-        foundation.strokeEllipse(0, 37, 112, 30);
-        foundation.fillStyle(0x101616, 1);
-        foundation.fillRoundedRect(-48, -31, 96, 70, 16);
-        foundation.lineStyle(3, 0xF4F4F4, 0.9);
-        foundation.strokeRoundedRect(-48, -31, 96, 70, 16);
-
-        const current = this.scene.add.graphics();
-        current.lineStyle(5, 0x3FAE62, 1);
-        current.strokeCircle(0, -1, 27);
-        current.lineStyle(3, 0xC73A3A, 0.95);
-        current.beginPath();
-        current.moveTo(-38, 26);
-        current.lineTo(-18, 8);
-        current.strokePath();
-        current.beginPath();
-        current.moveTo(38, 26);
-        current.lineTo(18, 8);
-        current.strokePath();
-        current.fillStyle(0xF4F4F4, 1);
-        current.fillCircle(-11, -3, 6);
-        current.fillCircle(11, -3, 6);
-
-        const glow = this.scene.add.graphics();
-        group.add([glow, foundation, current]);
+        const { glow, lights } = createFusionPodArtwork(this.scene, group);
 
         const label = this.scene.add.text(
             x,
-            y + 72,
+            y + 74,
             'FUSION POD',
             {
-                fontSize: '13px',
+                fontSize: '15px',
                 fontFamily: 'Arial, sans-serif',
-                color: '#F4F4F4',
+                color: '#fff0c6',
                 fontStyle: 'bold',
-                stroke: '#050505',
-                strokeThickness: 4
+                stroke: '#263c3c',
+                strokeThickness: 2
             }
         ).setOrigin(0.5).setDepth(y + 4);
         const statusLabel = this.scene.add.text(
             x,
-            y + 91,
+            y + 104,
             '',
             {
-                fontSize: '9px',
+                fontSize: '11px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#AFC3CF',
                 fontStyle: 'bold',
@@ -8484,6 +8458,7 @@ class WorldBuilder {
             zone,
             group,
             glow,
+            lights,
             label,
             statusLabel,
             pulseTween: null,
@@ -8510,7 +8485,7 @@ class WorldBuilder {
                 { sharedAvailable }
             );
         const tones = {
-            dormant: { color: 0x657682, alpha: 0.12 },
+            dormant: { color: 0xB8C9AB, alpha: 0.10 },
             calibrating: { color: 0xF2C14E, alpha: 0.16 },
             warning: { color: 0xC73A3A, alpha: 0.17 },
             ready: { color: 0x71E6B1, alpha: 0.22 }
@@ -8520,9 +8495,10 @@ class WorldBuilder {
         landmark.pulseTween?.stop?.();
         landmark.glow.clear();
         landmark.glow.fillStyle(tone.color, tone.alpha);
-        landmark.glow.fillCircle(0, -1, 61);
-        landmark.glow.lineStyle(3, tone.color, 0.72);
-        landmark.glow.strokeCircle(0, -1, 51);
+        landmark.glow.fillEllipse(0, 33, 244, 64);
+        landmark.glow.lineStyle(2, tone.color, 0.42);
+        landmark.glow.strokeEllipse(0, 33, 226, 50);
+        refreshFusionPodLights(landmark.lights, snapshot, tone.color);
         landmark.statusLabel
             ?.setText(snapshot.statusLabel)
             .setColor(`#${tone.color.toString(16).padStart(6, '0')}`);
