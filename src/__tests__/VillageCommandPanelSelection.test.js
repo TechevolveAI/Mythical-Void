@@ -158,6 +158,15 @@ describe.each(['contextual', 'guided', 'helpers'])('Village helper selection: %s
     });
 
     if (mode === 'helpers') {
+        test('automatic updates keep focus on Close and Invite controls', () => {
+            panel.root.querySelector('.village-command-close').focus();
+            jest.advanceTimersByTime(1100);
+            expect(document.activeElement).toBe(panel.root.querySelector('.village-command-close'));
+            invite().focus();
+            jest.advanceTimersByTime(1100);
+            expect(document.activeElement).toBe(invite());
+        });
+
         test('keyboard tabs keep focus and the visible panel aligned after refresh', () => {
             const tab = () => panel.root.querySelector('[role="tab"][aria-selected="true"]');
             tab().focus();

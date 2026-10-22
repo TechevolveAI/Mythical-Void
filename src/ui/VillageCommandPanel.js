@@ -929,6 +929,24 @@ export default class VillageCommandPanel {
         this.inputWasEnabled = this.scene.input?.enabled;
         if (this.scene.input) this.scene.input.enabled = false;
         this.keyboardHandler = event => {
+            if (event.key === 'Tab') {
+                event.stopImmediatePropagation();
+                const controls = [...this.root.querySelectorAll('button, select, summary, [tabindex]')]
+                    .filter(element => {
+                        if (element.disabled || element.tabIndex < 0 || !element.getClientRects().length) return false;
+                        const closed = element.closest('details:not([open])');
+                        return !closed || closed.firstElementChild === element;
+                    });
+                const first = controls[0], last = controls[controls.length - 1];
+                if (!first) { event.preventDefault(); return; }
+                const current = document.activeElement;
+                if (!this.root.contains(current) || (!event.shiftKey && current === last) ||
+                    (event.shiftKey && current === first)) {
+                    event.preventDefault();
+                    (event.shiftKey ? last : first).focus();
+                }
+                return;
+            }
             if (event.key !== 'Escape') return;
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -1506,6 +1524,11 @@ export default class VillageCommandPanel {
         const focusKey = this.root.contains(document.activeElement)
             ? document.activeElement?.dataset?.focusKey : null;
         const restoreScrollState = () => {
+            this.root.querySelectorAll('button, select, summary').forEach((element, index) => {
+                if (!element.dataset.focusKey) {
+                    element.dataset.focusKey = `control-${index}-${element.getAttribute('aria-label') || element.textContent.trim()}`;
+                }
+            });
             scrollState.forEach(({ selector, top, left }) => {
                 const element = this.root?.querySelector(selector);
                 if (!element) return;
