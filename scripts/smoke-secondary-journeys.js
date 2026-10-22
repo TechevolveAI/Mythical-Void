@@ -3844,6 +3844,27 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         }
     }
 
+    const renderBudget = CAMPAIGN_MOBILE_RENDER_BUDGETS[route];
+    if (!renderBudget) {
+        throw new Error(`${sceneName} has no authored mobile render budget`);
+    }
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene?.(
+                ${JSON.stringify(sceneName)}
+            );
+            if (!scene?.scene?.isActive?.()) return false;
+            return (
+                (scene.children?.list?.length || 0) <= ${renderBudget.displayCount} &&
+                (scene.tweens?.getTweens?.().length || 0) <= ${renderBudget.activeTweenCount}
+            );
+        })()`),
+        {
+            timeoutMs: 4500,
+            message: `${sceneName} entry effects retired within render budget`
+        }
+    );
+
     const state = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         return {
@@ -4776,26 +4797,6 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             JSON.stringify(state.currentEcologyPlacement)
         );
     }
-    const renderBudget = CAMPAIGN_MOBILE_RENDER_BUDGETS[route];
-    if (!renderBudget) {
-        throw new Error(`${sceneName} has no authored mobile render budget`);
-    }
-    await waitFor(
-        () => evaluate(session, `(() => {
-            const scene = window.mythicalGame?.scene?.getScene?.(
-                ${JSON.stringify(sceneName)}
-            );
-            if (!scene?.scene?.isActive?.()) return false;
-            return (
-                (scene.children?.list?.length || 0) <= ${renderBudget.displayCount} &&
-                (scene.tweens?.getTweens?.().length || 0) <= ${renderBudget.activeTweenCount}
-            );
-        })()`),
-        {
-            timeoutMs: 4500,
-            message: `${sceneName} entry effects retired within render budget`
-        }
-    );
     let renderStability = null;
     const framePacing = await sampleFramePacing(session, sceneName);
     if (!framePacing?.sceneActive || framePacing.frameCount < 12) {
