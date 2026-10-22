@@ -1188,6 +1188,7 @@ async function smokeForestSharedEnemyScheduler(session) {
         throw new Error('Forest shared enemy scheduler could not be staged');
     }
 
+    let schedulerState = null;
     try {
         const advanced = await waitFor(async () => {
             const state = await evaluate(session, `(() => {
@@ -1204,6 +1205,16 @@ async function smokeForestSharedEnemyScheduler(session) {
                     crawlerVelocityX: crawler?.body?.velocity?.x || 0,
                     crawlerNextDelay: (crawler?.forestNextAiAt || 0) - scene.time.now,
                     crawlerDeltaX: (crawler?.x || 0) - ${staged.crawlerX},
+                    sceneTime: scene.time.now,
+                    physicsPaused: scene.physics?.world?.isPaused,
+                    fps: window.mythicalGame?.loop?.actualFps,
+                    chaserDistance: Math.hypot(
+                        (chaser?.x || 0) - scene.player.x,
+                        (chaser?.y || 0) - scene.player.y
+                    ),
+                    chaserDetectionRange: chaser?.detectionRange,
+                    chaserProximityActive: chaser?.forestProximityActive,
+                    crawlerProximityActive: crawler?.forestProximityActive,
                     individualTimerCount: (
                         scene.enemies?.getChildren?.() || []
                     ).reduce(
@@ -1212,6 +1223,7 @@ async function smokeForestSharedEnemyScheduler(session) {
                     )
                 };
             })()`);
+            schedulerState = state;
             return (
                 state.schedulerActive === true &&
                 state.chaserIsChasing === true &&
@@ -1224,7 +1236,9 @@ async function smokeForestSharedEnemyScheduler(session) {
                 state.individualTimerCount === 0
             ) ? state : null;
         }, {
-            timeoutMs: 1200,
+            // Allow slow CI rendering to advance the real scheduler; retain
+            // the chase, patrol, next-update and no-individual-timer checks.
+            timeoutMs: 8000,
             message: 'Forest shared enemy scheduler advance'
         });
         if (
@@ -1246,6 +1260,8 @@ async function smokeForestSharedEnemyScheduler(session) {
             );
         }
         return { staged, advanced };
+    } catch (error) {
+        throw new Error(`${error.message}: ${JSON.stringify({ staged, schedulerState })}`);
     } finally {
         await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
