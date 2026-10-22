@@ -1,6 +1,7 @@
 // Import Tailwind CSS styles
 import './styles/main.css';
 import './styles/village.css';
+import './styles/game-tab.css';
 
 import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
@@ -20,6 +21,7 @@ import CloudSaveSettingsModal from './ui/CloudSaveSettingsModal.js';
 import SaveRecoveryGate from './ui/SaveRecoveryGate.js';
 import SharedFusionModal from './ui/SharedFusionModal.js';
 import PageVisibilityController from './utils/PageVisibilityController.js';
+import GameTabSession from './utils/GameTabSession.js';
 // Individual levels are lazy loaded via SceneLoader when player enters them
 // This reduces initial bundle size by ~200KB (each level is ~40-60KB)
 // See: src/utils/SceneLoader.js for dynamic import configuration
@@ -474,18 +476,19 @@ let fxLibrary = null;
 let parallaxBiome = null;
 let creatureGenetics = null;
 
-async function initializeCloudSaves() {
+async function initializeCloudSaves(isCurrent = () => true) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         || 'https://mkcmdbzcihjgidjuypqe.supabase.co';
     const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
         || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-    if (!publishableKey || !window.CloudSaveManager) {
+    if (!isCurrent() || !publishableKey || !window.CloudSaveManager) {
         console.info('[CloudSave] Optional cloud saves are not configured.');
         return null;
     }
 
     const { createClient } = await import('@supabase/supabase-js');
+    if (!isCurrent()) return null;
     const client = createClient(supabaseUrl, publishableKey, {
         auth: {
             persistSession: true,
@@ -505,6 +508,7 @@ async function initializeCloudSaves() {
     window.CloudSave = cloudSaveManager;
 
     await cloudSaveManager.initialize();
+    if (!isCurrent()) { cloudSaveManager.destroy(); return null; }
     console.info('[CloudSave] Ready:', cloudSaveManager.getStatus());
     return cloudSaveManager;
 }
@@ -551,6 +555,15 @@ async function initializeGame() {
         // Cache GameState after modules are loaded
         GameState = window.GameState;
 
+        // A duplicate tab must wait before loading, migrating, auto-saving or
+        // starting cloud services. On handover it reads the latest saved game.
+        const tabSession = new GameTabSession({ onRetired: () => {
+            if (GameState?.initialized) GameState.save();
+            cloudSaveManager?.destroy();
+            GameState?.holdSaveAdmission({ code: 'game_tab_retired' }, 'browser_tab');
+        } });
+        if (!await tabSession.waitUntilReady()) return;
+
         // Initialize environment configuration first
         if (window.envLoader) {
             await window.envLoader.load();
@@ -586,15 +599,18 @@ async function initializeGame() {
         }
 
         // Initialize game state system with error handling
+        if (!tabSession.owned) return;
         const saveRecoveryGate = new SaveRecoveryGate(GameState);
         try {
             GameState.init();
             await saveRecoveryGate.waitUntilReady();
+            if (!tabSession.owned) return;
             if (!GameState.initialized) GameState.init();
             console.log('✅ GameState initialized successfully');
 
-            await initializeCloudSaves();
+            await initializeCloudSaves(() => tabSession.owned);
             await saveRecoveryGate.waitUntilReady();
+            if (!tabSession.owned) return;
 
             // DEV MODE: Auto-reset creature collection to prevent stale cache issues
             // This ensures fresh starts during development testing
@@ -2702,7 +2718,8 @@ async function initializeGame() {
             }
         });
 
-        // Cancelled navigation and back/forward cache retain this running game.
+        // Cancelled navigation keeps the game. A restored page reacquires its
+        // writer through GameTabSession's reload before playing again.
         window.addEventListener('pagehide', event => {
             if (event.persisted) return;
             try {

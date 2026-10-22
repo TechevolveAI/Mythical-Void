@@ -1,0 +1,56 @@
+.game-tab-wait {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    background: #17142b;
+    color: #faf5e8;
+    font-family: system-ui, sans-serif;
+}
+
+.game-tab-wait section {
+    box-sizing: border-box;
+    width: min(100%, 460px);
+    padding: clamp(24px, 6vw, 40px);
+    border: 2px solid #a69bd1;
+    border-radius: 28px;
+    background: #28223e;
+}
+
+.game-tab-wait h1 {
+    margin: 0 0 16px;
+    font-size: clamp(24px, 5vw, 30px);
+    line-height: 1.2;
+}
+
+.game-tab-wait p {
+    margin: 0 0 24px;
+    color: #e2dceb;
+    font-size: 17px;
+    line-height: 1.6;
+}
+
+.game-tab-wait button {
+    width: 100%;
+    min-height: 52px;
+    padding: 12px 18px;
+    border: 2px solid #c7eed9;
+    border-radius: 16px;
+    background: #b7e5cb;
+    color: #24203b;
+    font: 700 18px/1.4 system-ui, sans-serif;
+    cursor: pointer;
+}
+
+.game-tab-wait button:focus-visible {
+    outline: 3px solid #faf5e8;
+    outline-offset: 5px;
+}
+
+.game-tab-wait button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
