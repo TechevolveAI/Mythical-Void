@@ -3167,18 +3167,7 @@ class HatchingScene extends Phaser.Scene {
             }
         }
 
-        // Add personality-based subtle effects
-        if (genetics.personality.core === 'energetic') {
-            // Gentle bounce animation
-            this.tweens.add({
-                targets: creature,
-                y: creature.y - 5,
-                duration: 1000,
-                ease: 'Sine.easeInOut',
-                yoyo: true,
-                repeat: -1
-            });
-        }
+        this.refreshCreaturePersonalityMotion(creature);
 
         // Add rarity-based glow
         if (genetics.rarity === 'legendary') {
@@ -3190,6 +3179,17 @@ class HatchingScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut',
                 yoyo: true,
                 repeat: -1
+            });
+        }
+    }
+
+    refreshCreaturePersonalityMotion(creature) {
+        this.creaturePersonalityTween?.remove?.();
+        this.creaturePersonalityTween = null;
+        if (this.creatureGenetics?.personality?.core === 'energetic') {
+            this.creaturePersonalityTween = this.tweens.add({
+                targets: creature, y: creature.y - 5, duration: 1000,
+                ease: 'Sine.easeInOut', yoyo: true, repeat: -1
             });
         }
     }
@@ -3488,6 +3488,8 @@ class HatchingScene extends Phaser.Scene {
         this.creatureIdleSparkleTimer = null;
         this.creatureIdleReactionTween = null;
 
+        this.creaturePersonalityTween = null;
+
         this.homeStartRecoveryTimer?.remove?.();
         this.homeStartRecoveryTimer = null;
         this.eggHatchReadyTimer?.remove?.();
@@ -3759,6 +3761,7 @@ class HatchingScene extends Phaser.Scene {
         const layout = this.getFirstContactLayout(canReroll);
         const { centerX, bannerY, bannerHeight, bannerWidth, buttonY, buttonWidth, buttonHeight, buttonGap } = layout;
         this.applyFirstContactCreaturePresentation(this.creature, layout);
+        this.refreshCreaturePersonalityMotion(this.creature);
         if (this.creatureIdleTweens?.length) {
             this.addCuteIdleAnimations(this.creature, layout.creatureScale);
         } else {

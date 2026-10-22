@@ -164,4 +164,19 @@ describe('hatching layout preserves the active journey through rotation', () => 
             expect(scene.creatureIdleTweens).toHaveLength(2);
         }
     });
+
+    test('an energetic creature cannot bounce back to its pre-rotation position', () => {
+        const scene = fixture();
+        scene.creatureAppeared = true;
+        scene.creature = item(128, 128);
+        scene.creatureGenetics = { personality: { core: 'energetic' } };
+        scene.tweens.add.mockImplementation(config => ({ config, remove: jest.fn() }));
+        scene.resizeHatchingLayout();
+        const portraitBounce = scene.creaturePersonalityTween;
+        Object.assign(scene.scale, { width: 844, height: 390 });
+        scene.resizeHatchingLayout();
+        expect(portraitBounce.remove).toHaveBeenCalledTimes(1);
+        expect(scene.creaturePersonalityTween.config.y).toBe(scene.getFirstContactLayout(false).creatureY - 5);
+        expect(scene.creaturePersonalityTween.config.y).not.toBe(portraitBounce.config.y);
+    });
 });
