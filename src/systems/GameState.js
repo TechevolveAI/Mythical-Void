@@ -4662,7 +4662,7 @@ class GameStateManager {
     // Inspect envelopes as well as the index: a crash can leave an unindexed reservation.
     // Missing/corrupt evidence is not permission to start a replacement journal.
     inspectCloudRecovery() {
-        const entries = this.readLocalSaveBackupIndex();
+        let entries = this.readLocalSaveBackupIndex();
         const keys = [];
         let hasJournal = false;
         for (let i = 0; i < localStorage.length; i++) {
@@ -4670,8 +4670,9 @@ class GameStateManager {
             if (key?.startsWith(this.saveBackupKeyPrefix) && key !== this.saveBackupIndexKey) keys.push(key);
             if (key?.startsWith(`${this.saveKey}-cloud-journal-v1:`)) hasJournal = true;
         }
-        if (keys.length !== entries.length) {
-            throw this.cloudRecoveryError('Recovery copies and index differ.', 'cloud_recovery_damaged');
+        if (keys.length !== entries.length || entries.some(entry =>
+            !keys.includes(`${this.saveBackupKeyPrefix}${entry.id}`))) {
+            entries = this.reconcileLocalSaveBackupIndex(entries, keys, hasJournal);
         }
         const pending = [];
         for (const entry of entries) {
@@ -4705,6 +4706,35 @@ class GameStateManager {
         }
         return { entries, pending, evidenceLimited: Boolean(journal.control?.phase === 'pending' &&
             journal.control.evidenceLimited) };
+    }
+
+    reconcileLocalSaveBackupIndex(entries, keys, hasJournal) {
+        const damaged = () => this.cloudRecoveryError('Recovery copies and index differ.', 'cloud_recovery_damaged');
+        // An interrupted local backup rotation does not make the active save uncertain.
+        // Read the surviving envelopes without rewriting any bytes or choosing a backup.
+        // Cloud evidence, unknown records and conflicting metadata must still fail closed.
+        const localReasons = new Set(['before_local_save', 'before_automatic_migration',
+            'before_manual_backup_restore', 'before_new_game', 'manual_safety_copy']);
+        if (hasJournal || this.cloudRecoveryRequired || this.cloudWriteLease ||
+            entries.some(entry => !localReasons.has(entry.reason))) throw damaged();
+        const activeRaw = localStorage.getItem(this.saveKey);
+        if (!activeRaw) throw damaged();
+        this.prepareSaveCandidate(activeRaw);
+        const recovered = keys.map(key => {
+            let envelope;
+            try { envelope = JSON.parse(localStorage.getItem(key)); } catch { throw damaged(); }
+            const fields = ['id', 'createdAt', 'reason', 'sourceVersion', 'sourceSavedAt'];
+            if (envelope?.schemaVersion !== 1 || typeof envelope.id !== 'string' ||
+                !/^\d+(?:-\d+)?$/.test(envelope.id) || key !== `${this.saveBackupKeyPrefix}${envelope.id}` ||
+                !Number.isFinite(envelope.createdAt) || !localReasons.has(envelope.reason) ||
+                !(envelope.sourceVersion === null || typeof envelope.sourceVersion === 'string') ||
+                !(envelope.sourceSavedAt === null || Number.isFinite(envelope.sourceSavedAt)) ||
+                typeof envelope.payload !== 'string') throw damaged();
+            const indexed = entries.find(entry => entry.id === envelope.id);
+            if (indexed && fields.some(field => indexed[field] !== envelope[field])) throw damaged();
+            return Object.fromEntries(fields.map(field => [field, envelope[field]]));
+        });
+        return recovered.sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
     }
 
     assertCloudRecoveryClear({ allowOwned = false } = {}) {
@@ -4923,13 +4953,18 @@ class GameStateManager {
                 ...previousIndex.filter(entry => !protectedPrevious.includes(entry))
             ].slice(0, SAVE_BACKUP_LIMIT - 1);
             // Allocate and index first. A failed allocation must not delete an older copy.
-            localStorage.setItem(backupKey, JSON.stringify(envelope));
+            const writeVerified = (key, raw) => {
+                try { localStorage.setItem(key, raw); }
+                catch (error) { if (localStorage.getItem(key) !== raw) throw error; }
+                if (localStorage.getItem(key) !== raw) throw new Error('Recovery copy did not persist');
+            };
+            writeVerified(backupKey, JSON.stringify(envelope));
             const nextIndex = [metadata, ...retainedPrevious]
                 .filter((entry, index, entries) => (
                     entry?.id && entries.findIndex(item => item?.id === entry.id) === index
                 ));
             const retained = nextIndex.slice(0, SAVE_BACKUP_LIMIT);
-            localStorage.setItem(this.saveBackupIndexKey, JSON.stringify(retained));
+            writeVerified(this.saveBackupIndexKey, JSON.stringify(retained));
             previousIndex.filter(entry => !retained.some(item => item.id === entry.id))
                 .forEach(entry => {
                     try { localStorage.removeItem(`${this.saveBackupKeyPrefix}${entry.id}`); }
@@ -4941,13 +4976,9 @@ class GameStateManager {
             if (reason.startsWith('cloud_write_')) {
                 // Retain even an orphaned reservation: a restart must detect partial allocation.
                 this.holdSaveAdmission(this.cloudRecoveryError('Cloud recovery allocation needs review.', 'cloud_recovery_damaged'), 'cloud_recovery');
-            } else {
-                try {
-                    localStorage.removeItem(backupKey);
-                } catch (cleanupError) {
-                    console.warn('[GameState] Could not clean up incomplete backup:', cleanupError);
-                }
             }
+            // Keep an allocated envelope if indexing failed. A later local-only
+            // inspection can reconcile it; deleting it could break a landed index.
             console.warn('[GameState] Could not create recovery copy:', error);
             return null;
         }
