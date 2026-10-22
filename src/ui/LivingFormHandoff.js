@@ -144,6 +144,9 @@ export default class LivingFormHandoff {
             const offsetTop = Math.max(0, Math.floor(viewport?.offsetTop || 0));
             root.style.width = `${nextWidth}px`;
             root.style.height = `${nextHeight}px`;
+            // Phaser caches the DOM dimensions used to centre its transform.
+            // Refresh those dimensions after rotation or a keyboard resize.
+            this.domElement?.updateSize?.();
             this.domElement?.setPosition?.(
                 offsetLeft + (nextWidth / 2),
                 offsetTop + (nextHeight / 2)
