@@ -52,7 +52,7 @@ async function runCase(name, mode, testCase, width, height) {
         }
         console.log(`PASS ${name}`);
         return { name, mode, testCase, width, height, logPath,
-            stagedCombat: mode === 'guardian-handoff' || mode === 'supplies-loop',
+            stagedCombat: ['guardian-handoff', 'supplies-loop', 'interaction'].includes(mode),
             stagedInventory: mode === 'interaction' || mode === 'supplies-loop',
             stagedFusionParents: mode === 'fusion-pod-lifecycle' };
     } finally {
@@ -75,6 +75,7 @@ async function main() {
     }
     if (!entry) throw new Error('Preview did not become ready');
     const cases = [
+        ['forest-controls-phone', 'interaction', 'mythicalForest', 390, 844],
         ['forest-phone', 'guardian-handoff', 'mythicalForest', 390, 844],
         ['finale-phone', 'guardian-handoff', 'finalVoid', 390, 844],
         ['recovery-phone', 'completion-recovery', 'all', 390, 844],

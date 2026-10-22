@@ -194,7 +194,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain(
             "message: 'Forest Rootwake completes and restores controls'"
         );
-        expect(smoke).toContain("forestRootwake.objective.includes('ROOTWAY OPEN')");
+        expect(smoke).toContain("forestRootwake.objective.includes('CROSS THE LIVING ROOTS')");
         expect(read('levels/MythicalForestLevel.js')).toContain(
             'this.time.now + 1750'
         );
@@ -3182,7 +3182,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('id: activeTouchIdentifier');
         expect(smoke).toContain('scene.performSpecialAttack();');
         expect(smoke).toContain(
-            'guardianBlast.healthAfter !== guardianBlast.healthBefore - 3'
+            'guardianBlast.healthAfter !== guardianBlast.healthBefore - guardianBlast.expectedDamage'
         );
         expect(smoke).toContain(
             '`${sceneName} Super Blast did not damage its guardian predictably: `'

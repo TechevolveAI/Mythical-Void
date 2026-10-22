@@ -5176,12 +5176,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 state.rootwakeInitial?.awakened !== false ||
                 guidance.nextSignalVisualState !== 'next' ||
                 guidance.nextSignalColor !== 0xF2C94C ||
-                guidance.nextSignalAction !== 'WALK INTO THE LIGHT' ||
-                !guidance.objective.includes('WALK INTO')
+                guidance.nextSignalAction !== 'HELP THE TRAPPED ROOTS BREATHE' ||
+                !guidance.objective.includes('TOUCH THE PULSING ROOT')
             )
         ) {
             throw new Error(
-                `${sceneName} does not explain the Beacon action: ${JSON.stringify(guidance)}`
+                `${sceneName} does not explain the creature crossing action: ${JSON.stringify(guidance)}`
             );
         }
         if (
@@ -5575,10 +5575,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         }
     }
 
-    // Steering is a separate contract from jump recovery. Restore the exact
-    // supported pre-jump position so a low-frame-rate run cannot fall below
-    // the level and reset the joystick midway through the opposite direction.
-    const steeringStartX = await evaluate(session, `(() => {
+    // Steering is separate from jump recovery. Align the current body with
+    // the visible support; the jump can change its scale and vertical offset.
+    const steeringStart = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         scene.releaseAllPlatformerActionButtons?.();
         scene.resetJoystick?.();
@@ -5590,21 +5589,44 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             : ${beforeJump.steeringX};
         scene.player.setPosition(safeSteeringX, ${beforeJump.playerY});
         scene.player.body.updateFromGameObject();
+        const previousFeet = scene.player.body.bottom;
+        if (forestSupport?.body) {
+            const safeSteeringY = scene.player.y + forestSupport.body.top - previousFeet - 1;
+            scene.player.body.reset(safeSteeringX, safeSteeringY);
+            scene.player.body.updateFromGameObject();
+            scene.isGrounded = false;
+        }
         scene.player.setVelocity?.(0, 0);
-        return scene.player.x;
+        return {
+            x: scene.player.x,
+            y: scene.player.y,
+            previousFeet,
+            feet: scene.player.body.bottom,
+            supportTop: forestSupport?.body?.top ?? null,
+            playerDead: scene.isPlayerDead === true
+        };
     })()`);
+    if (route === 'mythicalForest') console.log('[forest-steering-setup]', JSON.stringify(steeringStart));
+    if (steeringStart.playerDead) throw new Error(`${sceneName} was already dead before steering setup`);
     if (route !== 'reef') {
         await waitFor(
             () => evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                return Boolean(scene?.isGrounded || scene?.player?.body?.blocked?.down);
+                const support = ${JSON.stringify(route)} === 'mythicalForest'
+                    ? scene?.getTraversalSupport?.('forest-ground-1') : null;
+                const body = scene?.player?.body;
+                return Boolean(
+                    !scene?.isPlayerDead &&
+                    (scene?.isGrounded || body?.blocked?.down) &&
+                    (!support?.body || Math.abs(body.bottom - support.body.top) <= 2)
+                );
             })()`),
             { timeoutMs: 2500, message: `${sceneName} grounded before steering` }
         );
     } else {
         await delay(150);
     }
-    joystick.playerX = steeringStartX;
+    joystick.playerX = steeringStart.x;
 
     const dragDistance = Math.max(28, Math.min(joystick.maxDistance, 48));
     trace('right drag ready', { joystick, dragDistance });
@@ -5758,16 +5780,22 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             scene.releaseAllPlatformerActionButtons?.();
             scene.resetJoystick?.();
             scene.isInvincible = false;
-            scene.player.setPosition(
-                300,
-                support.body.top - playerBody.halfHeight
-            );
+            scene.player.setPosition(300, scene.player.y);
             playerBody.updateFromGameObject?.();
+            const previousFeet = playerBody.bottom;
+            playerBody.reset(300, scene.player.y + support.body.top - previousFeet - 1);
+            playerBody.updateFromGameObject();
+            scene.isGrounded = false;
             scene.player.setVelocity(0, 0);
             return {
                 state: crossing.state,
                 awakened: crossing.awakened,
                 playerX: scene.player.x,
+                playerY: scene.player.y,
+                feet: playerBody.bottom,
+                supportTop: support.body.top,
+                playerDead: scene.isPlayerDead === true,
+                drillActive: scene.firstExpeditionDrill?.active === true,
                 triggerLeft: triggerBody?.left || null,
                 proximityStart: 326,
                 proximityEnd: 405
@@ -5778,6 +5806,15 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 `MythicalForestLevel Rootwake entered an invalid state: ${JSON.stringify(rootwakeStart)}`
             );
         }
+        console.log('[forest-rootwake-setup]', JSON.stringify(rootwakeStart));
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                return scene?.isPlayerSettledOnTraversalSupport?.(['forest-ground-1']) === true &&
+                    !scene.isPlayerDead && !scene.firstExpeditionDrill?.active;
+            })()`),
+            { timeoutMs: 2500, message: 'Forest Rootwake starts from a settled, playable approach' }
+        );
         const completedDuringInputContract = rootwakeStart.state === 'awake';
         if (rootwakeStart.state === 'dormant') {
             await holdTouchDrag(
@@ -5824,7 +5861,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             forestRootwake.state !== 'awake' ||
             forestRootwake.platformCount !== 5 ||
             forestRootwake.settledPlatformCount !== 5 ||
-            !forestRootwake.objective.includes('ROOTWAY OPEN')
+            !forestRootwake.objective.includes('CROSS THE LIVING ROOTS')
         ) {
             throw new Error(
                 `MythicalForestLevel Rootwake handoff failed: ${JSON.stringify(forestRootwake)}`
@@ -5836,7 +5873,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             scene.syncCampaignObjectiveDisplay?.({ force: true });
             return scene.getForestObjectiveText?.() || '';
         })()`);
-        if (forestRootwake.settledObjective.includes('ROOTWAY')) {
+        if (
+            forestRootwake.settledObjective === forestRootwake.objective ||
+            /ROOTWAY|CROSS THE LIVING ROOTS/.test(forestRootwake.settledObjective)
+        ) {
             throw new Error(
                 `MythicalForestLevel did not return to route guidance: ${JSON.stringify(forestRootwake)}`
             );
@@ -8070,6 +8110,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     required: reward?.required,
                     completed: reward?.completed === true,
                     marker: reward?.marker?.text || '',
+                    compactObjective: scene?.isCompactObjectiveHUD === true,
+                    rewardStatus: scene?.getOptionalRouteStatusText?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    ) || '',
                     objective: ${JSON.stringify(route)} === 'mythicalForest'
                         ? scene?.getForestObjectiveText?.() || ''
                         : (${JSON.stringify(route)} === 'crystalCaves'
@@ -8107,7 +8151,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 optionalRouteCompletion.required !== optionalRequired ||
                 optionalRouteCompletion.completed !== true ||
                 !optionalRouteCompletion.marker.includes('COMPLETE') ||
-                !optionalRouteCompletion.objective.includes(expectedRewardText) ||
+                optionalRouteCompletion.rewardStatus !== expectedRewardText ||
+                !optionalRouteCompletion.marker.includes(expectedRewardText.replace(' // EARNED', ' EARNED')) ||
+                (!optionalRouteCompletion.compactObjective &&
+                    !optionalRouteCompletion.objective.includes(expectedRewardText)) ||
                 optionalRouteCompletion.duplicateAccepted !== false ||
                 !rewardGranted
             ) {
@@ -8246,9 +8293,22 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 }
                 optionalRouteCompletion.reloadState = restoredReward;
 
+                // Checkpoint restoration precedes the entry panel handoff.
+                // A hit behind that panel must not consume the earned guard.
+                await tap(session, 195, 140);
+                await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                        return scene?.sys?.isActive?.() === true &&
+                            !scene.physics.world.isPaused && !scene.time.paused &&
+                            !scene.pauseMenuActive && !scene.isRespawning && !scene.isPlayerDead;
+                    })()`),
+                    { timeoutMs: 5000, message: `${sceneName} optional reward resumes before damage proof` }
+                );
+
                 const consumedReward = await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                    scene.isInvincible = false;
+                    scene.endInvincibility?.();
                     scene.isPlayerDead = false;
                     scene.hasShield = false;
                     scene.powerupShieldHits = 0;
@@ -8654,14 +8714,20 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             { timeoutMs: 15000, message: `${sceneName} guardian combat start` }
         );
 
+        if (route === 'mythicalForest') {
+            await waitForGuardianOpening(session, { route, sceneName });
+        }
+
         const guardianBlast = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const target = scene?.getBossCombatTarget?.();
             if (!scene?.player || !target || !scene?.bossFightActive) return null;
 
-            scene.bossRecoveryUntil = 0;
-            scene.titanRecoveryUntil = 0;
-            if (scene.boss) scene.boss.isRecovering = false;
+            if (${JSON.stringify(route)} !== 'mythicalForest') {
+                scene.bossRecoveryUntil = 0;
+                scene.titanRecoveryUntil = 0;
+                if (scene.boss) scene.boss.isRecovering = false;
+            }
             scene.crystalEnergy = Math.max(3, Number(scene.crystalEnergy) || 0);
             scene.freeSpecialAttackCharges = 0;
             const energyBefore = scene.crystalEnergy;
@@ -8679,6 +8745,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             const result = {
                 healthBefore,
                 healthAfter: Number(scene.bossHealth),
+                expectedDamage: ${JSON.stringify(route)} === 'mythicalForest' ? 4 : 3,
                 energyBefore,
                 energyAfter: Number(scene.crystalEnergy),
                 targetDistance: Phaser.Math.Distance.Between(
@@ -8698,7 +8765,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             !guardianBlast ||
             !Number.isFinite(guardianBlast.healthBefore) ||
             !Number.isFinite(guardianBlast.healthAfter) ||
-            guardianBlast.healthAfter !== guardianBlast.healthBefore - 3 ||
+            guardianBlast.healthAfter !== guardianBlast.healthBefore - guardianBlast.expectedDamage ||
             guardianBlast.energyAfter !== guardianBlast.energyBefore - 3 ||
             guardianBlast.targetDistance >= 300 ||
             guardianBlast.bossFightActive !== true ||
@@ -23821,7 +23888,8 @@ async function main() {
         const companionVideoRequests = [];
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
-        const isolatedCompletionProof = ['guardian-handoff', 'completion-recovery', 'supplies-loop'].includes(SMOKE_MODE);
+        const isolatedCompletionProof = ['guardian-handoff', 'completion-recovery', 'supplies-loop'].includes(SMOKE_MODE) ||
+            (SMOKE_MODE === 'interaction' && SMOKE_CASE === 'mythicalForest');
         if (isolatedCompletionProof) {
             await session.call('Page.addScriptToEvaluateOnNewDocument', {
                 source: `(() => {

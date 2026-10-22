@@ -35,4 +35,5 @@ test('all rendering paths remain muted and preserve completion timing and viewpo
     expect(finale).toContain("['phone', 390, 844], ['desktop', 1280, 720]");
     expect(runner).toContain("'forest-desktop', 'guardian-handoff', 'mythicalForest', 1280, 720");
     expect(runner).toContain("'forest-phone', 'guardian-handoff', 'mythicalForest', 390, 844");
+    expect(runner).toContain("'forest-controls-phone', 'interaction', 'mythicalForest', 390, 844");
 });
