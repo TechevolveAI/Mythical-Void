@@ -1073,7 +1073,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('const actionPrompt = compactWorldLabels');
         expect(source).toContain('setText(value) {');
         expect(source).toContain(': anchor.label;');
-        expect(smokeSource).toContain('physicsOnlySupportCount !== 78');
+        expect(smokeSource).toContain('physicsOnlySupportCount !== 79');
+        expect(smokeSource).toContain('rootwakeRecoverySupportCount !== 1');
         expect(smokeSource).toContain('physicsOnlySupportDisplayCount !== 0');
     });
 

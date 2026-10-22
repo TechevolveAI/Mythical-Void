@@ -3951,6 +3951,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 physicsOnlySupportCount: (
                     scene?.platforms?.getChildren?.() || []
                 ).filter(support => support?.forestPhysicsOnly === true).length,
+                rootwakeRecoverySupportCount: (
+                    scene?.platforms?.getChildren?.() || []
+                ).filter(support => (
+                    support?.traversalId === 'forest-first-crossing-recovery' &&
+                    support === scene.rootwakeCrossing?.recovery?.zone &&
+                    support?.forestPhysicsOnly === true &&
+                    support?.body?.enable === true
+                )).length,
                 physicsOnlySupportDisplayCount: (
                     scene?.platforms?.getChildren?.() || []
                 ).filter(support => (
@@ -4513,7 +4521,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.coinRendering?.layerCount !== 1 ||
             state.coinRendering?.pickupCount !== state.coinRendering?.batchedCount ||
             state.coinRendering?.pickupBodyCount !== 0 ||
-            state.forestEnemyRuntime?.physicsOnlySupportCount !== 78 ||
+            state.forestEnemyRuntime?.physicsOnlySupportCount !== 79 ||
+            state.forestEnemyRuntime?.rootwakeRecoverySupportCount !== 1 ||
             state.forestEnemyRuntime?.physicsOnlySupportDisplayCount !== 0 ||
             state.forestEnemyRuntime?.scheduledEnemyCount !== 23 ||
             state.forestEnemyRuntime?.individualTimerCount !== 0 ||
