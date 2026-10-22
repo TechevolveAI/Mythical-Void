@@ -1,0 +1,223 @@
+/* Shared with the egg pod: rounded shells, warm labels and quiet surfaces. */
+.village-command-modal.is-friendly {
+  --village-ink: #fff2dc;
+  --village-muted: #d3c5df;
+  --village-panel: #2e233f;
+  --village-line: #675279;
+  --village-lilac: #ceb4ed;
+  box-sizing: border-box;
+  padding: max(12px, var(--sat)) max(12px, var(--sar)) max(12px, var(--sab)) max(12px, var(--sal));
+  align-items: center;
+  background: rgba(20, 15, 31, .82);
+  color: var(--village-ink);
+  font-family: 'Trebuchet MS', 'Poppins', system-ui, sans-serif;
+}
+
+.village-command-modal.is-friendly :is(.village-command-shell, .village-heart-sheet) {
+  width: min(940px, 100%);
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--village-panel);
+  border: 2px solid var(--village-line);
+  border-radius: 28px;
+  box-shadow: 0 18px 50px #08051066;
+  scrollbar-color: #a68abd #2e233f;
+  scrollbar-width: thin;
+}
+
+.village-command-modal.is-friendly :is(.village-command-shell, .village-heart-sheet) > * { flex-shrink: 0; }
+.village-command-modal.is-friendly .village-command-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #372749;
+  border: 0;
+}
+.village-command-modal.is-friendly .village-command-title { color: var(--village-ink); font-size: 26px; line-height: 1.15; }
+.village-command-modal.is-friendly .village-command-eyebrow { color: #c2dfd0; font-size: 11px; margin-bottom: 5px; }
+.village-command-modal.is-friendly :is(button, select, summary) { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.village-command-modal.is-friendly :is(button, select) { font-family: inherit; letter-spacing: 0; }
+.village-command-modal.is-friendly :is(button, select, summary):focus-visible { outline: 3px solid #ffd987; outline-offset: 3px; }
+.village-command-modal.is-friendly .village-command-close { background: #514061; color: var(--village-ink); border: 0; border-radius: 50%; }
+
+.village-command-modal.is-friendly :is(.village-resource-ledger, .village-heart-quick-resources) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 0;
+}
+.village-command-modal.is-friendly :is(.village-resource, .village-heart-resource) {
+  min-width: 0;
+  min-height: 42px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  gap: 5px;
+  padding: 7px 9px;
+  background: #3c304e;
+  border: 0;
+  border-radius: 13px;
+}
+.village-command-modal.is-friendly :is(.village-resource-label, .village-heart-resource > span) { color: #e2d8eb; font-size: 12px; font-weight: 600; }
+.village-command-modal.is-friendly :is(.village-resource-value, .village-heart-resource > strong) { color: var(--village-ink); font-size: 16px; grid-column: 3; }
+.village-command-modal.is-friendly :is(.village-resource-rate, .village-heart-resource-source) { display: none; }
+.village-command-modal.is-friendly .village-resource-icon { width: 17px; height: 17px; border: 0; }
+
+.village-command-modal.is-friendly .village-view-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 2px 16px 12px; gap: 8px; border: 0; background: transparent; }
+.village-command-modal.is-friendly .village-view-tab { min-height: 48px; padding: 8px; font-size: 15px; font-weight: 700; border: 1px solid #756087; border-radius: 16px; color: #e3d7ec; background: #3b2e4e; }
+.village-command-modal.is-friendly .village-view-tab.is-active { background: var(--village-lilac); border-color: var(--village-lilac); color: #30213f; }
+/* Keep the global Kid Mode button enlargement from clipping the three tabs. */
+body.kid-mode.space-mythic .village-command-modal.is-friendly .village-view-tab {
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 3px;
+  font-size: clamp(13px, 3.3vw, 15px);
+}
+.village-command-modal.is-friendly .village-command-status { display: block; min-height: 0; padding: 10px 18px; background: #40324e; color: var(--village-ink); font-size: 14px; line-height: 1.5; border: 0; }
+.village-command-modal.is-friendly .village-command-status:empty { display: none; }
+
+.village-command-modal.is-friendly .village-command-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 8px 18px 20px;
+  overflow: visible;
+}
+.village-command-modal.is-friendly :is(.village-building-catalog, .village-site-plan) { min-width: 0; padding: 0; overflow: visible; border: 0; background: transparent; }
+.village-command-modal.is-friendly .village-section-title { color: var(--village-ink); font-size: 17px; line-height: 1.3; }
+.village-command-modal.is-friendly .village-building-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.village-command-modal.is-friendly .village-building-card { display: flex; flex-direction: column; gap: 6px; height: 100%; margin: 0; padding: 10px; overflow: hidden; border: 2px solid #665176; border-radius: 22px; background: #3b2d4e; color: var(--village-ink); text-align: center; }
+.village-command-modal.is-friendly .village-building-card.is-selected { background: #514064; border-color: #dfc7f7; box-shadow: none; }
+.village-command-modal.is-friendly .village-building-card:hover { background: #493858; }
+.village-command-modal.is-friendly .village-building-copy { display: grid; gap: 5px; padding: 0; width: 100%; }
+.village-command-modal.is-friendly .village-building-name { color: var(--village-ink); font-size: 15px; line-height: 1.25; }
+.village-command-modal.is-friendly .village-building-cost { color: #d8cce2; font-size: 12px; line-height: 1.4; }
+.village-command-modal.is-friendly .village-building-artwork { width: 100%; min-height: 0; height: 112px; aspect-ratio: auto; overflow: visible; border: 0; border-radius: 0; background: none; }
+.village-command-modal.is-friendly .village-building-artwork-image { inset: 0 6px 18px; z-index: 0; background-size: contain; background-repeat: no-repeat; transform: none; animation: none; filter: none; }
+.village-command-modal.is-friendly .village-building-card.is-selected .village-building-artwork-image { transform: none; }
+.village-command-modal.is-friendly :is(.village-building-artwork-current, .village-building-artwork-stars, .village-building-artwork-scan),
+.village-command-modal.is-friendly .village-building-artwork::after { display: none; }
+.village-command-modal.is-friendly .village-building-artwork-state { right: 0; left: 0; bottom: 0; max-width: 100%; padding: 3px; font-size: 11px; line-height: 1.2; border: 0; border-radius: 8px; background: #33273f; color: #e3d6ef; }
+.village-command-modal.is-friendly .village-building-artwork-state.is-ready { background: #bfdcc8; color: #253d35; }
+.village-command-modal.is-friendly .village-building-artwork.is-compact { width: 64px; height: 64px; min-height: 0; }
+.village-command-modal.is-friendly .village-building-artwork.is-compact .village-building-artwork-image { inset: 0; }
+
+.village-command-modal.is-friendly .village-site-plan { align-self: start; }
+.village-command-modal.is-friendly .village-site-plan-header { display: grid; gap: 7px; margin: 0 0 14px; padding: 0; border: 0; background: none; }
+.village-command-modal.is-friendly .village-site-selection { font-size: 14px; line-height: 1.4; color: #cfc0dc; }
+.village-command-modal.is-friendly :is(.village-next-step, .village-construction-guide) { font-size: 15px; line-height: 1.5; color: #e1d5e9; background: transparent; border: 0; padding: 0; margin: 12px 0; }
+.village-command-modal.is-friendly .village-next-step { min-height: 0; }
+.village-command-modal.is-friendly .village-build-cost { margin: 12px 0; color: #f1d8a5; font-size: 15px; line-height: 1.5; }
+.village-command-modal.is-friendly :is(.village-construct-action, .village-guided-primary, .village-invite-button) { width: 100%; min-height: 50px; padding: 12px 16px; font-size: 15px; line-height: 1.4; font-weight: 700; color: #2b243b; background: #c9e1ce; border: 0; border-radius: 17px; box-shadow: 0 4px 0 #132b2633; white-space: normal; }
+.village-command-modal.is-friendly :is(.village-construct-action, .village-guided-primary):disabled { color: #d6c8df; background: #50425d; box-shadow: none; cursor: default; }
+.village-command-modal.is-friendly :is(.village-guided-secondary, .village-guided-secondary.is-return) { min-height: 48px; padding: 10px 16px; font-size: 14px; color: #efdfd1; background: #463552; border: 1px solid #7c658c; border-radius: 16px; }
+.village-command-modal.is-friendly .village-resident-proposal { margin: 12px 0; padding: 12px; background: #392b49; border: 0; border-radius: 16px; }
+.village-command-modal.is-friendly :is(.village-resident-proposal-title, .village-resident-proposal-promise, .village-resident-proposal-impact) { display: none; }
+.village-command-modal.is-friendly .village-resident-proposal-request { font-size: 14px; line-height: 1.45; color: #e5d9eb; }
+.village-command-modal.is-friendly .village-resident-proposal-speaker { font-size: 10px; color: #d0ddce; }
+
+.village-command-modal.is-friendly .village-extra-details { margin: 12px 18px 18px; padding: 0; color: #e1d5e9; background: #362a45; border: 1px solid #675279; border-radius: 16px; overflow: hidden; }
+.village-command-modal.is-friendly :is(.village-site-plan, .village-guided-copy) > .village-extra-details { margin: 14px 0 0; }
+.village-command-modal.is-friendly .village-extra-details > summary { padding: 13px 16px; min-height: 48px; box-sizing: border-box; cursor: pointer; font-size: 14px; font-weight: 700; }
+.village-command-modal.is-friendly .village-extra-details > summary::marker { color: #c9e1ce; }
+.village-command-modal.is-friendly .village-extra-details[open] > summary { border-bottom: 1px solid #675279; }
+.village-command-modal.is-friendly .village-extra-details > :not(summary) { margin: 12px; }
+.village-command-modal.is-friendly .village-plot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.village-command-modal.is-friendly .village-plot { min-height: 90px; background: #42334f; border: 1px solid #79638a; border-radius: 14px; color: #eee1f0; }
+.village-command-modal.is-friendly :is(.village-plot-id, .village-plot-state) { font-size: 11px; line-height: 1.4; }
+
+.village-command-modal.is-friendly .village-assignments { display: grid; gap: 12px; padding: 12px 18px 20px; margin: 0; border: 0; }
+.village-command-modal.is-friendly .village-site-plan .village-assignments { padding: 12px 0; }
+.village-command-modal.is-friendly .village-assignment-row { display: grid; gap: 14px; padding: 16px; border: 1px solid #715c82; border-radius: 20px; background: #3d2f4c; }
+.village-command-modal.is-friendly .village-assignment-summary { min-width: 0; }
+.village-command-modal.is-friendly .village-assignment-building { color: var(--village-ink); font-size: 17px; }
+.village-command-modal.is-friendly .village-assignment-current { color: #c6dfcf; font-size: 14px; }
+.village-command-modal.is-friendly .village-assignment-routine { display: none; }
+.village-command-modal.is-friendly .village-assignment-controls { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px; }
+.village-command-modal.is-friendly .village-creature-select { width: 100%; min-width: 0; min-height: 50px; padding: 10px; border: 1px solid #9b81ad; border-radius: 14px; font-size: 15px; color: #fff2dc; background: #30233e; }
+.village-command-modal.is-friendly .village-empty-state { color: #d9cde2; font-size: 15px; line-height: 1.5; }
+
+.village-command-modal.is-friendly .village-guided-stage { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; padding: 20px; overflow: visible; background: transparent; }
+.village-command-modal.is-friendly .village-guided-stage[data-intent='decision'] { grid-template-columns: minmax(0, 1fr); }
+.village-command-modal.is-friendly .village-guided-visual { min-height: 0; padding: 0; background: transparent; border: 0; }
+.village-command-modal.is-friendly .village-guided-visual .village-building-artwork { height: 165px; }
+.village-command-modal.is-friendly .village-guided-visual .village-building-artwork-image { inset: 0; }
+.village-command-modal.is-friendly .village-guided-kicker { color: #c6dfcf; font-size: 12px; }
+.village-command-modal.is-friendly .village-guided-title { color: var(--village-ink); font-size: 24px; line-height: 1.2; }
+.village-command-modal.is-friendly .village-guided-detail { font-size: 15px; line-height: 1.5; color: #e1d5e9; }
+.village-command-modal.is-friendly .village-guided-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.village-command-modal.is-friendly .village-guided-choice { min-height: 88px; grid-template-columns: 54px minmax(0, 1fr); background: #423150; border: 1px solid #78618a; border-radius: 16px; padding: 8px; }
+.village-command-modal.is-friendly .village-guided-choice.is-selected { border-color: #dfc7f7; background: #574069; box-shadow: none; }
+.village-command-modal.is-friendly .village-guided-choice strong { color: var(--village-ink); font-size: 13px; }
+.village-command-modal.is-friendly .village-guided-choice > span:last-child { color: #d2c5dd; font-size: 11px; }
+.village-command-modal.is-friendly .village-guided-choice .village-building-artwork { width: 54px; height: 54px; }
+.village-command-modal.is-friendly .village-guided-choice .village-building-artwork-image { inset: 0; }
+.village-command-modal.is-friendly .village-guided-footer { position: static; padding: 12px 18px 18px; gap: 10px; background: transparent; border-top: 1px solid #675279; }
+.village-command-modal.is-friendly .village-guided-lock-note { color: #c8bbd4; font-size: 12px; line-height: 1.4; }
+.village-command-modal.is-friendly :is(.village-guided-impact span, .village-resource-lesson-intro, .village-resource-lesson-row span, .village-resource-lesson-row small) { font-size: 13px; line-height: 1.5; color: #ddd1e5; }
+.village-command-modal.is-friendly .village-resource-lesson { background: transparent; border: 0; padding: 0; }
+.village-command-modal.is-friendly .village-guided-impact b { font-size: 11px; }
+.village-command-modal.is-friendly .village-community-shortcut { display: flex; min-height: 48px; gap: 10px; padding: 10px 18px; background: #382a47; border: 0; }
+.village-command-modal.is-friendly .village-community-shortcut-copy { display: none; }
+.village-command-modal.is-friendly .village-community-shortcut-action { font-size: 12px; color: #dbc7ec; }
+.village-command-modal.is-friendly .village-heart-introduction { padding: 18px; background: transparent; }
+.village-command-modal.is-friendly .village-heart-starter-cache { background: #3d304d; border: 1px solid #715c82; border-radius: 16px; }
+
+.village-command-modal.is-friendly .village-community-directory { overflow: visible; background: transparent; padding: 16px; }
+.village-command-modal.is-friendly .village-community-directory-header { background: transparent; border: 0; padding: 0 0 12px; }
+.village-command-modal.is-friendly .village-community-group { border: 0; padding-top: 8px; }
+.village-command-modal.is-friendly .village-community-member-role { display: none; }
+.village-command-modal.is-friendly :is(.village-community-directory-title, .village-community-group-title, .village-community-member-name, .village-guardian-name) { color: var(--village-ink); font-size: 18px; }
+.village-command-modal.is-friendly :is(.village-community-directory-intro, .village-community-group-note, .village-community-member-contribution, .village-guardian-outcome) { font-size: 14px; line-height: 1.5; color: #d8cce2; }
+.village-command-modal.is-friendly :is(.village-community-member, .village-guardian-card, .village-heart-decision) { background: #3d304d; border: 1px solid #715c82; border-radius: 20px; }
+.village-command-modal.is-friendly :is(.village-community-member-type, .village-community-member-role, .village-community-member-status, .village-guardian-presence, .village-guardian-role) { font-size: 12px; line-height: 1.4; color: #cfdfd4; }
+.village-command-modal.is-friendly .village-decision-option { min-height: 64px; padding: 14px; color: #fff2dc; background: #514061; border: 1px solid #a78abb; border-radius: 16px; }
+.village-command-modal.is-friendly :is(.village-decision-title, .village-decision-option strong) { font-size: 17px; color: #fff2dc; }
+.village-command-modal.is-friendly :is(.village-decision-situation, .village-decision-option > span, .village-decision-participants) { font-size: 14px; line-height: 1.5; color: #e1d5e9; }
+
+@media (max-width: 680px) {
+  .village-command-modal.is-friendly { padding: max(6px, var(--sat)) max(6px, var(--sar)) max(6px, var(--sab)) max(6px, var(--sal)); }
+  .village-command-modal.is-friendly :is(.village-command-shell, .village-heart-sheet) { border-radius: 22px; }
+  .village-command-modal.is-friendly .village-command-header { padding: 12px; }
+  .village-command-modal.is-friendly .village-command-title { font-size: 23px; }
+  .village-command-modal.is-friendly :is(.village-resource-ledger, .village-heart-quick-resources) { padding: 8px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .village-command-modal.is-friendly .village-view-tabs { padding: 2px 12px 10px; gap: 5px; }
+  .village-command-modal.is-friendly .village-view-tab { font-size: 13px; padding: 6px 3px; }
+  .village-command-modal.is-friendly .village-command-body { grid-template-columns: minmax(0, 1fr); padding: 8px 12px 18px; gap: 20px; }
+  .village-command-modal.is-friendly .village-building-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .village-command-modal.is-friendly:not(.is-contextual) .village-building-options { display: flex; overflow-x: auto; padding: 3px 2px 10px; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #b69acb #3b2d4e; }
+  .village-command-modal.is-friendly:not(.is-contextual) .village-building-options .village-building-card { flex: 0 0 144px; height: auto; scroll-snap-align: start; }
+  .village-command-modal.is-friendly .village-building-card { padding: 9px; border-radius: 18px; }
+  .village-command-modal.is-friendly .village-building-artwork { height: 100px; }
+  .village-command-modal.is-friendly .village-guided-stage { grid-template-columns: minmax(0, 1fr); padding: 14px; gap: 8px; }
+  .village-command-modal.is-friendly .village-guided-visual { width: 108px; justify-self: center; }
+  .village-command-modal.is-friendly .village-guided-visual .village-building-artwork { height: 100px; }
+  .village-command-modal.is-friendly .village-guided-title { font-size: 23px; }
+  .village-command-modal.is-friendly .village-guided-footer { flex-wrap: wrap; padding: 12px; }
+  .village-command-modal.is-friendly .village-assignment-controls { grid-template-columns: minmax(0, 1fr); }
+  .village-command-modal.is-friendly .village-community-grid, .village-command-modal.is-friendly .village-guardian-grid { grid-template-columns: minmax(0, 1fr); }
+  .village-command-modal.is-friendly .village-guided-choice .village-building-artwork { height: 54px; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .village-command-modal.is-friendly .village-command-header { padding: 7px 12px; }
+  .village-command-modal.is-friendly .village-command-title { font-size: 21px; }
+  .village-command-modal.is-friendly .village-command-eyebrow { display: none; }
+  .village-command-modal.is-friendly :is(.village-resource-ledger, .village-heart-quick-resources) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .village-command-modal.is-friendly .village-command-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .village-command-modal.is-friendly .village-guided-stage { grid-template-columns: 100px minmax(0, 1fr); }
+  .village-command-modal.is-friendly .village-guided-visual .village-building-artwork { height: 120px; }
+  .village-command-modal.is-friendly .village-view-tab { min-height: 44px; }
+}
+
+.village-command-modal.is-friendly .village-resource-capacity .village-resource-value { font-size: 16px; }
+.village-command-modal.is-friendly :is(.village-building-catalog, .village-site-plan) { order: 0; }
+.village-command-modal.is-friendly .village-command-body.is-building-details { grid-template-columns: minmax(0, 1fr); }
+.village-command-modal.is-friendly .is-building-details .village-site-plan-header { grid-template-columns: 76px minmax(0, 1fr); column-gap: 14px; align-items: center; }
+.village-command-modal.is-friendly .is-building-details .village-site-plan-header .village-building-artwork { grid-row: 1 / 3; }
+.village-command-modal.is-friendly .is-building-details .village-site-plan-header .village-site-selection { grid-column: 2; }

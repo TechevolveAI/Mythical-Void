@@ -18,10 +18,10 @@ describe('Sanctuary onboarding and creature continuity contract', () => {
         expect(world).toContain("snapshot?.onboarding?.stage === 'meet_heart'");
         expect(world).toContain(".setText('OPEN HEART')");
         expect(panel).toContain("onboarding.stage === 'meet_heart'");
-        expect(panel).toContain('REVEAL THE FIRST SAFE FOUNDATION');
+        expect(panel).toContain('See our first building');
         expect(panel).toContain("action.addEventListener('touchend', activate, { passive: false });");
         expect(panel).toContain('this.snapshot = next;');
-        expect(panel).toContain('The wider building plan stays hidden for now.');
+        expect(panel).toContain('One little step at a time.');
         expect(game).toContain('onAcknowledge: () => {');
         expect(game).not.toContain('if (opened && !snapshot.state.guidanceSeen)');
     });
@@ -41,11 +41,8 @@ describe('Sanctuary onboarding and creature continuity contract', () => {
         );
         expect(panel).toContain('setCompanionPortrait(record)');
         expect(panel).toContain("avatar.classList.add('is-living-portrait')");
-        expect(panel).toContain(
-            'createCommunityDirectory(\n' +
-            '                    snapshot,\n' +
-            '                    this.companionPortraitRecord,'
-        );
+        expect(panel).toContain('communityView.append(createCommunityDirectory(');
+        expect(panel).toContain('snapshot, this.companionPortraitRecord,');
         expect(panel).toContain('creature => this.getRuntimeResidentAvatar(creature)');
     });
 

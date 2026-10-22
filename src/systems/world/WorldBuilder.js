@@ -2612,6 +2612,15 @@ class WorldBuilder {
                 plotLabel,
                 stateLabel
             ]);
+            if (worldArtwork && building?.status === 'complete') {
+                // A small shadow grounds the picture without a second neon base.
+                drawing.clear().fillStyle(0x271E34, 0.18)
+                    .fillEllipse(0, 38, compactSettlement ? 92 : 120, 20);
+                artworkGrounding?.clear().fillStyle(0x271E34, 0.12)
+                    .fillEllipse(0, compactSettlement ? 32 : 42, compactSettlement ? 82 : 108, 14);
+                activity?.setVisible(false);
+                currentSignal.setVisible(false);
+            }
             landmark.buildingElements.push(container);
             if (inhabitedDistrict?.tween) {
                 landmark.buildingTweens.push(inhabitedDistrict.tween);
@@ -2927,6 +2936,23 @@ class WorldBuilder {
             Boolean(this.scene.sanctuaryFocusModeActive || this.scene.nearVillageHeart),
             { immediate: true }
         );
+        // The illustrated pods carry the identity. Keep useful workers, delivery
+        // motion and the next action, without stacking decorative diagrams on top.
+        Object.entries(landmark.heartLife || {}).forEach(([key, element]) => {
+            if (['aura', 'orbit', 'crown', 'memoryWeave', 'core'].includes(key)) {
+                element?.setVisible(false);
+            }
+        });
+        landmark.restorationRoots?.setVisible(false);
+        landmark.statusLabel?.setVisible(false);
+        landmark.plotPresentations.forEach(presentation => {
+            presentation.inhabitedDistrict?.setVisible(false);
+            presentation.districtAnchor?.setVisible(false);
+            presentation.stateSilhouette?.setVisible(false);
+            if (presentation.plotState !== 'constructing') {
+                presentation.stateMarker?.setVisible(false);
+            }
+        });
     }
 
     drawVillageHeartResourceImprints(
@@ -3556,7 +3582,9 @@ class WorldBuilder {
             landmark.districtEcology,
             landmark.districtPulse,
             landmark.districtThresholds
-        ].forEach(layer => layer?.setVisible?.(!cinematicStory));
+        ].forEach(layer => layer?.setVisible?.(
+            layer === landmark.districtEcology && !cinematicStory
+        ));
         const ambientFocusPlotId = !active && ['build', 'assign'].includes(action?.type)
             ? action.plotId
             : null;
@@ -3627,7 +3655,8 @@ class WorldBuilder {
                             : focusPlotId
                                 ? compactPresentation ? 0.34 : 0.4
                                 : compactPresentation ? 0.2 : 0.28;
-            const alpha = playerNearby ? 1 : baseAlpha;
+            const alpha = playerNearby ? 1 : !storyMode && settled
+                ? Math.max(0.92, baseAlpha) : baseAlpha;
             const plotLabelAlpha = playerNearby
                 ? compactPresentation ? 0 : 1
                 : !active
@@ -3778,7 +3807,7 @@ class WorldBuilder {
             )
             .setData(
                 'villageArtworkTint',
-                heartIsPrimary ? 0xFFFFFF : storyMode ? 0xA5C1B7 : 0xC8DAD4
+                !storyMode || heartIsPrimary ? 0xFFFFFF : 0xA5C1B7
             );
         if (landmark.heartArtwork && landmark.snapshot?.unlock?.unlocked === true) {
             const heartTint = landmark.heartArtwork.getData('villageArtworkTint');
@@ -4003,7 +4032,9 @@ class WorldBuilder {
         const constructing = plotState === 'constructing';
         const fullColor = priority === 'nearby' || priority === 'primary';
         const storySupporting = priority === 'supporting' && presentationMode === 'story';
-        const tint = fullColor
+        const tint = presentationMode !== 'story' && !constructing
+            ? 0xFFFFFF
+            : fullColor
             ? constructing ? 0xD6E1DA : 0xFFFFFF
             : storySupporting
                 ? 0x789B8F
@@ -5309,19 +5340,8 @@ class WorldBuilder {
             .setDepth(position.y + 5)
             .setData('villageNextActionRing', action.type)
             .setData('villageTargetLanguage', 'living_root_threshold_v2');
-        ring.lineStyle(3, color, 0.9);
+        ring.lineStyle(3, color, 0.7);
         ring.strokeEllipse(0, 0, compact ? 112 : 142, compact ? 38 : 48);
-        ring.lineStyle(1, 0xF4F4F4, 0.68);
-        ring.strokeEllipse(0, 0, compact ? 94 : 120, compact ? 26 : 32);
-        [-0.72, 0, 0.72].forEach((ratio, index) => {
-            const rootX = ratio * (compact ? 49 : 61);
-            const rootHeight = compact ? 12 + (index * 3) : 16 + (index * 4);
-            ring.lineStyle(index === 1 ? 3 : 2, color, 0.86);
-            ring.lineBetween(rootX, -2, rootX * 0.82, -rootHeight);
-            ring.fillStyle(color, 0.94);
-            ring.fillCircle(rootX * 0.82, -rootHeight, index === 1 ? 3 : 2);
-        });
-        ring.setBlendMode?.(Phaser.BlendModes.ADD);
 
         const labelX = compact
             ? position.x + (position.x > landmark.zone.x ? -16 : position.x < landmark.zone.x ? 16 : 0)
@@ -5332,7 +5352,7 @@ class WorldBuilder {
             ? position.y + 88
             : position.y - (compact ? 92 : 120);
         const actionCopy = buildingDefinition
-            ? `${action.type === 'assign' ? 'INVITE' : 'BUILD'} · ${buildingDefinition.label.toUpperCase()}`
+            ? action.type === 'assign' ? 'Invite a helper' : `Build ${buildingDefinition.label.toLowerCase()}`
             : action.label;
         const labelBackdrop = this.scene.add.graphics()
             .setPosition(labelX, labelY)

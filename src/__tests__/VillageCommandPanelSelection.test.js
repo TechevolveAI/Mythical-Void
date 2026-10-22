@@ -8,7 +8,7 @@ const source = fs.readFileSync(file, 'utf8')
     .replace('export default class VillageCommandPanel', 'class VillageCommandPanel')
     + '\nmodule.exports = VillageCommandPanel;';
 
-describe.each(['contextual', 'guided', 'plan'])('Village helper selection: %s', mode => {
+describe.each(['contextual', 'guided', 'helpers'])('Village helper selection: %s', mode => {
     let panel, snapshot, onAssign, onTick;
     const picker = () => panel.root.querySelector('.village-creature-select');
     const invite = () => panel.root.querySelector(mode === 'guided'
@@ -17,8 +17,11 @@ describe.each(['contextual', 'guided', 'plan'])('Village helper selection: %s', 
         picker().value = value;
         picker().dispatchEvent(new Event('change', { bubbles: true }));
     };
-    const show = () => panel.show({ getSnapshot: () => snapshot, onAssign, onTick,
-        ...(mode === 'guided' ? { guided: true } : mode === 'contextual' ? { plotId: 'plot_one' } : {}) });
+    const show = () => {
+        panel.show({ getSnapshot: () => snapshot, onAssign, onTick,
+            ...(mode === 'guided' ? { guided: true } : mode === 'contextual' ? { plotId: 'plot_one' } : {}) });
+        if (mode === 'helpers') panel.root.querySelector('[data-view="helpers"]').click();
+    };
 
     beforeEach(() => {
         jest.useFakeTimers();
@@ -153,4 +156,53 @@ describe.each(['contextual', 'guided', 'plan'])('Village helper selection: %s', 
         show();
         expect(picker().value).toBe('nova');
     });
+
+    if (mode === 'helpers') {
+        test('keyboard tabs keep focus and the visible panel aligned after refresh', () => {
+            const tab = () => panel.root.querySelector('[role="tab"][aria-selected="true"]');
+            tab().focus();
+            tab().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+            expect(tab().dataset.view).toBe('community');
+            expect(document.activeElement).toBe(tab());
+            expect(panel.root.querySelector('[role="tabpanel"]').getAttribute('aria-labelledby')).toBe(tab().id);
+            jest.advanceTimersByTime(1100);
+            expect(document.activeElement).toBe(tab());
+            tab().dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+            expect(tab().textContent).toBe('Build');
+            expect(panel.root.querySelectorAll('[role="tab"][tabindex="0"]')).toHaveLength(1);
+        });
+
+        test('optional information stays open across background updates and tab changes', () => {
+            panel.root.querySelector('[data-view="plan"]').click();
+            const details = panel.root.querySelector('.village-extra-details');
+            const label = details.querySelector('summary').textContent;
+            details.open = true;
+            details.dispatchEvent(new Event('toggle'));
+            jest.advanceTimersByTime(1100);
+            panel.root.querySelector('[data-view="helpers"]').click();
+            panel.root.querySelector('[data-view="plan"]').click();
+            const restored = [...panel.root.querySelectorAll('details')]
+                .find(element => element.querySelector('summary').textContent === label);
+            expect(restored.open).toBe(true);
+        });
+
+        test('choosing a building does not place it until the clear Build action is used', () => {
+            snapshot.definitions[0].placement = { available: true, revealed: true, alreadyBuilt: false,
+                missingPrerequisites: [], missingResources: [] };
+            snapshot.definitions[0].cost = { wood: 10 };
+            snapshot.plots = [{ id: 'plot_one', label: 'Clearing', open: true }];
+            snapshot.buildings = [];
+            panel.onPlace = jest.fn(() => ({ changed: true, reason: 'building_started' }));
+            panel.root.querySelector('[data-view="plan"]').click();
+            panel.root.querySelector('.village-building-card').click();
+            jest.advanceTimersByTime(1100);
+            expect(panel.onPlace).not.toHaveBeenCalled();
+            const build = panel.root.querySelector('.village-construct-action');
+            expect(build.textContent).toBe('Build Forager hut');
+            expect(build.disabled).toBe(false);
+            build.click();
+            expect(panel.onPlace).toHaveBeenCalledTimes(1);
+            expect(panel.onPlace).toHaveBeenCalledWith({ definitionId: 'forager_hut', plotId: 'plot_one' });
+        });
+    }
 });

@@ -1,5 +1,6 @@
 // Import Tailwind CSS styles
 import './styles/main.css';
+import './styles/village.css';
 
 import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
