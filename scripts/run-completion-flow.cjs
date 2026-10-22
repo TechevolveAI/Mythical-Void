@@ -32,6 +32,9 @@ async function runCase(name, mode, testCase, width, height) {
         child = spawn(process.execPath, [trumptopus ? 'scripts/smoke-trumptopus-release.cjs' : 'scripts/smoke-secondary-journeys.js'], {
             cwd: root,
             env: { ...process.env, MYTHICAL_VOID_SMOKE_URL: base, SMOKE_MODE: mode, SMOKE_CASE: testCase,
+                // This runner owns a loopback Vite server with no Netlify functions.
+                // The smoke permits only the observability endpoint's local 404.
+                SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404: '1',
                 SMOKE_VIEWPORT_WIDTH: String(width), SMOKE_VIEWPORT_HEIGHT: String(height), SMOKE_CAPTURE_DIR: capture,
                 FINALE_RELEASE_VIEWS: width < 600 ? 'phone' : 'desktop', FINALE_RELEASE_EVIDENCE: capture },
             stdio: ['ignore', log, log]
