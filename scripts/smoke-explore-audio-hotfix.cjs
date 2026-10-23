@@ -124,6 +124,13 @@ async function main() {
                 'story.projectBeacon.firstForestCinematicVersion': 3, 'hubWorld.shipCompletionCutsceneShown': true,
                 'levels.mythicalForest.completed': true, 'hubWorld.gates.crystal_caves.unlocked': true
             })) state.set(key, value);
+            // This is a returning-player input fixture. Random first discoveries
+            // deliberately pause controls for reading; the navigation regression
+            // separately checks that new lore suspends and restores real touch.
+            state.set('collectibles.collected', Object.fromEntries(
+                window.CollectibleManager.getAllLoreFragments().map(({ id }) => [id, 1])
+            ));
+            window.CollectibleManager.loadCollectionState();
             for (const key of ['GameScene', 'HubWorldScene']) assertLoaded(await SceneLoader.loadScene(game, key), key);
             function assertLoaded(ok, key) { if (!ok) throw Error('Could not load ' + key); }
             for (const s of game.scene.getScenes(false)) if (s.sys.isActive() || s.sys.isPaused()) game.scene.stop(s.sys.settings.key);
