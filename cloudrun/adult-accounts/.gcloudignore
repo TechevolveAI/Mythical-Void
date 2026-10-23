@@ -1,0 +1,8 @@
+*
+!server.cjs
+!core.cjs
+!store.cjs
+!snapshot.cjs
+!package.json
+!package-lock.json
+!Dockerfile

@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adult accounts · Firebase emulator review</title><link rel="stylesheet" href="/src/styles/adventures.css">
+<style>body{margin:0;background:#171c31;color:#f5f3ff;font:16px system-ui;padding:24px}#reopen{padding:15px;border-radius:12px}#result{line-height:1.6}</style></head>
+<body><p>Local Firebase emulator review. Fictional creatures only. No email is sent.</p><button id="reopen">Open accounts</button><p id="result" role="status"></p>
+<script type="module">
+import '/src/systems/GameState.js';
+import Store from '/src/systems/LocalAdventureStore.js';
+import Manager from '/src/systems/AdultAccountManager.js';
+import Menu from '/src/ui/AdultAccountMenu.js';
+import { createFirebaseAdultClient } from '/src/systems/FirebaseAdultClient.js';
+if (!import.meta.env.DEV || location.hostname !== '127.0.0.1') throw Error('Local emulator review only');
+const store = new Store();
+const state = window.GameState;
+state.initialized = true; state.state.creature.name = 'Test Fern'; state.state.creature.hatched = true;
+state.state.creature.genes = { id: 'fictional-browser-fern' }; state.state.session.gameStarted = true;
+state.state.settings.audioMuted = true;
+if (!localStorage.getItem('mythical-creature-save')) localStorage.setItem('mythical-creature-save', JSON.stringify(state.createSaveSnapshot()));
+const client = createFirebaseAdultClient({ apiKey: 'emulator-only', projectId: 'demo-mythical-adult',
+    authDomain: 'demo-mythical-adult.firebaseapp.com', appId: 'emulator-only' }, { emulatorUrl: 'http://127.0.0.1:9198' });
+const manager = new Manager({ client, endpoint: 'http://127.0.0.1:8146/v1/adventures', gameState: state, store, mediaClient: () => null });
+const menu = new Menu(manager, { onChosen: key => {
+    document.querySelector('#result').textContent = `Continued with ${JSON.parse(localStorage.getItem(key)).creature.name}. The earlier local adventure is still here.`;
+} });
+window.accountReview = { manager, menu, store, state };
+await manager.initialize();
+document.querySelector('#reopen').onclick = () => menu.open();
+menu.open();
+</script></body></html>

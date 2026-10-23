@@ -6,6 +6,7 @@
  * inside this function.
  */
 
+const { accountMediaOwner } = require('./firebase-account-media.cjs');
 const { createClient } = require('@supabase/supabase-js');
 const { projectPortraitPromptTraits } = require('./portrait-prompt-traits.cjs');
 
@@ -1141,7 +1142,11 @@ exports.handler = async event => {
     let ownsActiveJob = false;
     try {
         adminClient = getAdminClient();
-        user = await authenticate(event, adminClient);
+        const accountAdventure = event.queryStringParameters?.accountAdventure;
+        if (accountAdventure && event.httpMethod !== 'GET') {
+            return json(403, { success: false, error: 'Account media is read-only' });
+        }
+        user = accountAdventure ? null : await authenticate(event, adminClient);
 
         if (event.httpMethod === 'GET') {
             const assetRef = event.queryStringParameters?.assetRef;
@@ -1156,8 +1161,10 @@ exports.handler = async event => {
                         : 'Invalid portrait job ID'
                 });
             }
-            const job = await getOwnedJob(adminClient, user.id, jobId);
-            const result = await resultForJob(adminClient, user.id, job);
+            const ownerId = accountAdventure
+                ? await accountMediaOwner(adminClient, event, accountAdventure, jobId, 'portrait') : user.id;
+            const job = await getOwnedJob(adminClient, ownerId, jobId);
+            const result = await resultForJob(adminClient, ownerId, job);
             return json(statusCodeForJobResult(result), result);
         }
 

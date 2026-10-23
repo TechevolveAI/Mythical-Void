@@ -1,0 +1,9 @@
+steps:
+  - name: europe-west1-docker.pkg.dev/mythical-void-dev-eu/private-review/gateway-build-docker@sha256:b1136d02a7a933beb2618ce36083ee63401c59e37bdf35b522a23801dcb6b563
+    args: ['build', '--platform=linux/amd64', '-t', '${_IMAGE}', '.']
+images: ['${_IMAGE}']
+serviceAccount: projects/mythical-void-dev-eu/serviceAccounts/private-review-build@mythical-void-dev-eu.iam.gserviceaccount.com
+logsBucket: gs://mythical-void-dev-eu-review-logs/adult-accounts
+options:
+  logging: GCS_ONLY
+timeout: 600s

@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script id="adult-email-link">
+        (() => {
+            const url = new URL(location.href);
+            if (url.searchParams.get('mode') !== 'signIn' || !url.searchParams.has('oobCode')) return;
+            // One-time sign-in credentials must leave the URL before analytics or page scripts run.
+            Object.defineProperty(window, '__mythicalAdultEmailLink', { value: url.href, configurable: true });
+            for (const key of ['apiKey', 'oobCode', 'mode', 'lang', 'continueUrl']) url.searchParams.delete(key);
+            history.replaceState(history.state, '', url.href);
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="mythical-void-release" content="__BUILD_TIMESTAMP__">
     <meta name="description" content="Play Mythical Void free in your browser. Hatch a varied alien creature, explore six living realms, restore their guardians and decide what your mission should tell Earth.">

@@ -350,8 +350,18 @@ class LivingPortraitService {
 
         try {
             return await this.withDeadline((async () => {
-                const response = await fetch(url, requestOptions);
+                let response = await fetch(url, requestOptions);
+                let accountAccess = null;
+                if ((!options?.method || options.method === 'GET') &&
+                    url.startsWith('/.netlify/functions/generate-ai-art?') &&
+                    [401, 403, 404].includes(response.status) && window.AdultAccounts) {
+                    accountAccess = await window.AdultAccounts.mediaRequest(url, options.headers?.Authorization?.slice(7));
+                    if (accountAccess.url !== url) response = await fetch(accountAccess.url, {
+                        ...requestOptions, headers: { ...requestOptions.headers, Authorization: `Bearer ${accountAccess.token}` }
+                    });
+                }
                 const result = await response.json().catch(() => ({}));
+                accountAccess?.assertCurrent?.();
                 return { response, result };
             })(), {
                 timeoutMs,
