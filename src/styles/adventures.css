@@ -1,0 +1,79 @@
+.adventure-menu,
+.save-recovery-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    color: #f5f3ff;
+    background: radial-gradient(ellipse at 50% 0, #303458 0%, #171c31 50%, #111827 100%);
+    font: 16px/1.55 system-ui, sans-serif;
+    text-align: left;
+}
+.adventure-menu section,
+.save-recovery-gate section {
+    width: 100%;
+    max-width: 440px;
+    box-sizing: border-box;
+    margin: 3vh auto;
+    padding: clamp(18px, 4vw, 32px);
+    border: 1px solid #697098;
+    border-radius: 28px;
+    background: #20263e;
+    box-shadow: 0 16px 60px #080b1966;
+}
+.adventure-menu h1,
+.save-recovery-gate h1 { margin: 8px 0 12px; font-size: clamp(24px, 6vw, 30px); line-height: 1.18; }
+.adventure-menu p,
+.save-recovery-gate p { margin: 12px 0 18px; color: #d2d7ed; }
+.adventure-menu .adventure-eyebrow { font-size: 11px; letter-spacing: .16em; color: #c1b5f5; margin: 14px 0 4px; font-weight: 700; }
+.adventure-egg {
+    width: 48px;
+    height: 60px;
+    border-radius: 50% 50% 44% 44% / 62% 62% 38% 38%;
+    border: 3px solid #f7e4b4;
+    background: radial-gradient(ellipse at 33% 30%, #fff7d9 0 12%, transparent 14%), radial-gradient(circle at 65% 64%, #bfb3ef 0 10%, transparent 12%), #f1d5a0;
+    box-shadow: 0 5px 0 #0e1325;
+    transform: rotate(-8deg);
+}
+.adventure-menu button,
+.save-recovery-gate button,
+.save-recovery-gate select {
+    display: block;
+    width: 100%;
+    min-height: 50px;
+    margin: 12px 0;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    border: 1px solid #8f96bf;
+    border-radius: 15px;
+    background: #343d5d;
+    color: #f5f3ff;
+    font: inherit;
+    font-weight: 650;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+.adventure-menu button:hover,
+.save-recovery-gate button:hover { background: #444d70; }
+.adventure-menu .adventure-primary,
+.save-recovery-gate .adventure-primary { background: #e9d399; border-color: #fff0bd; color: #2b2643; }
+.adventure-menu .adventure-primary:hover,
+.save-recovery-gate .adventure-primary:hover { background: #f7e5b3; }
+.adventure-menu .adventure-hint { font-size: 13px; color: #c0c8e3; }
+.adventure-menu .adventure-saving { padding-top: 16px; border-top: 1px solid #49516f; margin-top: 24px; }
+.adventure-menu details,
+.save-recovery-gate details { margin: 12px 0; font-size: 14px; }
+.adventure-menu summary,
+.save-recovery-gate summary { padding: 12px 0; color: #dcd2ff; cursor: pointer; min-height: 44px; box-sizing: border-box; }
+.adventure-menu :focus-visible,
+.save-recovery-gate :focus-visible { outline: 3px solid #f5d582; outline-offset: 4px; }
+.adventure-menu [role="status"],
+.save-recovery-gate [role="status"] { color: #ffdda6; }
+@media (max-height: 500px) {
+    .adventure-menu section, .save-recovery-gate section { margin: 0 auto; }
+    .adventure-egg { width: 30px; height: 38px; }
+}

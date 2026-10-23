@@ -8,7 +8,7 @@ const {
     applyBrowserAudioPolicy
 } = require('./lib/browser-audio-policy.cjs');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
-const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
+const { smokePageSnapshot, smokeAdventureContinuePoint } = require('./lib/smoke-page-readiness.cjs');
 const { stageFirstSanctuaryHatchFixture, stageFirstSanctuaryLatePortraitFixture } = require('./lib/first-sanctuary-fixture.cjs');
 const { stageGuardianHandoffServicesFixture } = require('./lib/guardian-handoff-fixture.cjs');
 
@@ -1914,6 +1914,20 @@ async function smokePeakEnemyActivationWindow(session) {
     }
 }
 
+async function continueAdventureAtEntry(session, timeoutMs = 15000) {
+    const entry = await waitFor(() => evaluate(session, `(() => {
+        const choice = (${smokeAdventureContinuePoint.toString()})(window);
+        if (choice) return { choice };
+        return (${smokePageSnapshot.toString()})(window) ? { ready: true } : null;
+    })()`), { timeoutMs, message: 'New document adventure choice or game ready' });
+    if (entry.choice) {
+        await tap(session, entry.choice.x, entry.choice.y);
+        await waitFor(() => evaluate(session, `!document.querySelector('.adventure-menu')`),
+            { timeoutMs, message: 'Continue selected the saved adventure' });
+        console.log('[smoke-adventure] continued existing adventure');
+    }
+}
+
 async function navigate(session, url) {
     // A document navigation ends every browser touch stream. Reusing the
     // previous document's synthetic identifier can make Chromium discard the
@@ -1941,6 +1955,7 @@ async function navigate(session, url) {
     // readyState and a late game boot must never satisfy the next page's gate.
     await evaluate(session, 'window.__mythicalSmokeLeavingDocument = true');
     await session.call('Page.navigate', { url });
+    await continueAdventureAtEntry(session);
     const renderer = await waitFor(
         () => evaluate(session, `(${smokePageSnapshot.toString()})(window)`),
         { timeoutMs: 15000, message: `new document and Phaser renderer ready ${url}` }
@@ -10364,7 +10379,9 @@ async function smokePurchasedEgg(session, exceptions) {
 
 async function reloadIntoScene(session, sceneName) {
     await evaluate(session, 'window.smokeReloadPending = true');
+    await evaluate(session, 'window.__mythicalSmokeLeavingDocument = true');
     await session.call('Page.reload', { ignoreCache: true });
+    await continueAdventureAtEntry(session, 30000);
     await waitFor(() => evaluate(session, `Boolean(!window.smokeReloadPending &&
         window.GameState?.state && window.mythicalGame?.isBooted)`),
     { timeoutMs: 30000, message: 'New document after refresh' });
@@ -15602,7 +15619,9 @@ async function smokeSaveReloadJourney(session, exceptions) {
         return true;
     })()`);
 
+    await evaluate(session, 'window.__mythicalSmokeLeavingDocument = true');
     await session.call('Page.reload', { ignoreCache: true });
+    await continueAdventureAtEntry(session, 20000);
     await waitFor(
         () => evaluate(session, 'document.readyState === "complete"'),
         { timeoutMs: 20000, message: 'Save reload page load' }
@@ -21242,7 +21261,9 @@ async function smokeVillageUi(session, exceptions) {
         await session.call('Emulation.setTouchEmulationEnabled', {
             enabled: false
         });
+        await evaluate(session, 'window.__mythicalSmokeLeavingDocument = true');
         await session.call('Page.reload', { ignoreCache: true });
+        await continueAdventureAtEntry(session, 20000);
         await waitFor(
             () => evaluate(session, 'document.readyState === "complete"'),
             { timeoutMs: 20000, message: 'Desktop no-touch reload' }

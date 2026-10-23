@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { smokePageSnapshot } = require('../lib/smoke-page-readiness.cjs');
+const { smokePageSnapshot, smokeAdventureContinuePoint } = require('../lib/smoke-page-readiness.cjs');
 
 function page(overrides = {}) {
     return {
@@ -73,4 +73,37 @@ test('navigation marks the old page before navigating and retains renderer asser
     expect(navigate).toContain('timeoutMs: 15000');
     expect(navigate).toContain('!renderer.webgl || !renderer.name || /swiftshader/i.test(renderer.name)');
     expect(navigate).toContain("throw new Error('Native OpenGL smoke did not receive its required WebGL renderer')");
+});
+
+function adventurePage(labels = ['Continue with Test Sprout', 'Start a new adventure']) {
+    const buttons = labels.map(textContent => ({ textContent, disabled: false,
+        getBoundingClientRect: () => ({ x: 20, y: 100, width: 300, height: 48 }) }));
+    return { document: { readyState: 'complete', querySelector: () => ({ querySelectorAll: () => buttons }) },
+        innerWidth: 390, innerHeight: 844, buttons };
+}
+
+test('saved-adventure entry reads the Continue button without changing the save', () => {
+    const scope = adventurePage();
+    expect(smokeAdventureContinuePoint(scope)).toEqual({ x: 170, y: 124 });
+    expect(vm.runInNewContext(`(${smokeAdventureContinuePoint.toString()})(window)`, { window: scope }))
+        .toEqual({ x: 170, y: 124 });
+    expect(smokeAdventureContinuePoint(adventurePage(['Continue adventure']))).toEqual({ x: 170, y: 124 });
+});
+
+test('old documents and first-time entry do not select an adventure', () => {
+    expect(smokeAdventureContinuePoint({ ...adventurePage(), __mythicalSmokeLeavingDocument: true })).toBeNull();
+    expect(smokeAdventureContinuePoint(page())).toBeNull();
+});
+
+test('a missing, ambiguous or disabled Continue action cannot start a fresh save instead', () => {
+    expect(() => smokeAdventureContinuePoint(adventurePage(['Start a new adventure']))).toThrow('unambiguous');
+    expect(() => smokeAdventureContinuePoint(adventurePage(['Continue adventure', 'Continue with Test Sprout']))).toThrow('unambiguous');
+    const scope = adventurePage(); scope.buttons[0].disabled = true;
+    expect(() => smokeAdventureContinuePoint(scope)).toThrow('unambiguous');
+});
+
+test('a clipped Continue button is reported instead of clicking another control', () => {
+    const scope = adventurePage();
+    scope.buttons[0].getBoundingClientRect = () => ({ x: 20, y: 900, width: 300, height: 48 });
+    expect(() => smokeAdventureContinuePoint(scope)).toThrow('not visible');
 });

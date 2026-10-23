@@ -8,6 +8,62 @@ working systems. The production gameplay represented by
 
 ## Release Shape
 
+### Save and restart iteration, 23/10/2026
+
+The current private candidate starts from protected main `43d9281b`. The older
+phase baseline and rollback deploy below describe the September work, not this
+candidate's release target.
+
+The default journey is: first visit → new egg; return → Continue or Start a new
+adventure. New adventures keep separate browser saves, recovery records and
+anonymous online identities. Existing adventures remain selectable. Starting a
+new adventure does not erase, restore or acknowledge an uncertain older save.
+Sound, accessibility and readable safety preferences carry forward. The same
+browser tab lock still applies before choosing or loading an adventure.
+
+Player copy should say “saved in this browser”, with one short explanation under
+About saving. Online backup remains optional and off for each new adventure.
+Do not describe a browser-bound anonymous backup as an account or promise that
+it can recover progress after browser data is cleared. Storage being full still
+prevents a durable new game; do not silently pretend an unsaved hatch is saved.
+
+Rollback must retain the new save namespaces. A build predating this chooser
+does not know how to find them, so simply serving the old bundle is not a complete
+player-facing rollback. Keep a chooser-compatible patch or provide an explicit,
+verified selection/import path without replacing any older save automatically.
+
+#### Optional adult accounts: agreed product flow, not enabled in this candidate
+
+Kevin confirmed that email accounts are optional and only for adults aged 18+.
+The purpose is to bring an adventure back on another device. The proposed entry
+is **Your adventures → Save across devices → I'm 18 or over → Email sign-in**.
+Normal play, starting again and continuing in the same browser need no account.
+An unavailable email service must leave these local actions usable.
+
+- Offer a passwordless email link, with “Keep playing” while waiting, a clear
+  expiry/retry state and a separate “Already have an account?” route.
+- Verify the address before claiming the adventure is attached to an account.
+  Display a masked address and “Sign out” after connection. Do not put the address
+  into game saves, analytics, generated-media prompts or application logs.
+- Linking a new adult identity must preserve the current anonymous owner's save
+  and private creature media. Signing into an existing account must preserve the
+  current browser adventure and ask which adventure to continue. Never silently
+  replace it with the newest remote timestamp.
+- Keep age selection neutral. Do not show the email field on an under-18 path or
+  collect a full birth date. An 18+ declaration is not proof of verified age.
+- Before implementation is enabled, qualify ownership transfer, multiple
+  adventures, remote deletion, sign-out and reconnect. Several current Fusion
+  and save functions address the `primary` slot; changing only the client slot
+  would not implement accounts correctly.
+- Verify the actual mail sender, redirect URLs and email template in a private
+  environment. Update the privacy explanation for the new email processing, then
+  test a permitted adult sign-in and a second device before public activation.
+  No account service or real email has been enabled by this local UX iteration.
+
+Provider reference: [Supabase anonymous account linking](https://supabase.com/docs/guides/auth/auth-anonymous)
+and [passwordless email sign-in](https://supabase.com/docs/guides/auth/auth-email-passwordless).
+These document available mechanisms, not the configuration of this project.
+
 Each phase uses its own branch and pull request. A phase may change only its
 listed feature owners, focused tests, and directly required shared code. Any
 unexpected cross-level or save-format change stops the phase for review.

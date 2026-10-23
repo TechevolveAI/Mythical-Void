@@ -146,6 +146,7 @@ describe('local save safety and recovery', () => {
         expect(source).toContain('Restore Previous Save');
         expect(source).toContain('restoreLocalSaveBackup');
         expect(source).toContain('A safety copy of your current progress will be made first');
-        expect(source).toContain('Current progress was not changed');
+        expect(source).toContain('That recovery copy could not be confirmed');
+        expect(source).not.toContain('Current progress was not changed');
     });
 });

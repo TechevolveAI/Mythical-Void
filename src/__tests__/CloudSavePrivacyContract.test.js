@@ -103,7 +103,7 @@ describe('Cloud Save privacy contract', () => {
             '6a6b9306422cdc14b5dbe29e'
         );
         expect(migrationSource).toContain('to authenticated');
-        expect(modalSource).toContain('Another device saved newer progress');
+        expect(modalSource).toContain('The online copy differs from this adventure');
         expect(modalSource).toContain('nothing was overwritten');
     });
 

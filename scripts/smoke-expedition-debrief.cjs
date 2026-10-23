@@ -122,6 +122,12 @@ async function main() {
         });
         for (let number = 1; number <= 5; number++) {
             await page.goto(`${base}/play/?testDebrief=${number}`);
+            await page.waitForFunction(() => document.querySelector('.adventure-menu') ||
+                window.mythicalGame?.isBooted, null, { timeout: 30000 });
+            const adventure = page.getByRole('dialog', { name: 'Ready for an adventure?', exact: true });
+            if (await adventure.isVisible()) {
+                await adventure.getByRole('button', { name: /^Continue(?: adventure$| with )/ }).click();
+            }
             const action = page.getByTestId('expedition-debrief-continue');
             await action.waitFor({ timeout: 30000 });
             const metrics = await checkLayout(page);

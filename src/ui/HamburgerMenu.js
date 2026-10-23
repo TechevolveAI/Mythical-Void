@@ -21,6 +21,7 @@ export default class HamburgerMenu {
 
         // Menu items configuration
         this.menuItems = [
+            { key: 'adventures', label: 'Your adventures', icon: '🥚', shortcut: 'V', action: () => window.Adventures?.open({ onBackup: () => this.showCloudSaveSettings() }) },
             { key: 'profile', label: 'Creature Profile', icon: '🐾', shortcut: 'P', action: () => this.navigateToProfile() },
             { key: 'achievements', label: 'Achievements', icon: '🏆', shortcut: 'A', action: () => this.navigateToAchievements() },
             { key: 'inventory', label: 'Inventory', icon: '🎒', shortcut: 'I', action: () => this.navigateToInventory() },
@@ -32,7 +33,6 @@ export default class HamburgerMenu {
             { key: 'invite', label: 'Invite someone', icon: '↗', shortcut: null, action: () => this.inviteSomeone() },
             { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() },
             { key: 'settings', label: 'Settings', icon: '⚙️', shortcut: 'O', action: () => this.showSettings() },
-            { key: 'cloudsave', label: 'Cloud Save', icon: '☁️', shortcut: 'V', action: () => this.showCloudSaveSettings() },
             { key: 'legal', label: 'Legal & About', icon: '📜', shortcut: 'L', action: () => this.showLegalDocuments() }
         ];
         if (import.meta.env.DEV) {
