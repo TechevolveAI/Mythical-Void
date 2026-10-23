@@ -464,7 +464,10 @@ async function sampleFramePacing(session, sceneName, {
         const capture = now => {
             if (previousAt !== null) intervals.push(now - previousAt);
             previousAt = now;
-            if (now - startedAt >= ${sampleMs}) {
+            // Collect the required sample size even when software-rendered CI
+            // starts slowly. Retain every interval and the existing p95 budget.
+            if ((now - startedAt >= ${sampleMs} && intervals.length >= 12) ||
+                now - startedAt >= ${sampleMs * 3}) {
                 finish();
                 return;
             }
@@ -8120,12 +8123,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         scene.player.setVelocity?.(0, 0);
                         scene.collectStarFragment?.(item);
                     } else if (${JSON.stringify(route)} === 'mythicalForest') {
-                        if (scene.player.body?.reset) {
-                            scene.player.body.reset(item.x, item.y - 80);
-                            scene.player.setVelocity?.(0, 220);
-                        } else {
-                            scene.player.setPosition(item.x, item.y - 80);
-                        }
+                        // Creature textures have different contact offsets.
+                        // Stage the actual body over the pickup and let the
+                        // normal physics overlap award it on the next step.
+                        const body = scene.player.body;
+                        body.reset(item.x, item.y);
+                        body.updateFromGameObject();
+                        scene.player.setPosition(
+                            scene.player.x + item.x - body.center.x,
+                            scene.player.y + item.y - body.center.y
+                        );
+                        body.updateFromGameObject();
                     } else {
                         if (scene.player.body?.reset) {
                             scene.player.body.reset(item.x, item.y);
