@@ -1435,7 +1435,15 @@ export default class CreatureProfileScene extends Phaser.Scene {
                 }
             ) || null;
         }
-        loadPortrait();
+        // Phaser marks a scene RUNNING after create() returns. Starting the
+        // resolver inside create() makes its ownership check reject this screen.
+        // Keep the request tied to this frame if it closes before the microtask.
+        const scheduledRequest = this.profilePortraitRequest;
+        Promise.resolve().then(() => {
+            if (frame.active && this.profilePortraitRequest === scheduledRequest && this.scene.isActive()) {
+                return loadPortrait();
+            }
+        });
     }
 
     createBasicInfoSection(data, startY) {
