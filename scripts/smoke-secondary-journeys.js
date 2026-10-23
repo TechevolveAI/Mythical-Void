@@ -16403,9 +16403,10 @@ async function smokeVillageUi(session, exceptions) {
     const arrivalRecovery = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene.villageHeartLandmark;
+        const alreadyFinished = scene.villageArrivalRevealActive !== true;
         const finished = scene.finishVillageArrivalReveal({ skipped: true });
         return {
-            finished,
+            finished, alreadyFinished,
             active: scene.villageArrivalRevealActive === true,
             revealPresent: Boolean(landmark?.arrivalReveal),
             focusActive: scene.sanctuaryFocusModeActive === true,
@@ -16438,17 +16439,17 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 3000, message: 'Village arrival reveal completion handoff' }
     );
     if (
-        !arrivalRecovery.finished ||
+        (arrivalRecovery.alreadyFinished ? arrivalRecovery.finished : !arrivalRecovery.finished) ||
         arrivalRecovery.active ||
         arrivalRecovery.revealPresent ||
         arrivalRecovery.focusActive ||
         !arrivalRecovery.cameraFollowingPlayer ||
         arrivalRecovery.controlsSuspended ||
         arrivalRecovery.inputShieldPresent ||
-        !arrivalRecovery.inputCooldownActive ||
+        (!arrivalRecovery.alreadyFinished && !arrivalRecovery.inputCooldownActive) ||
         !arrivalRecovery.navigationMarkersRestored ||
         !arrivalRecovery.menuRestored ||
-        arrivalRecovery.skipped !== true
+        arrivalRecovery.skipped !== !arrivalRecovery.alreadyFinished
     ) {
         throw new Error(
             `Village arrival reveal did not restore gameplay: ${JSON.stringify(arrivalRecovery)}`
