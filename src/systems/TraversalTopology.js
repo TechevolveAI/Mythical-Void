@@ -47,7 +47,8 @@ function normalizeSupport(support, index) {
         traversalCeiling: support?.traversalCeiling === true,
         traversalOneWay: type === 'one-way' ||
             support?.traversalOneWay === true,
-        traversalLinks
+        traversalLinks,
+        mountainStair: support?.mountainStair === true
     };
 }
 
@@ -364,7 +365,13 @@ function buildTraversalAdjacency(supports, envelope, {
     const adjacency = supports.map(() => []);
     supports.forEach((from, fromIndex) => {
         supports.forEach((to, toIndex) => {
-            if (canTraverseSupport(from, to, envelope, {
+            // The mountain collision handler walks right across joined risers
+            // up to 17px. Narrow stair treads are not jump landing platforms.
+            const stairRise = from.top - to.top;
+            const canWalkStep = to.mountainStair && to.left > from.left &&
+                Math.abs(from.right - to.left) <= 1 &&
+                stairRise >= 0 && stairRise <= 17;
+            if (canWalkStep || canTraverseSupport(from, to, envelope, {
                 obstacles: supports,
                 playerHalfWidth,
                 playerHeight

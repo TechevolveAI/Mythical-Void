@@ -19,9 +19,13 @@ for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, async () => { a
 async function main() {
     assert(!fs.existsSync(path.join(output, 'report.json')), 'Do not overwrite evidence');
     fs.mkdirSync(output, { recursive: true });
-    const { preview } = await import('vite');
-    server = await preview({ root, preview: { host: '127.0.0.1', port: 0, open: false } });
-    const base = `http://127.0.0.1:${server.httpServer.address().port}`;
+    const externalBase = String(process.env.MYTHICAL_VOID_SMOKE_URL || '').trim().replace(/\/+$/, '');
+    if (!externalBase) {
+        const { preview } = await import('vite');
+        server = await preview({ root, preview: { host: '127.0.0.1', port: 0, open: false } });
+    }
+    const base = externalBase || `http://127.0.0.1:${server.httpServer.address().port}`;
+    report.testedUrl = base;
     const nativeOpenGL = process.env.SMOKE_NATIVE_OPENGL === '1';
     browser = await chromium.launch({
         ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' }),
