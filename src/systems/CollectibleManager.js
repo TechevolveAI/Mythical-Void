@@ -1,3 +1,5 @@
+import LoreFragmentModal from '../ui/LoreFragmentModal.js';
+
 /**
  * CollectibleManager - Handles exploration collectibles, treasures, and discoveries
  * Spawns collectibles in the game world and tracks collection progress
@@ -828,78 +830,11 @@ class CollectibleManager {
      * Show lore popup when collecting a lore fragment
      */
     showLorePopup(scene, loreType) {
-        if (!scene) return;
-
-        const { width, height } = scene.scale;
-
-        // Create overlay
-        const overlay = scene.add.graphics();
-        overlay.fillStyle(0x000000, 0.8);
-        overlay.fillRect(0, 0, width, height);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(6000);
-
-        // Lore panel
-        const panelWidth = Math.min(450, width - 40);
-        const panelHeight = 320;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
-        const panel = scene.add.graphics();
-        panel.fillStyle(0x1A1A3E, 0.95);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-        panel.lineStyle(3, loreType.color || 0x7B68EE);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-        panel.setScrollFactor(0);
-        panel.setDepth(6001);
-
-        // Lore icon
-        const icon = scene.add.text(width / 2, panelY + 30, loreType.icon || '📜', {
-            fontSize: '36px'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(6002);
-
-        // Title
-        const title = scene.add.text(width / 2, panelY + 75, `📖 ${loreType.loreTitle || 'Lore Fragment'}`, {
-            fontSize: '20px',
-            color: '#FFD700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(6002);
-
-        // Lore text
-        const loreText = scene.add.text(width / 2, panelY + 120, loreType.loreText || 'A mysterious fragment...', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            align: 'center',
-            lineSpacing: 6,
-            wordWrap: { width: panelWidth - 40 }
-        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(6002);
-
-        // Close button
-        const closeBtn = scene.add.text(width / 2, panelY + panelHeight - 40, 'Continue', {
-            fontSize: '18px',
-            color: '#FFFFFF',
-            backgroundColor: '#7B68EE',
-            padding: { x: 25, y: 10 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(6002);
-        closeBtn.setInteractive({ useHandCursor: true });
-
-        const elements = [overlay, panel, icon, title, loreText, closeBtn];
-
-        closeBtn.on('pointerdown', () => {
-            elements.forEach(el => el.destroy());
-        });
-
-        closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#6a5acd' }));
-        closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#7B68EE' }));
-
-        // ESC to close
-        const escHandler = (event) => {
-            if (event.key === 'Escape') {
-                elements.forEach(el => el.destroy());
-                scene.input.keyboard.off('keydown', escHandler);
-            }
-        };
-        scene.input.keyboard.on('keydown', escHandler);
+        if (!scene || scene._isShuttingDown) return;
+        if (!scene.loreFragmentModal || scene.loreFragmentModal.destroyed) {
+            scene.loreFragmentModal = new LoreFragmentModal(scene);
+        }
+        if (!scene.loreFragmentModal.show(loreType)) return;
 
         // Emit lore discovered event
         this.emit('loreDiscovered', {

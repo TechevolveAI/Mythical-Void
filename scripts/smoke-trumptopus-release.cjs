@@ -19,9 +19,13 @@ for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, async () => { a
 async function main() {
     assert(!fs.existsSync(path.join(output, 'report.json')), 'Do not overwrite evidence');
     fs.mkdirSync(output, { recursive: true });
-    const { preview } = await import('vite');
-    server = await preview({ root, preview: { host: '127.0.0.1', port: 0, open: false } });
-    const base = `http://127.0.0.1:${server.httpServer.address().port}`;
+    const externalBase = String(process.env.MYTHICAL_VOID_SMOKE_URL || '').trim().replace(/\/+$/, '');
+    if (!externalBase) {
+        const { preview } = await import('vite');
+        server = await preview({ root, preview: { host: '127.0.0.1', port: 0, open: false } });
+    }
+    const base = externalBase || `http://127.0.0.1:${server.httpServer.address().port}`;
+    report.testedUrl = base;
     const nativeOpenGL = process.env.SMOKE_NATIVE_OPENGL === '1';
     browser = await chromium.launch({
         ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' }),
@@ -168,7 +172,13 @@ async function main() {
             try { await page.waitForFunction(({x,sign})=>sign*(prototypeScene.player.x-x)>=0,{x,sign},{timeout:15000}); }
             finally { await release(); }
         };
-        const face = async sign => {await direction(sign);await page.waitForTimeout(50);await release();};
+        const face = async sign => {
+            await direction(sign);
+            try {
+                await page.waitForFunction(right => prototypeScene.player.facingRight === right,
+                    sign > 0, {timeout:5000});
+            } finally { await release(); }
+        };
         const attack = async () => {
             if (name === 'desktop') return page.keyboard.press('KeyX');
             const point = await pointFor('melee');
@@ -293,12 +303,20 @@ async function main() {
                 await wait(()=>prototypeScene.encounter.state==='exposed');
             }
             const before=await state();
-            await move(before.hand.x+(before.player.x>=before.hand.x?80:-80));
-            await face(before.player.x>=before.hand.x?-1:1);
-            await page.screenshot({path:path.join(output,`${name}-phase-${locked.phaseIndex+1}.png`)});
+            const preferredSide = before.player.x >= before.hand.x ? 1 : -1;
+            const reachable = side => {
+                const x = before.hand.x + side * 80;
+                return x >= 85 && x <= width - 85;
+            };
+            const side = reachable(preferredSide) ? preferredSide : -preferredSide;
+            assert(reachable(side), 'No reachable counter position inside the arena');
+            await move(before.hand.x + side * 80);
+            await face(-side);
             for(let p=0;p<5&&(await state()).state==='exposed';p++){await attack();await page.waitForTimeout(380);}
             const after=await state();assert(after.health<before.health,'Real counter did not reach the boss');
             counters.push({phase:locked.phaseIndex+1,before:before.health,after:after.health});
+            // Capturing evidence must not consume a short, earned attack window.
+            await page.screenshot({path:path.join(output,`${name}-phase-${locked.phaseIndex+1}.png`)});
             await wait(()=>!['exposed','recoil'].includes(prototypeScene.encounter.state));
             if(n===0){
                 const motion=await page.evaluate(()=>finishBossMotion());

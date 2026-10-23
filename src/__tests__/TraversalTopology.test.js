@@ -58,6 +58,37 @@ describe('campaign traversal topology', () => {
         jumpVelocity: -450,
         playerSpeed: 200
     };
+    test('walk-up mountain stairs connect narrow joined treads to the summit', () => {
+        const stairs = Array.from({ length: 25 }, (_, i) => ({
+            ...support(`step-${i}`, 200 + i * 16, 216 + i * 16, 800 - (i + 1) * 16),
+            mountainStair: true
+        }));
+        const result = analyzeTraversalTopology({
+            supports: [support('start', 0, 200, 800), ...stairs,
+                { ...support('summit', 600, 900, 400), mountainStair: true }],
+            spawn: { x: 100, y: 740 },
+            targets: [{ id: 'summit', x: 750, y: 380, activationSupportIds: ['summit'] }],
+            movement: { gravityY: 500, jumpVelocity: -40, playerSpeed: 20 }
+        });
+        expect(result.passed).toBe(true);
+        expect(result.flow.strandingSupportCount).toBe(0);
+    });
+
+    test.each([
+        ['gap', 204, 784, true],
+        ['high riser', 200, 782, true],
+        ['ordinary wall', 200, 784, false]
+    ])('walk-up traversal rejects a %s', (_name, left, top, mountainStair) => {
+        const result = analyzeTraversalTopology({
+            supports: [support('start', 0, 200, 800),
+                { ...support('finish', left, left + 16, top), mountainStair }],
+            spawn: { x: 100, y: 740 },
+            targets: [{ id: 'finish', x: left + 8, y: top - 10, activationSupportIds: ['finish'] }],
+            movement: { gravityY: 500, jumpVelocity: -1, playerSpeed: 1 }
+        });
+        expect(result.passed).toBe(false);
+    });
+
 
     test('derives a conservative movement envelope from authored physics', () => {
         const envelope = calculateJumpEnvelope(movement);

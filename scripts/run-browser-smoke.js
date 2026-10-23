@@ -2,6 +2,9 @@
 
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const currentFinale = require('../src/config/final-void-release.json').encounter === 'trumptopus';
 
 const projectRoot = path.resolve(__dirname, '..');
 const host = process.env.MYTHICAL_VOID_SMOKE_HOST || '127.0.0.1';
@@ -269,8 +272,7 @@ async function main() {
             'reef',
             'voidPeaks',
             'auroraDepths',
-            'finalVoid',
-            'finalVoidWithCreature'
+            ...(!currentFinale ? ['finalVoid', 'finalVoidWithCreature'] : [])
         ];
         for (const smokeCase of interactionCases) {
             console.log(`[release-smoke] Interaction case: ${smokeCase}`);
@@ -302,6 +304,15 @@ async function main() {
             failures.push(`aurora-route-journey: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Caves grove and beacon death recovery');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'caves-checkpoint-recovery'
+            });
+        } catch (error) {
+            failures.push(`caves-checkpoint-recovery: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Fast campaign state-contract suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {
@@ -318,7 +329,7 @@ async function main() {
             'reef',
             'voidPeaks',
             'auroraDepths',
-            'finalVoid'
+            ...(!currentFinale ? ['finalVoid'] : [])
         ];
         for (const smokeCase of guardianHandoffCases) {
             console.log(`[release-smoke] Guardian handoff case: ${smokeCase}`);
@@ -411,7 +422,7 @@ async function main() {
             'ReefLevel',
             'VoidPeaksLevel',
             'AuroraDepthsLevel',
-            'FinalVoidLevel'
+            ...(!currentFinale ? ['FinalVoidLevel'] : [])
         ];
         for (const guardianCase of guardianCases) {
             console.log(`[release-smoke] Guardian case: ${guardianCase}`);
@@ -422,6 +433,18 @@ async function main() {
                 });
             } catch (error) {
                 failures.push(`guardian-pacing:${guardianCase}: ${error.message}`);
+            }
+        }
+
+        if (currentFinale) {
+            console.log('\n[release-smoke] Current Trumptopus encounter, recovery and campaign ending');
+            try {
+                await runNodeScript('scripts/smoke-trumptopus-release.cjs', {
+                    FINALE_RELEASE_EVIDENCE: fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-current-finale-')),
+                    FINALE_RELEASE_VIEWS: 'phone,desktop'
+                });
+            } catch (error) {
+                failures.push(`current-finale: ${error.message}`);
             }
         }
 

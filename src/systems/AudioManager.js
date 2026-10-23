@@ -2502,6 +2502,13 @@ class AudioManager {
         if (this.muted || (typeof document !== 'undefined' && document.hidden) ||
             (this.audioContext && this.audioContext.state !== 'running')) this.cancelSoundEffects();
         if (!ownsBinding() || !contexts.length || this.muted || (typeof document !== 'undefined' && document.hidden)) return Promise.resolve(false);
+        // The soundtrack is media playback. Supported iPhone browsers otherwise
+        // classify procedural audio as ambient and silence it with the ring switch.
+        // Keep this behind the player's unmuted, visible audio request.
+        try {
+            if (typeof navigator !== 'undefined' && navigator.audioSession &&
+                navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+        } catch { /* Older or restricted browsers still use normal gesture unlocking. */ }
         // Both resume calls must happen synchronously inside the same trusted gesture.
         const attempts = contexts.map(context => {
             if (context.state === 'running') return Promise.resolve(true);

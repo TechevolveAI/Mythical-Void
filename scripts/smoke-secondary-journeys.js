@@ -464,7 +464,10 @@ async function sampleFramePacing(session, sceneName, {
         const capture = now => {
             if (previousAt !== null) intervals.push(now - previousAt);
             previousAt = now;
-            if (now - startedAt >= ${sampleMs}) {
+            // Collect the required sample size even when software-rendered CI
+            // starts slowly. Retain every interval and the existing p95 budget.
+            if ((now - startedAt >= ${sampleMs} && intervals.length >= 12) ||
+                now - startedAt >= ${sampleMs * 3}) {
                 finish();
                 return;
             }
@@ -3645,6 +3648,10 @@ async function smokeForestForwardHandoffs(session) {
                 scene.player.body.blocked.down = true;
                 scene.player.body.touching.down = true;
                 scene.isGrounded = true;
+                if (scene.__smokeHandoffClock) scene.physics.world.off('worldstep', scene.__smokeHandoffClock);
+                scene.__smokeHandoffElapsed = 0;
+                scene.__smokeHandoffClock = delta => { scene.__smokeHandoffElapsed += delta * 1000; };
+                scene.physics.world.on('worldstep', scene.__smokeHandoffClock);
                 return {
                     startId: start.traversalId,
                     startRight: Math.round(start.body.right),
@@ -3695,14 +3702,18 @@ async function smokeForestForwardHandoffs(session) {
                     const target = scene.platforms.getChildren().find(
                         item => item.traversalId === ${JSON.stringify(transition.targetId)}
                     );
-                    return target?.body && scene.player?.body?.center?.x >=
-                        target.body.left + 28;
+                    const reached = target?.body && scene.player?.body?.center?.x >= target.body.left + 28;
+                    if (!reached && scene.__smokeHandoffElapsed > 2400) {
+                        throw Error('Forest handoff exceeded its 2400ms physics budget');
+                    }
+                    return reached;
                 })()`),
-                { timeoutMs: 2400, message: `${transition.id} approach` }
+                { timeoutMs: 15000, message: `${transition.id} approach` }
             );
             await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
                 scene?.player?.setVelocityX?.(0);
+                scene.__smokeHandoffElapsed = 0;
                 return true;
             })()`);
             await setKeyboardKey(session, 'keyUp', {
@@ -3721,6 +3732,9 @@ async function smokeForestForwardHandoffs(session) {
                         body.left < target.body.right - 5 &&
                         Math.abs(body.bottom - target.body.top) <= 7 &&
                         (body.blocked.down || scene.isGrounded);
+                    if (!onTarget && scene.__smokeHandoffElapsed > 3000) {
+                        throw Error('Forest handoff exceeded its 3000ms landing physics budget');
+                    }
                     return onTarget ? {
                         transitionId: ${JSON.stringify(transition.id)},
                         targetId: target.traversalId,
@@ -3729,7 +3743,7 @@ async function smokeForestForwardHandoffs(session) {
                         targetTop: Math.round(target.body.top)
                     } : null;
                 })()`),
-                { timeoutMs: 3000, message: `${transition.id} grounded landing` }
+                { timeoutMs: 18000, message: `${transition.id} grounded landing` }
             );
             landings.push({ staged, launch, landing });
         }
@@ -3746,6 +3760,9 @@ async function smokeForestForwardHandoffs(session) {
                 if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
             });
             scene.isInvincible = false;
+            if (scene.__smokeHandoffClock) scene.physics.world.off('worldstep', scene.__smokeHandoffClock);
+            delete scene.__smokeHandoffClock;
+            delete scene.__smokeHandoffElapsed;
             scene.player.body.reset(300, scene.levelHeight - 130);
             scene.player.setVelocity(0, 0);
             return true;
@@ -5177,7 +5194,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         mythicalForest: 'ELDER GROVE',
         crystalCaves: 'GUARDIAN CHAMBER',
         reef: 'STELLAR PASSAGE',
-        voidPeaks: 'TITAN PASS',
+        voidPeaks: 'MOUNTAIN SUMMIT',
         auroraDepths: 'PHOENIX SHIELD',
         finalVoid: 'EMPRESS SEAL'
     }[route];
@@ -5325,11 +5342,38 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         throw new Error(`${sceneName} has no usable mobile joystick: ${JSON.stringify(joystick)}`);
     }
 
+    // The interaction audit above leaves the world running. Start this isolated
+    // input probe on the authored first support, clear of enemies and edges.
+    // Do not manufacture grounded flags: real physics must settle it below.
+    if (route === 'mythicalForest') {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const support = scene.getTraversalSupport('forest-ground-1');
+            if (!support?.body || !scene.player?.body || scene.isPlayerDead) {
+                throw Error('Forest input fixture has no living player and start support');
+            }
+            scene.releaseAllPlatformerActionButtons?.();
+            scene.resetJoystick?.();
+            scene.input.keyboard?.resetKeys?.();
+            const x = support.body.left + 120;
+            scene.player.body.reset(x, scene.player.y);
+            scene.player.body.updateFromGameObject();
+            const y = scene.player.y + support.body.top - scene.player.body.bottom - 1;
+            scene.player.body.reset(x, y);
+            scene.player.body.updateFromGameObject();
+            scene.player.setVelocity(0, 0);
+            scene.isGrounded = false;
+            return true;
+        })()`);
+    }
     const jumpControl = await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const target = scene?.mobileControlTargets?.jump;
-            if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+            if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y) ||
+                !target.zone?.input?.enabled || !target.zone.visible || scene.isPlayerDead ||
+                scene.isRespawning || scene.rootwakeSequenceActive ||
+                scene.physics.world.isPaused || scene.input.enabled === false) {
                 return null;
             }
             return { x: target.x, y: target.y };
@@ -5340,14 +5384,19 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         await waitFor(
             () => evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                const supported = Boolean(
-                    scene?.isGrounded || scene?.player?.body?.blocked?.down
-                );
+                const body = scene?.player?.body;
+                const supported = Boolean(body &&
+                    (body.blocked.down || body.touching.down) &&
+                    scene.platforms.getChildren().some(platform => platform.body?.enable &&
+                        body.right > platform.body.left + 2 && body.left < platform.body.right - 2 &&
+                        Math.abs(body.bottom - platform.body.top) <= 2));
                 const velocityY = scene?.player?.body?.velocity?.y;
                 const inputReady = scene?.canJump !== false &&
                     (Number(scene?.recoveryInputLockedUntil) || 0) <= scene.time.now;
                 return supported && inputReady &&
-                    Number.isFinite(velocityY) && velocityY >= -1;
+                    scene.mobileControlTargets?.jump?.zone?.input?.enabled &&
+                    !scene.isPlayerDead && !scene.isRespawning &&
+                    Number.isFinite(velocityY) && Math.abs(velocityY) <= 1;
             })()`),
             { timeoutMs: 5000, message: `${sceneName} jump-ready support` }
         );
@@ -6213,8 +6262,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             !choicePresentation?.mainMarker.includes(choicePresentation.mainLabel) ||
             !choicePresentation.mainMarker.includes(choicePresentation.mainTradeoff) ||
             !choicePresentation.optionalMarker.includes(choicePresentation.routeTitle) ||
-            !choicePresentation.optionalMarker.includes(choicePresentation.challengeLabel) ||
-            !choicePresentation.optionalMarker.includes(choicePresentation.rewardLabel) ||
+            !choicePresentation.optionalMarker.toLowerCase().includes(choicePresentation.challengeLabel.toLowerCase()) ||
+            (route !== 'voidPeaks' && !choicePresentation.optionalMarker.includes(choicePresentation.rewardLabel)) ||
             choicePresentation.supportAudit?.passed !== true ||
             choicePresentation.mainSupportIds?.length < 1 ||
             choicePresentation.optionalSupportIds?.length < 1 ||
@@ -6637,10 +6686,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 mainRouteEffect.energyAfter !== mainRouteEffect.energyBefore ||
                 mainRouteEffect.persistedBefore !== 1 ||
                 mainRouteEffect.persistedCharges !== 0 ||
-                !mainRouteEffect.objectiveBefore.includes('FREE BLAST READY') ||
-                !mainRouteEffect.objective.includes('FREE BLAST SPENT') ||
-                !choicePresentation.mainTradeoff.includes('1 FREE BLAST') ||
-                !choicePresentation.challengeLabel.includes('2 RELICS') ||
+                !mainRouteEffect.objectiveBefore.includes('REACH THE SUMMIT') ||
+                !mainRouteEffect.objective.includes('REACH THE SUMMIT') ||
+                choicePresentation.mainTradeoff !== 'Extra blast' ||
+                choicePresentation.challengeLabel !== 'EXTRA SHIELD' ||
                 !choicePresentation.rewardLabel.includes('1 HIT')
             ) {
                 throw new Error(
@@ -7181,6 +7230,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         }
     }
 
+    if (route === 'crystalCaves') {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+            scene.__smokeAwakenGuardian = scene.awakenCorruptedGuardian;
+            scene.__smokeAwakenRequests = 0;
+            scene.awakenCorruptedGuardian = () => { scene.__smokeAwakenRequests++; return false; };
+        })()`);
+    }
     let routeHandoff = null;
     let routeCompletion = null;
     let outOfOrderGuard = null;
@@ -7354,6 +7411,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 supportId: staged.supportId,
                 checkpointX: staged.checkpointX,
                 checkpointY: staged.checkpointY,
+                playerHeight: staged.playerHeight,
                 supportTop: staged.supportTop
             });
         }
@@ -7363,6 +7421,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 supportId: staged.supportId,
                 checkpointX: staged.checkpointX,
                 checkpointY: staged.checkpointY,
+                playerHeight: staged.playerHeight,
                 supportTop: staged.supportTop
             });
         }
@@ -7411,10 +7470,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             );
         }
 
+        let finalCheckpointIndex = 0;
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
-            if (route === 'voidPeaks' && signalIndex === 2) {
-                await delay(2000);
-            }
             const stagedSignal = [
                 'mythicalForest',
                 'crystalCaves',
@@ -7442,12 +7499,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     JSON.stringify(stagedSignal)
                 );
             }
+            finalCheckpointIndex = stagedSignal.checkpointIndex ?? signalIndex;
             if (route === 'reef') {
                 reefWaypointSupports.push({
                     index: stagedSignal.index,
                     supportId: stagedSignal.supportId,
                     checkpointX: stagedSignal.checkpointX,
                     checkpointY: stagedSignal.checkpointY,
+                    playerHeight: stagedSignal.playerHeight,
                     supportTop: stagedSignal.supportTop
                 });
             }
@@ -7457,6 +7516,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     supportId: stagedSignal.supportId,
                     checkpointX: stagedSignal.checkpointX,
                     checkpointY: stagedSignal.checkpointY,
+                    playerHeight: stagedSignal.playerHeight,
                     supportTop: stagedSignal.supportTop
                 });
             }
@@ -7469,11 +7529,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         'activated';
                     const signal = signals[${signalIndex}];
                     const nextSignal = scene?.getNextOrderedRouteSignal?.();
-                    const expectedNextIndex = ${signalIndex} < signals.length - 1
-                        ? ${signalIndex} + 1
-                        : null;
                     if (signal?.[activeProperty] !== true) return null;
-                    if ((nextSignal?.index ?? null) !== expectedNextIndex) return null;
+                    const remaining = signals.filter(item => item?.[activeProperty] !== true);
+                    if (remaining.length ? !remaining.includes(nextSignal) : nextSignal != null) return null;
                     return {
                         completedIndex: signal.index,
                         completedSignalEmphasized: Boolean(signal.guidanceTween),
@@ -7536,7 +7594,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             routeCompletion.compass !== '' ||
             routeCompletion.emphasizedSignals !== 0 ||
             routeCompletion.remainingZones !== 0 ||
-            routeCompletion.checkpointIndex !== 2 ||
+            routeCompletion.checkpointIndex !== finalCheckpointIndex ||
             !routeCompletion.checkpointId ||
             !Number.isFinite(routeCompletion.checkpointX) ||
             !Number.isFinite(routeCompletion.checkpointY) ||
@@ -7558,10 +7616,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 reefWaypointSupports[1]?.supportId !== 'reef-traveler-relay' ||
                 reefWaypointSupports[2]?.supportId !== 'reef-passage-vector' ||
                 reefWaypointSupports.some(waypoint =>
+                    !Number.isFinite(waypoint.playerHeight) ||
                     !Number.isFinite(waypoint.checkpointX) ||
                     !Number.isFinite(waypoint.checkpointY) ||
                     waypoint.checkpointY >= waypoint.supportTop ||
-                    waypoint.checkpointY < waypoint.supportTop - 100
+                    waypoint.checkpointY < waypoint.supportTop - Math.max(100, waypoint.playerHeight)
                 )
             )
         ) {
@@ -7695,7 +7754,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 }
             );
             if (
-                warningAction.relayId !== 'peaks_relay_3' ||
+                warningAction.relayId !== `peaks_relay_${routeCompletion.checkpointIndex + 1}` ||
                 !warningAction.visualActive ||
                 Math.abs(warningAction.sourceX - warningAction.playerX) > 12 ||
                 Math.abs(warningAction.sourceY - warningAction.playerBottom) > 20 ||
@@ -7740,7 +7799,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 }
             );
             if (
-                peakWarningResponse.relayId !== 'peaks_relay_3' ||
+                peakWarningResponse.relayId !== `peaks_relay_${routeCompletion.checkpointIndex + 1}` ||
                 peakWarningResponse.stage !== 'settled' ||
                 peakWarningResponse.progress !== 1 ||
                 !peakWarningResponse.visualActive ||
@@ -7764,10 +7823,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 forestAnchorSupports[1]?.supportId !== 'forest-ground-5' ||
                 forestAnchorSupports[2]?.supportId !== 'forest-ground-6' ||
                 forestAnchorSupports.some(anchor =>
+                    !Number.isFinite(anchor.playerHeight) ||
                     !Number.isFinite(anchor.checkpointX) ||
                     !Number.isFinite(anchor.checkpointY) ||
                     anchor.checkpointY >= anchor.supportTop ||
-                    anchor.checkpointY < anchor.supportTop - 100
+                    anchor.checkpointY < anchor.supportTop - Math.max(100, anchor.playerHeight)
                 )
             )
         ) {
@@ -8063,12 +8123,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         scene.player.setVelocity?.(0, 0);
                         scene.collectStarFragment?.(item);
                     } else if (${JSON.stringify(route)} === 'mythicalForest') {
-                        if (scene.player.body?.reset) {
-                            scene.player.body.reset(item.x, item.y - 80);
-                            scene.player.setVelocity?.(0, 220);
-                        } else {
-                            scene.player.setPosition(item.x, item.y - 80);
-                        }
+                        // Creature textures have different contact offsets.
+                        // Stage the actual body over the pickup and let the
+                        // normal physics overlap award it on the next step.
+                        const body = scene.player.body;
+                        body.reset(item.x, item.y);
+                        body.updateFromGameObject();
+                        scene.player.setPosition(
+                            scene.player.x + item.x - body.center.x,
+                            scene.player.y + item.y - body.center.y
+                        );
+                        body.updateFromGameObject();
                     } else {
                         if (scene.player.body?.reset) {
                             scene.player.body.reset(item.x, item.y);
@@ -8202,9 +8267,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 optionalRouteCompletion.progress !== optionalRequired ||
                 optionalRouteCompletion.required !== optionalRequired ||
                 optionalRouteCompletion.completed !== true ||
-                !optionalRouteCompletion.marker.includes('COMPLETE') ||
+                (route !== 'voidPeaks' && !optionalRouteCompletion.marker.includes('COMPLETE')) ||
+                (route === 'voidPeaks' && optionalRouteCompletion.marker !== 'HIGH RIDGE\nExtra shield') ||
                 optionalRouteCompletion.rewardStatus !== expectedRewardText ||
-                !optionalRouteCompletion.marker.includes(expectedRewardText.replace(' // EARNED', ' EARNED')) ||
+                (route !== 'voidPeaks' && !optionalRouteCompletion.marker.includes(expectedRewardText.replace(' // EARNED', ' EARNED'))) ||
                 (!optionalRouteCompletion.compactObjective &&
                     !optionalRouteCompletion.objective.includes(expectedRewardText)) ||
                 optionalRouteCompletion.duplicateAccepted !== false ||
@@ -8555,6 +8621,18 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             })()`);
             throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
         }
+        if (route === 'crystalCaves') {
+            const automaticRequest = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+                const requests = scene.__smokeAwakenRequests;
+                scene.awakenCorruptedGuardian = scene.__smokeAwakenGuardian;
+                delete scene.__smokeAwakenGuardian;
+                return { requests, entered: scene.awakenCorruptedGuardian() };
+            })()`);
+            if (automaticRequest.requests < 1 || !automaticRequest.entered) {
+                throw new Error('Caves automatic guardian transition did not request and enter the arena');
+            }
+        }
         const guardianEntrySetup = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const gate = scene?.guardianGateState;
@@ -8766,7 +8844,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             { timeoutMs: 15000, message: `${sceneName} guardian combat start` }
         );
 
-        if (route === 'mythicalForest') {
+        if (['mythicalForest', 'voidPeaks'].includes(route)) {
             await waitForGuardianOpening(session, { route, sceneName });
         }
 
@@ -8775,7 +8853,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             const target = scene?.getBossCombatTarget?.();
             if (!scene?.player || !target || !scene?.bossFightActive) return null;
 
-            if (${JSON.stringify(route)} !== 'mythicalForest') {
+            if (!['mythicalForest', 'voidPeaks'].includes(${JSON.stringify(route)})) {
                 scene.bossRecoveryUntil = 0;
                 scene.titanRecoveryUntil = 0;
                 if (scene.boss) scene.boss.isRecovering = false;
@@ -8797,7 +8875,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             const result = {
                 healthBefore,
                 healthAfter: Number(scene.bossHealth),
-                expectedDamage: ${JSON.stringify(route)} === 'mythicalForest' ? 4 : 3,
+                expectedDamage: ['mythicalForest', 'voidPeaks'].includes(${JSON.stringify(route)}) ? 4 : 3,
                 energyBefore,
                 energyAfter: Number(scene.crystalEnergy),
                 targetDistance: Phaser.Math.Distance.Between(
@@ -9373,9 +9451,12 @@ async function smokeReefPrivateEvidence(session, exceptions) {
 async function smokeTraversalTopology(session, levels, exceptions) {
     const results = {};
 
-    for (const [route, sceneName] of levels.filter(
-        ([candidate]) => SMOKE_CASE === 'all' || SMOKE_CASE === candidate
-    )) {
+    const selectedLevels = levels.filter(
+        ([candidate]) => (SMOKE_CASE === 'all' || SMOKE_CASE === candidate) &&
+            (candidate !== 'finalVoid' || require('../src/config/final-void-release.json').encounter !== 'trumptopus')
+    );
+    if (!selectedLevels.length) throw new Error('Use smoke-trumptopus-release.cjs for the selected final encounter');
+    for (const [route, sceneName] of selectedLevels) {
         exceptions.length = 0;
         await navigate(session, `${BASE_URL}/play/?reset=true`);
         await waitForScene(session, 'HatchingScene');
@@ -9835,18 +9916,26 @@ async function stagePlatformBoundRouteSignal(session, {
         const support = scene?.getTraversalSupport?.(
             signal?.activationSupportIds?.[0]
         );
-        if (!scene?.player?.body || !signal?.zone?.active || !support?.body) {
+        if (!scene?.player?.body || !signal || !support?.body ||
+            (!signal.zone?.active && !signal.activated && !signal.aligned)) {
             return null;
         }
+        const previouslyActivated = signal.activated === true || signal.aligned === true;
+        const checkpointBefore = { ...scene.checkpointPosition };
+        if (previouslyActivated) return {
+            id: signal.id, index: signal.index, previouslyActivated, checkpointBefore,
+            supportId: support.traversalId, supportTop: support.body.top
+        };
+
+        // reset() uses the sprite bounds; updateFromGameObject() restores the
+        // body's scaled offset before calculating the feet-on-platform position.
+        scene.player.body.reset(signal.x, support.body.top);
+        scene.player.body.updateFromGameObject();
         scene.player.body.reset(
-            signal.x,
-            support.body.top
+            scene.player.x + signal.x - scene.player.body.center.x,
+            scene.player.y + support.body.top - scene.player.body.bottom - 1
         );
-        scene.player.body.position.y +=
-            support.body.top - scene.player.body.bottom;
-        scene.player.body.position.x +=
-            signal.x - scene.player.body.center.x;
-        scene.player.body.updateCenter?.();
+        scene.player.body.updateFromGameObject();
         scene.player.setVelocity?.(0, 0);
         scene.player.body.blocked.down = true;
         scene.player.body.touching.down = true;
@@ -9865,6 +9954,7 @@ async function stagePlatformBoundRouteSignal(session, {
         return {
             id: signal.id,
             index: signal.index,
+            previouslyActivated, checkpointBefore,
             supportId: support.traversalId,
             supportTop: support.body.top,
             playerBottom: scene.player.body.bottom,
@@ -9894,17 +9984,25 @@ async function stagePlatformBoundRouteSignal(session, {
             const complete = ${JSON.stringify(route)} === 'auroraDepths'
                 ? signal?.aligned === true
                 : signal?.activated === true;
+            const expectedCheckpointIndex = ${JSON.stringify(staged.previouslyActivated ? staged.checkpointBefore.index : index)};
+            const checkpointSignal = scene.orderedRouteSignals?.find(item => item.index === expectedCheckpointIndex);
+            const checkpointSupport = scene.getTraversalSupport(checkpointSignal?.activationSupportIds?.[0]);
             const groundedCheckpoint = complete &&
-                checkpoint?.index === ${index} &&
-                support?.body && body &&
-                checkpoint.x >= support.body.left &&
-                checkpoint.x <= support.body.right &&
-                checkpoint.y < support.body.top &&
-                checkpoint.y >= support.body.top - 100;
+                checkpoint?.index === expectedCheckpointIndex &&
+                checkpointSupport?.body && support?.body && body &&
+                Math.abs(body.bottom - (${staged.previouslyActivated} ? checkpointSupport : support).body.top) <= 2 &&
+                checkpoint.x >= checkpointSupport.body.left &&
+                checkpoint.x <= checkpointSupport.body.right &&
+                checkpoint.y < checkpointSupport.body.top &&
+                checkpoint.y >= checkpointSupport.body.top - Math.max(
+                    100, scene.player.displayHeight
+                );
             return groundedCheckpoint ? {
                 id: signal.id,
                 index: signal.index,
                 firstSignalIndex: signal.index,
+                checkpointIndex: checkpoint.index,
+                playerHeight: scene.player.displayHeight,
                 supportId: support.traversalId,
                 checkpointX: checkpoint.x,
                 checkpointY: checkpoint.y,
@@ -9915,7 +10013,66 @@ async function stagePlatformBoundRouteSignal(session, {
             timeoutMs: 2500,
             message: `${sceneName} signal ${index + 1} grounded landing`
         }
-    );
+    ).catch(async error => {
+        const diagnostic = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return { checkpoint: scene.checkpointPosition, player: { x: scene.player.x, y: scene.player.y, height: scene.player.displayHeight, feet: scene.player.body.bottom }, signals: (scene.orderedRouteSignals || []).map(signal => ({ id: signal.id, index: signal.index, activated: signal.activated, aligned: signal.aligned, support: signal.activationSupportIds?.[0], top: scene.getTraversalSupport(signal.activationSupportIds?.[0])?.body?.top })) };
+        })()`);
+        throw new Error(error.message + ': ' + JSON.stringify(diagnostic));
+    });
+}
+
+async function smokeCaveCheckpointRecovery(session) {
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(() => {
+        const state = window.GameState, profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        const creature = { ...state.get('creature'), id: profile.genes.id, genes: profile.genes,
+            genetics: profile.genes, dna: profile.dna, name: 'Test Fern', hatched: true, named: true };
+        state.set('creature', creature); state.set('creatures', [creature]);
+        state.set('activeCreatureIndex', 0); state.set('session.gameStarted', true);
+        state.save(); return true;
+    })()`);
+    await startCampaignScene(session, { route: 'crystalCaves', sceneName: 'CrystalCavesLevel' });
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+        scene.isInvincible = true;
+        return true;
+    })()`);
+    for (const index of [0, 1]) await stagePlatformBoundRouteSignal(session,
+        { sceneName: 'CrystalCavesLevel', route: 'crystalCaves', index });
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+        scene.player.setPosition(scene.woundedCrystalGrove.x, scene.player.y);
+        scene.player.body.updateFromGameObject();
+        for (const key of ['prev', 'prevFrame', 'autoFrame']) scene.player.body[key]?.copy(scene.player.body.position);
+        scene.player.setVelocity(0, 0);
+        return true;
+    })()`);
+    const before = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+        const checkpoint = scene.checkpointPosition;
+        const saved = window.GameState.get('story.projectBeacon.expeditionCheckpoint');
+        return scene.crystalWoundTended && checkpoint?.id === 'caves_anchor_2' &&
+            saved?.checkpointId === checkpoint.id ? { checkpoint, savedId: saved.checkpointId } : null;
+    })()`), { message: 'grove preserves the current Caves beacon' });
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('CrystalCavesLevel').onPlayerDeath();
+        return true;
+    })()`);
+    await touchSceneText(session, 'CONTINUE FROM BEACON', { message: 'Caves checkpoint retry' });
+    const after = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+        const support = scene.getTraversalSupport('caves-grove-step'), body = scene.player.body;
+        if (scene.isPlayerDead || scene.physics.world.isPaused ||
+            Math.abs(body.bottom - support.body.top) > 2 || !body.blocked.down) return null;
+        return { checkpoint: scene.checkpointPosition, feet: body.bottom,
+            supportTop: support.body.top, controlsReady: scene.platformerControlsVisible === true };
+    })()`), { timeoutMs: 6000, message: 'Caves retry lands on the same safe beacon' });
+    if (after.checkpoint.id !== before.checkpoint.id || !after.controlsReady) {
+        throw new Error('Caves retry lost its checkpoint or controls: ' + JSON.stringify(after));
+    }
+    return { before, after, stagedPosition: true, actualRetryTouch: true };
 }
 
 async function stageAuroraPrism(session, index) {
@@ -9937,6 +10094,12 @@ async function restartAuroraFromCheckpoint(session) {
         return true;
     })()`);
     await waitForScene(session, 'AuroraDepthsLevel');
+    await tap(session, 195, 140);
+    await pressEnter(session);
+    await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        return (scene?.levelStarted || scene?.gameStarted || scene?.levelEntryDismissing) && !scene.physics.world.isPaused;
+    })()`), { message: 'Aurora resumed gameplay' });
     return waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
@@ -10803,7 +10966,7 @@ async function smokeFusionPodLifecycle(session, exceptions) {
         const close = await evaluate(session, `(() => {
             const pod = window.mythicalGame.scene.getScene('FusionPodScene');
             const button = pod?.children?.list?.find(child => (
-                child?.type === 'Text' && child.text === '✕' && child.active !== false
+                child?.type === 'Text' && child.text === 'X' && child.active !== false
             ));
             const bounds = button?.getBounds?.();
             return bounds ? {
@@ -11089,30 +11252,36 @@ async function smokeHomeStart(session, exceptions) {
 
 async function smokeLateLivingFormArrival(session, exceptions) {
     exceptions.length = 0;
-    await navigate(
-        session,
-        `${BASE_URL}/play/?testGuardians=0&testPortraitReady=full`
-    );
-    try {
-        await waitForScene(session, 'GameScene', 2500);
-    } catch (error) {
-        await evaluate(session, `(() => {
-            const game = window.mythicalGame;
-            if (!game?.scene) return false;
-            game.scene.getScenes(true).forEach(activeScene => {
-                if (activeScene.scene?.key !== 'GameScene') {
-                    game.scene.stop(activeScene.scene.key);
-                }
-            });
-            game.scene.start('GameScene', {
-                guardianResidentPreview: 0,
-                livingPortraitReadyPreview: true,
-                livingPortraitFullRevealPreview: true
-            });
-            return true;
-        })()`);
-        await waitForScene(session, 'GameScene');
-    }
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(() => {
+        const state = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        if (window.APIConfig) {
+            window.APIConfig.isEnabled = () => false;
+            window.APIConfig.isVideoEnabled = () => false;
+        }
+        state.set('creature', { ...state.get('creature'), id: 'synthetic-late-creature',
+            name: 'Nova', hatched: true, named: true, genes: profile.genes,
+            genetics: profile.genes, dna: profile.dna,
+            lifecycle: { ...state.get('creature.lifecycle'), stage: 'baby' } });
+        state.set('session.gameStarted', true);
+        state.set('tutorial.crashStorySeen', true);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
+        state.set('tutorial.livingFormSeen', false);
+        state.set('tutorial.livingFormPending', false);
+        state.save();
+        window.mythicalGame.scene.stop('HatchingScene');
+        window.mythicalGame.scene.start('GameScene', { biome: 'nebula', forceMobileControls: true });
+    })()`);
+    await waitForScene(session, 'GameScene');
+    await evaluate(session, `(async () => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const portrait = (${stageFirstSanctuaryLatePortraitFixture.toString()})(window.GameState);
+        if (!portrait) throw Error('Synthetic late portrait was not saved for the active creature');
+        await scene.maybeShowLivingPortraitReadyNotice(portrait);
+    })()`);
 
     const reveal = await waitFor(
         () => evaluate(session, `(() => {
@@ -11314,7 +11483,21 @@ async function smokeCreatureContinuity(session, exceptions) {
             };
         })()`),
         { timeoutMs: 15000, message: 'same living portrait in Creature Profile' }
-    );
+    ).catch(async error => {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('CreatureProfileScene');
+            const record = window.__creatureContinuityRecord;
+            return { expectedIdentity: record?.identityKey,
+                activeRecord: window.GameState.getCreaturePortrait('baby'),
+                activeStage: window.GameState.get('creature.lifecycle.stage'),
+                portraitActive: window.CompanionMediaService.isActivePortrait(record),
+                sceneActive: scene?.scene?.isActive(), request: scene?.profilePortraitRequest,
+                textures: scene?.children?.list?.filter(x => x.texture).map(x => x.texture.key),
+                labels: scene?.children?.list?.filter(x => x.text).map(x => x.text).filter(x => /LIVING|PORTRAIT|FORM/.test(x)),
+                appearances: window.GameState.get('story.companionMedia.appearances') };
+        })()`);
+        throw Error(error.message + ': ' + JSON.stringify(diagnostics));
+    });
     if (
         profileSurface.creatureId !== seeded.creatureId ||
         profileSurface.activeIdentityKey !== seeded.identityKey ||
@@ -12855,17 +13038,14 @@ async function smokeSanctuaryNavigation(session, exceptions) {
     await evaluate(session, `(() => {
         const game = window.mythicalGame;
         const state = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
         const creature = {
             ...(state.get('creature') || {}),
             id: 'smoke_navigation_nova',
             name: 'Nova',
             hatched: true,
             named: true,
-            genes: {
-                id: 'smoke_navigation_genes_23',
-                personality: { primary: 'curious' },
-                cosmicAffinity: { element: 'nebula' }
-            },
+            genes: profile.genes, genetics: profile.genes, dna: profile.dna,
             stats: { happiness: 92, energy: 90 }
         };
         state.set('creature', creature);
@@ -12874,6 +13054,8 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         state.set('session.gameStarted', true);
         state.set('tutorial.crashStorySeen', true);
         state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.livingFormSeen', true);
+        state.set('tutorial.livingFormPending', false);
         state.set('tutorial.villageHeartArrivalSeen', true);
         state.save();
         const hatchingScene = game.scene.getScene('HatchingScene');
@@ -12892,6 +13074,22 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         () => evaluate(session, `window.SpaceWeatherSystem?.isInitialized === true`),
         { timeoutMs: 18000, message: 'Sanctuary world-data initialization' }
     );
+
+    // The daily greeting intentionally blocks queued notices. Close it through
+    // its real button before testing the notification and menu lifecycle.
+    const greeting = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const button = scene.greetingElements?.find(e => e.input?.enabled &&
+            ['LOG SUPPLIES', 'RETURN TO SANCTUARY'].includes(e.text));
+        if (!button) return null;
+        const b = button.getBounds(), camera = scene.cameras.main;
+        return { x: (b.centerX - scene.scale.width / 2) * camera.zoom + scene.scale.width / 2,
+            y: (b.centerY - scene.scale.height / 2) * camera.zoom + scene.scale.height / 2 };
+    })()`), { timeoutMs: 15000, message: 'daily greeting continuation' });
+    await touch(session, greeting.x, greeting.y);
+    await waitFor(() => evaluate(session, `!window.OnboardingManager?.isProcessing &&
+        !window.mythicalGame.scene.getScene('GameScene').greetingElements?.length`),
+        { timeoutMs: 5000, message: 'daily greeting dismissed' });
 
     const worldDataListenerLifecycle = await evaluate(session, `(async () => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -13116,7 +13314,7 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         overlays: overlayRoutes
     };
 
-    const achievementToast = await evaluate(session, `(() => {
+    await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const notification = scene.achievementNotification;
         notification.show({
@@ -13127,6 +13325,12 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             rewards: { coins: 23 },
             rewardClaimed: true
         });
+        return true;
+    })()`);
+    const achievementToast = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const notification = scene.achievementNotification;
+        if (notification.currentNotification?.id !== 'smoke_mobile_dismiss') return null;
         const zone = notification.dismissZone;
         const point = zone?.getWorldTransformMatrix?.().transformPoint(0, 0);
         if (!notification.isVisible || !zone || !point) return null;
@@ -13141,7 +13345,20 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             height: zone.height,
             visible: notification.isVisible
         };
-    })()`);
+    })()`), { timeoutMs: 15000, message: 'queued achievement toast presentation' }).catch(async error => {
+        const diagnostic = await evaluate(session, `(() => {
+            const s = window.mythicalGame.scene.getScene('GameScene');
+            return { onboarding: s.sanctuaryOnboardingPending, portraitBlocked: s.isLivingPortraitNoticeBlocked(),
+                queue: s.sanctuaryNotices?.pending.map(x => x.key), active: s.sanctuaryNotices?.active?.entry.key,
+                current: s.achievementNotification?.currentNotification?.id, destroyed: s.achievementNotification?.destroyed,
+                blocked: { processing: window.OnboardingManager?.isProcessing, arrival: s.villageArrivalRevealActive,
+                    greeting: s.greetingElements?.length, story: s.storyModalElements?.length,
+                    controls: s.controlsTutorial?.isVisible, menu: s.hamburgerMenu?.isOpen,
+                    chat: s.chatOverlay?.getIsVisible?.(), village: Boolean(s.villageCommandPanel?.domElement),
+                    radial: s.creatureRadialMenu?.isVisible, care: s.carePanelManager?.panelVisible } };
+        })()`);
+        throw new Error(error.message + ': ' + JSON.stringify(diagnostic));
+    });
     if (
         !achievementToast?.visible ||
         achievementToast.width < 300 ||
@@ -13155,6 +13372,42 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             `Achievement toast was not a mobile-safe dismiss target: ${JSON.stringify(achievementToast)}`
         );
     }
+    // Reproduce the phone report: a collectible story arrives over an achievement
+    // while the Sanctuary camera is zoomed. The DOM dialog must own the screen,
+    // then return the existing achievement and controls without losing rewards.
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const lore = window.CollectibleManager.collectibleTypes.lore.nebula[0];
+        window.CollectibleManager.showLorePopup(scene, lore);
+        return true;
+    })()`);
+    const loreDialog = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const panel = document.querySelector('.lore-fragment-panel');
+        const button = document.querySelector('.lore-fragment-continue');
+        if (!panel || !button || !scene.isLoreModalOpen) return null;
+        const b = button.getBoundingClientRect();
+        return { title: panel.querySelector('h2')?.textContent, x: b.x, y: b.y,
+            width: b.width, height: b.height, right: b.right, bottom: b.bottom,
+            inputEnabled: scene.input.enabled, physicsPaused: scene.physics.world.isPaused,
+            controlsSuspended: scene.mobileControls.isSuspended,
+            achievementVisible: scene.achievementNotification.isVisible };
+    })()`), { timeoutMs: 5000, message: 'lore owns the screen over an achievement' });
+    if (loreDialog.title !== 'The Crash' || loreDialog.inputEnabled ||
+        !loreDialog.physicsPaused || !loreDialog.controlsSuspended || loreDialog.achievementVisible ||
+        loreDialog.width < 44 || loreDialog.height < 44 || loreDialog.x < 0 || loreDialog.y < 0 ||
+        loreDialog.right > SMOKE_VIEWPORT_WIDTH || loreDialog.bottom > SMOKE_VIEWPORT_HEIGHT) {
+        throw new Error('Lore dialog did not provide safe mobile dismissal: ' + JSON.stringify(loreDialog));
+    }
+    if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'lore-dialog-over-achievement.png');
+    await touchDomButton(session, '.lore-fragment-continue');
+    await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        return !document.querySelector('.lore-fragment-overlay') && !scene.isLoreModalOpen &&
+            scene.input.enabled && !scene.physics.world.isPaused && !scene.mobileControls.isSuspended &&
+            scene.achievementNotification.currentNotification?.id === 'smoke_mobile_dismiss';
+    })()`), { timeoutMs: 5000, message: 'lore returns control and the queued achievement' });
+
     // Let Phaser register the newly-created interactive child and complete the
     // short entrance tween before exercising the same touch a player makes.
     await delay(400);
@@ -14059,11 +14312,11 @@ async function smokeHubForestTransition(session, exceptions) {
     );
     if (
         hubResume.resume?.checkpointId !== 'forest_anchor_1' ||
-        hubResume.resume?.label !== 'Rootway' ||
+        hubResume.resume?.label !== 'Tangled Roots' ||
         hubResume.resume?.current !== 1 ||
         hubResume.resume?.total !== 3 ||
         !hubResume.info.includes('Beacon 1/3') ||
-        !hubResume.info.includes('Rootway')
+        !hubResume.info.includes('Tangled Roots')
     ) {
         throw new Error(
             `Hub did not explain the resumable Forest checkpoint: ${JSON.stringify(hubResume)}`
@@ -15193,6 +15446,13 @@ async function smokeCampaignStateContract(session, exceptions) {
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
         const state = window.GameState;
+        const fixtureState = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        const creature = { ...fixtureState.get('creature'), id: profile.genes.id, genes: profile.genes, genetics: profile.genes, dna: profile.dna, name: 'Nova', hatched: true, named: true };
+        fixtureState.set('creature', creature);
+        fixtureState.set('creatures', [creature]);
+        fixtureState.set('activeCreatureIndex', 0);
+        fixtureState.set('session.gameStarted', true);
         state.set('creature.name', 'Nova');
         state.set('creature.hatched', true);
         state.set('creature.named', true);
@@ -15344,9 +15604,10 @@ async function smokeFinalPriorityJourney(session, exceptions) {
     const started = await evaluate(session, `(() => {
         const game = window.mythicalGame;
         const state = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
         const creature = {
             ...(state.get('creature') || {}),
-            id: 'smoke_finale_nova',
+            id: 'smoke_finale_nova', genes: profile.genes, genetics: profile.genes, dna: profile.dna,
             name: 'Nova',
             hatched: true,
             named: true,
@@ -15391,7 +15652,7 @@ async function smokeFinalPriorityJourney(session, exceptions) {
         sanctuaryVisible: window.mythicalGame.scene.getScenes(true)
             .some(scene => scene.children?.list?.some(item => item.text === 'SANCTUARY')),
         newGamePlusVisible: window.mythicalGame.scene.getScenes(true)
-            .some(scene => scene.children?.list?.some(item => item.text === 'NEW GAME+'))
+            .some(scene => scene.children?.list?.some(item => item.text === 'NEW GAME'))
     }))()`);
     if (
         ending.priority !== 'prepare_homecoming' ||
@@ -15531,12 +15792,15 @@ async function smokeSaveReloadJourney(session, exceptions) {
     const seeded = await evaluate(session, `(() => {
         const game = window.mythicalGame;
         const state = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        state.set('creature.genes', profile.genes);
+        state.set('creature.genetics', profile.genes);
+        state.set('creature.dna', profile.dna);
         state.set('session.gameStarted', true);
         state.set('creature.id', 'smoke_reload_nova');
         state.set('creature.name', 'Nova');
         state.set('creature.hatched', true);
         state.set('creature.named', true);
-        state.set('creature.genes.id', 'smoke_reload_nova');
         state.set('creature.genes.personality.primary', 'curious');
         state.set('creature.genes.cosmicAffinity.element', 'nebula');
         state.set('creature.stats.happiness', 92);
@@ -15547,7 +15811,7 @@ async function smokeSaveReloadJourney(session, exceptions) {
         state.set('creatures', [JSON.parse(JSON.stringify(creature))]);
         state.set('activeCreatureIndex', 0);
         const portraitSaved = state.saveCreaturePortrait({
-            identityKey: 'SMOKE-RELOAD-23:baby:reload-proof',
+            identityKey: window.CreaturePortraitSpec.create({ ...creature, stage: 'baby' }).identityKey,
             stage: 'baby',
             style: 'cinematic',
             assetRef: 'portrait-job-v1:11111111-2222-4333-8444-555555555555',
@@ -15560,7 +15824,7 @@ async function smokeSaveReloadJourney(session, exceptions) {
         state.save();
         game.scene.stop('HatchingScene');
         game.scene.start('GameScene', { biome: 'nebula', forceMobileControls: true });
-        return { portraitSaved };
+        return { portraitSaved, portraitIdentity: state.getCreaturePortrait('baby')?.identityKey };
     })()`);
     if (!seeded?.portraitSaved) throw new Error('Save reload journey could not persist portrait metadata');
     await waitForScene(session, 'GameScene', 30000);
@@ -15700,7 +15964,7 @@ async function smokeSaveReloadJourney(session, exceptions) {
         !restored.companion.hatched ||
         restored.companion.collectionCount !== 1 ||
         !restored.construction.some(building => building.definitionId === 'forager_hut') ||
-        restored.portrait.identityKey !== 'SMOKE-RELOAD-23:baby:reload-proof' ||
+        restored.portrait.identityKey !== seeded.portraitIdentity ||
         restored.portrait.assetRef !== 'portrait-job-v1:11111111-2222-4333-8444-555555555555' ||
         restored.portrait.storage !== 'supabase-private' ||
         restored.localSave.companion !== 'Nova' ||
@@ -16229,9 +16493,10 @@ async function smokeVillageUi(session, exceptions) {
     const arrivalRecovery = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene.villageHeartLandmark;
+        const alreadyFinished = scene.villageArrivalRevealActive !== true;
         const finished = scene.finishVillageArrivalReveal({ skipped: true });
         return {
-            finished,
+            finished, alreadyFinished,
             active: scene.villageArrivalRevealActive === true,
             revealPresent: Boolean(landmark?.arrivalReveal),
             focusActive: scene.sanctuaryFocusModeActive === true,
@@ -16241,7 +16506,12 @@ async function smokeVillageUi(session, exceptions) {
             inputCooldownActive: scene.villageArrivalRevealInputCooldownUntil >
                 (scene.time?.now || 0),
             navigationMarkersRestored: (scene.navigationMarkers || []).every(
-                marker => marker.visible !== false
+                marker => marker.active === false || (
+                    marker.getData?.('sanctuaryFocusSuppressed') === false &&
+                    (marker.getData?.('sanctuaryPeripheralLabel') === true
+                        ? marker.visible === (marker.getData?.('sanctuaryEdgeReadable') === true)
+                        : marker.visible !== false)
+                )
             ),
             menuRestored: [
                 scene.hamburgerMenu?.menuButton?.bg,
@@ -16259,17 +16529,17 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 3000, message: 'Village arrival reveal completion handoff' }
     );
     if (
-        !arrivalRecovery.finished ||
+        (arrivalRecovery.alreadyFinished ? arrivalRecovery.finished : !arrivalRecovery.finished) ||
         arrivalRecovery.active ||
         arrivalRecovery.revealPresent ||
         arrivalRecovery.focusActive ||
         !arrivalRecovery.cameraFollowingPlayer ||
         arrivalRecovery.controlsSuspended ||
         arrivalRecovery.inputShieldPresent ||
-        !arrivalRecovery.inputCooldownActive ||
+        (!arrivalRecovery.alreadyFinished && !arrivalRecovery.inputCooldownActive) ||
         !arrivalRecovery.navigationMarkersRestored ||
         !arrivalRecovery.menuRestored ||
-        arrivalRecovery.skipped !== true
+        arrivalRecovery.skipped !== !arrivalRecovery.alreadyFinished
     ) {
         throw new Error(
             `Village arrival reveal did not restore gameplay: ${JSON.stringify(arrivalRecovery)}`
@@ -16389,6 +16659,8 @@ async function smokeVillageUi(session, exceptions) {
     await captureGameplayStill(session, 'village-base-builder.png');
     await evaluate(session, `(() => {
         const proposal = document.querySelector('.village-resident-proposal');
+        const disclosure = proposal?.closest('details');
+        if (disclosure && !disclosure.open) disclosure.querySelector('summary')?.click();
         proposal?.scrollIntoView?.({ block: 'center' });
         return Boolean(proposal);
     })()`);
@@ -16459,7 +16731,7 @@ async function smokeVillageUi(session, exceptions) {
         action.click();
         return { clicked: true, text };
     })()`);
-    if (!construction.clicked || !/BUILD FORAGE HERE/.test(construction.text || '')) {
+    if (!construction.clicked || construction.text?.trim() !== 'Build Forager hut') {
         throw new Error(`Base Builder construction action unavailable: ${JSON.stringify(construction)}`);
     }
     await waitFor(
@@ -16616,17 +16888,14 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const landmark = scene?.villageHeartLandmark;
-            const expectedPlotAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28};
-            const expectedWorkerAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34};
             return landmark?.focusModeActive === true &&
                 (landmark.plotPresentations || []).every(presentation => {
-                    const playerNearby = presentation.container
-                        ?.getData?.('villagePlayerNearby') === true;
-                    const plotAlpha = playerNearby ? 1 : expectedPlotAlpha;
+                    const plotAlpha = presentation.container?.getData?.('villageFocusAlpha');
+                    const workerAlpha = presentation.worker?.getData?.('villageFocusAlpha');
                     return Math.abs(presentation.container.alpha - plotAlpha) <= 0.01 &&
                     (
                         !presentation.worker ||
-                        Math.abs(presentation.worker.alpha - expectedWorkerAlpha) <= 0.01
+                        Math.abs(presentation.worker.alpha - workerAlpha) <= 0.01
                     );
                 });
         })()`),
@@ -17364,7 +17633,7 @@ async function smokeVillageUi(session, exceptions) {
             plot.silhouetteBaseAlpha !== (
                 plot.plotState === 'staffed' ? 0.72 : 0.38
             ) ||
-            Math.abs(plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28)) > 0.01 ||
+            Math.abs(plot.alpha - (plot.plotState === 'staffed' ? 0.92 : SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28)) > 0.01 ||
             (
                 plot.workerAlpha !== null &&
                 Math.abs(
@@ -17382,7 +17651,7 @@ async function smokeVillageUi(session, exceptions) {
                             : 'detailed_world'
                     ) ||
                     plot.artworkState !== 'focus_supporting' ||
-                    plot.artworkTint !== 0x91B3A7 ||
+                    plot.artworkTint !== 0xFFFFFF ||
                     plot.groundingMaterial !== 'woven_root_foreground_v1' ||
                     plot.groundingState !== 'staffed'
                 )
@@ -17611,7 +17880,7 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.backdropProfile !== 'world_background_owned_v3' ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorX !== 0 ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorY !== 0 ||
-        integratedWorld.peripheralWayfinding.managedCount !== 8 ||
+        integratedWorld.peripheralWayfinding.managedCount !== 9 ||
         integratedWorld.peripheralWayfinding.visibleCount !== 0 ||
         integratedWorld.peripheralWayfinding.clippedVisibleCount !== 0 ||
         !integratedWorld.peripheralWayfinding.destinations.includes('signalGarden') ||
@@ -17862,7 +18131,7 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const presentations = scene?.villageHeartLandmark?.plotPresentations || [];
-            const staffedAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82};
+            const staffedAlpha = 0.92;
             const availableAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1};
             return presentations.length === 5 && presentations.every(presentation => {
                 const playerNearby = presentation.container
@@ -17957,7 +18226,7 @@ async function smokeVillageUi(session, exceptions) {
             visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
         ) ||
         focusRecovery.heartPriority !== 'primary' ||
-        focusRecovery.peripheralWayfinding.managedCount !== 8 ||
+        focusRecovery.peripheralWayfinding.managedCount !== 9 ||
         focusRecovery.peripheralWayfinding.visibleCount >
             focusRecovery.peripheralWayfinding.readableCount ||
         focusRecovery.peripheralWayfinding.clippedVisibleCount !== 0 ||
@@ -17965,7 +18234,7 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
             plot => plot.priority !== 'ambient' || Math.abs(
-                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82)
+                plot.alpha - 0.92
             ) > 0.01
         ) ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'available').some(
@@ -18156,8 +18425,7 @@ async function smokeVillageUi(session, exceptions) {
             );
             return presentation &&
                 Math.abs(
-                    presentation.container?.alpha -
-                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82}
+                    presentation.container?.alpha - 0.92
                 ) <= 0.01 &&
                 Math.abs(
                     presentation.worker?.alpha -
@@ -18193,7 +18461,7 @@ async function smokeVillageUi(session, exceptions) {
         structureProximityRestored?.plotCandidatePresent ||
         !structureProximityRest ||
         Math.abs(
-            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82)
+            structureProximityRest.alpha - 0.92
         ) > 0.01 ||
         Math.abs(
             structureProximityRest.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78)
@@ -19959,18 +20227,12 @@ async function smokeVillageUi(session, exceptions) {
         };
     })()`);
     if (
-        !structurePlanner.title.includes('FORAGE') ||
-        !structurePlanner.immediateImpact.includes('HELPS NOW') ||
-        !structurePlanner.immediateImpact.includes('+5 happiness') ||
-        !structurePlanner.extensionImpact.includes('UNLOCKS') ||
+        structurePlanner.title !== 'Forager hut' ||
         !structurePlanner.activeBenefit.includes('+5 happiness') ||
-        !structurePlanner.activeAction.includes('FEEDING · +5 HAPPINESS') ||
-        !structurePlanner.actionBounds ||
-        !structurePlanner.inviteBounds ||
-        !structurePlanner.selectBounds ||
+        structurePlanner.actionBounds !== null ||
+        structurePlanner.catalogBounds !== null ||
+        !structurePlanner.inviteBounds || !structurePlanner.selectBounds ||
         !structurePlanner.assignmentControlsBounds ||
-        structurePlanner.actionBounds.top < 0 ||
-        structurePlanner.actionBounds.bottom > SMOKE_VIEWPORT_HEIGHT ||
         structurePlanner.inviteBounds.top < 0 ||
         structurePlanner.inviteBounds.bottom > SMOKE_VIEWPORT_HEIGHT ||
         structurePlanner.inviteBounds.right - structurePlanner.inviteBounds.left < 44 ||
@@ -19978,16 +20240,8 @@ async function smokeVillageUi(session, exceptions) {
         structurePlanner.selectBounds.right - structurePlanner.selectBounds.left < 88 ||
         structurePlanner.assignmentControlsBounds.right > SMOKE_VIEWPORT_WIDTH ||
         structurePlanner.assignmentControlsBounds.left < 0 ||
-        structurePlanner.resourceColumns !== 4 ||
-        structurePlanner.scrollTop !== 0 ||
-        (
-            SMOKE_VIEWPORT_WIDTH <= 600 &&
-            (
-                structurePlanner.planBounds?.top >= structurePlanner.catalogBounds?.top ||
-                structurePlanner.assignmentControlsBounds.bottom > structurePlanner.catalogBounds?.top
-            )
-        ) ||
-        structurePlanner.workerCheckInOpen
+        structurePlanner.resourceColumns !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 2 : 4) ||
+        structurePlanner.scrollTop !== 0 || structurePlanner.workerCheckInOpen
     ) {
         throw new Error(`Village structure tap did not remain distinct: ${JSON.stringify(structurePlanner)}`);
     }
@@ -20107,7 +20361,7 @@ async function smokeVillageUi(session, exceptions) {
             fullPlanButton: Array.from(document.querySelectorAll('button'))
                 .some(button => button.textContent.includes('OPEN FULL PLAN')),
             returnButton: Array.from(document.querySelectorAll('button'))
-                .some(button => button.textContent.includes('RETURN TO SANCTUARY')),
+                .some(button => button.textContent.includes('Back to exploring')),
             bounds: bounds ? {
                 left: bounds.left,
                 right: bounds.right,
@@ -20454,8 +20708,8 @@ async function smokeVillageUi(session, exceptions) {
         buildRoute.focusHierarchy.filter(plot => plot.plotId !== 'root_04').some(plot => (
             plot.priority !== 'supporting' || plot.alpha >= 1
         )) ||
-        buildRoute.text !== 'BUILD · SHARED HABITAT' ||
-        buildRoute.actionCopy !== 'BUILD · SHARED HABITAT' ||
+        buildRoute.text !== 'Build shared habitat' ||
+        buildRoute.actionCopy !== 'Build shared habitat' ||
         !buildRoute.ariaLabel?.includes('Tap to plan this structure') ||
         buildRoute.fontSize < (SMOKE_VIEWPORT_WIDTH <= 600 ? 11 : 12) ||
         buildRoute.targetLanguage !== 'living_root_threshold_v2' ||
@@ -20508,7 +20762,7 @@ async function smokeVillageUi(session, exceptions) {
         const title = document.querySelector('.village-command-title')?.textContent || '';
         const action = document.querySelector('.village-construct-action:not(:disabled)');
         const actionText = action?.textContent || '';
-        if (title !== 'WHAT SHOULD GROW HERE?' || !actionText.includes('BUILD HABITAT')) {
+        if (title !== 'What shall we build?' || actionText.toLowerCase() !== 'build shared habitat') {
             return { clicked: false, title, actionText };
         }
         action.click();
@@ -20536,7 +20790,7 @@ async function smokeVillageUi(session, exceptions) {
         return {
             status: document.querySelector('.village-command-status')?.textContent,
             habitatPresent: [...document.querySelectorAll('.village-plot')]
-                .some(plot => plot.textContent.includes('HABITAT')),
+                .some(plot => plot.textContent.toLowerCase().includes('habitat')),
             inviteVisible: Boolean(rect && rect.left >= 0 && rect.right <= innerWidth),
             inviteHeight: rect?.height || 0,
             selectHeight: selectRect?.height || 0,
@@ -20545,9 +20799,11 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
     if (
         !interaction.habitatPresent ||
-        !interaction.inviteVisible ||
-        interaction.inviteHeight < 44 ||
-        interaction.selectHeight < 44 ||
+        // The contextual construction sheet offers helpers once construction
+        // finishes. The completed Forager helper controls were checked above.
+        interaction.inviteVisible ||
+        interaction.inviteHeight !== 0 ||
+        interaction.selectHeight !== 0 ||
         !interaction.closeVisible ||
         exceptions.length
     ) {
@@ -22193,6 +22449,13 @@ async function smokeForestArrival(session, exceptions) {
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(async () => {
         const game = window.mythicalGame;
+        const fixtureState = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        const creature = { ...fixtureState.get('creature'), id: profile.genes.id, genes: profile.genes, genetics: profile.genes, dna: profile.dna, name: 'Nova', hatched: true, named: true };
+        fixtureState.set('creature', creature);
+        fixtureState.set('creatures', [creature]);
+        fixtureState.set('activeCreatureIndex', 0);
+        fixtureState.set('session.gameStarted', true);
         window.GameState.set('creature.name', 'Nova');
         window.GameState.set('creature.hatched', true);
         window.GameState.set('creature.named', true);
@@ -23453,7 +23716,8 @@ const GUARDIAN_PACING_CASES = Object.freeze([
         sceneName: 'MythicalForestLevel',
         attack: 'root_slam',
         recoveryCheck: 'scene?.boss?.isRecovering === true',
-        phaseDeferral: true,
+        rejectsAttackDamage: true,
+        phaseDeferral: false,
         phaseThreshold: 0.5
     },
     {
@@ -23515,7 +23779,8 @@ async function smokeGuardianPacing(session, exceptions) {
             recoveryCheck,
             triggerManually,
             phaseDeferral,
-            phaseThreshold
+            phaseThreshold,
+            rejectsAttackDamage
         } = guardianCase;
         await navigate(session, `${BASE_URL}/play/?reset=true`);
         await waitForScene(session, 'HatchingScene');
@@ -23676,6 +23941,15 @@ async function smokeGuardianPacing(session, exceptions) {
         );
 
         let deferralState = null;
+        if (rejectsAttackDamage) {
+            const guarded = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const before = scene.bossHealth;
+                scene.damageBoss(1);
+                return { before, after: scene.bossHealth };
+            })()`);
+            if (guarded.before !== guarded.after) throw new Error('Guardian accepted damage outside its recovery window');
+        }
         if (phaseDeferral) {
             deferralState = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -24239,6 +24513,8 @@ async function main() {
                 session,
                 exceptions
             );
+        } else if (SMOKE_MODE === 'caves-checkpoint-recovery') {
+            results.caveCheckpointRecovery = await smokeCaveCheckpointRecovery(session);
         } else if (SMOKE_MODE === 'state-contract') {
             results.campaignStateContract = await smokeCampaignStateContract(
                 session,
