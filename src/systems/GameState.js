@@ -338,6 +338,22 @@ class GameStateManager {
         this.checkStorageAvailability();
     }
 
+    /** Select a separate adventure only before this instance has admitted any save. */
+    selectLocalAdventure(key) {
+        if (this.localAdventureSelected || this.initialized || this.autoSaveInterval || this.cloudWriteLease ||
+            this.saveAdmission.epoch !== 0 || this.saveAdmission.status !== 'ready') {
+            throw Error('An active adventure cannot change its save destination.');
+        }
+        if (key !== 'mythical-creature-save' &&
+            !/^mythical-creature-adventure-[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(key)) {
+            throw Error('Unknown adventure save destination.');
+        }
+        this.saveKey = key;
+        this.saveBackupIndexKey = `${key}-backup-index`;
+        this.saveBackupKeyPrefix = `${key}-backup-`;
+        this.localAdventureSelected = true;
+    }
+
     /**
      * Check if localStorage is available and working
      * Handles private browsing, disabled storage, and quota issues

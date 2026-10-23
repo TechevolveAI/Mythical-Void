@@ -2,6 +2,7 @@
 import './styles/main.css';
 import './styles/village.css';
 import './styles/game-tab.css';
+import './styles/adventures.css';
 
 import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
@@ -19,6 +20,7 @@ import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import VictoryScene from './scenes/VictoryScene.js';
 import CloudSaveSettingsModal from './ui/CloudSaveSettingsModal.js';
 import SaveRecoveryGate from './ui/SaveRecoveryGate.js';
+import AdventureMenu from './ui/AdventureMenu.js';
 import SharedFusionModal from './ui/SharedFusionModal.js';
 import PageVisibilityController from './utils/PageVisibilityController.js';
 import GameTabSession from './utils/GameTabSession.js';
@@ -489,11 +491,13 @@ async function initializeCloudSaves(isCurrent = () => true) {
 
     const { createClient } = await import('@supabase/supabase-js');
     if (!isCurrent()) return null;
+    const adventureCloud = window.Adventures?.store.cloudOptions(GameState.saveKey) || {};
     const client = createClient(supabaseUrl, publishableKey, {
         auth: {
             persistSession: true,
             autoRefreshToken: true,
-            detectSessionInUrl: false
+            detectSessionInUrl: false,
+            ...(adventureCloud.authStorageKey ? { storageKey: adventureCloud.authStorageKey } : {})
         }
     });
 
@@ -503,7 +507,8 @@ async function initializeCloudSaves(isCurrent = () => true) {
 
     cloudSaveManager = new window.CloudSaveManager({
         client,
-        gameState: GameState
+        gameState: GameState,
+        ...adventureCloud
     });
     window.CloudSave = cloudSaveManager;
 
@@ -564,6 +569,12 @@ async function initializeGame() {
         } });
         if (!await tabSession.waitUntilReady()) return;
 
+        const adventures = new AdventureMenu(GameState, { isCurrent: () => tabSession.owned });
+        window.Adventures = adventures;
+        const adventureKey = await adventures.chooseAtStartup();
+        if (!tabSession.owned) return;
+        GameState.selectLocalAdventure(adventureKey);
+
         // Initialize environment configuration first
         if (window.envLoader) {
             await window.envLoader.load();
@@ -600,7 +611,10 @@ async function initializeGame() {
 
         // Initialize game state system with error handling
         if (!tabSession.owned) return;
-        const saveRecoveryGate = new SaveRecoveryGate(GameState);
+        const saveRecoveryGate = new SaveRecoveryGate(GameState, {
+            onNewAdventure: () => adventures.startNew(),
+            onChooseAdventure: () => adventures.open()
+        });
         try {
             GameState.init();
             await saveRecoveryGate.waitUntilReady();

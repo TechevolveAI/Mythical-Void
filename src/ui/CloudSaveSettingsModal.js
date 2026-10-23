@@ -77,7 +77,7 @@ class CloudSaveSettingsModal {
         panel.setScrollFactor(0).setDepth(17501);
         this.elements.push(panel);
 
-        this.addText(centerX, panelY + 30, 'Cloud Save', {
+        this.addText(centerX, panelY + 30, 'Online backup', {
             fontSize: '22px',
             color: '#FFFFFF',
             fontStyle: 'bold'
@@ -142,7 +142,7 @@ class CloudSaveSettingsModal {
         const limitation = this.addText(
             panelX + 24,
             y,
-            'This version is tied to this browser and does not yet move progress to another device.',
+            'No email account is connected. This backup works with this browser only; it cannot move your creature to another device.',
             {
                 fontSize: '12px',
                 color: '#94A2B3',
@@ -202,7 +202,7 @@ class CloudSaveSettingsModal {
     }
 
     renderDisabled(panelX, panelY, panelWidth, panelHeight, y) {
-        const consentLabel = 'I understand what is stored and choose to enable Cloud Save.';
+        const consentLabel = 'Save a private online copy of this adventure. I have read how it works.';
         const label = this.addText(panelX + 64, y + 12, consentLabel, {
             fontSize: '13px',
             color: '#FFFFFF',
@@ -249,7 +249,7 @@ class CloudSaveSettingsModal {
         this.createButton(
             panelX + panelWidth / 2,
             buttonY,
-            this.busy ? 'Connecting...' : 'Enable Cloud Save',
+            this.busy ? 'Connecting...' : 'Turn on backup',
             () => this.enableCloudSave(),
             {
                 disabled: this.busy || !this.consentChecked,
@@ -336,7 +336,7 @@ class CloudSaveSettingsModal {
         const restored = this.getGameState()?.restoreLocalSaveBackup?.(backupId) === true;
         if (!restored) {
             this.busy = false;
-            this.notice = 'That recovery copy could not be restored. Current progress was not changed.';
+            this.notice = 'That recovery copy could not be confirmed. Keep this browser\'s data and try another adventure.';
             this.render();
             return;
         }
@@ -367,7 +367,7 @@ class CloudSaveSettingsModal {
         this.createButton(
             centerX,
             buttonY,
-            this.busy ? 'Syncing...' : 'Sync Now',
+            this.busy ? 'Saving...' : 'Back up now',
             () => this.syncNow(),
             { disabled: this.busy, width: buttonWidth, color: 0x287A63 }
         );
@@ -375,7 +375,7 @@ class CloudSaveSettingsModal {
         this.createButton(
             centerX,
             buttonY,
-            'Turn Off Sync',
+            'Turn off backup',
             () => this.disableCloudSave(),
             { disabled: this.busy, width: buttonWidth, color: 0x33485C }
         );
@@ -430,7 +430,7 @@ class CloudSaveSettingsModal {
     }
 
     renderUnavailable(panelX, panelY, panelWidth, panelHeight, y) {
-        this.addText(panelX + 24, y, 'Cloud Save is unavailable in this build. Local saving is still active.', {
+        this.addText(panelX + 24, y, 'Online backup is not set up in this build.', {
             fontSize: '14px',
             color: '#FFD39C',
             wordWrap: { width: panelWidth - 48 },
@@ -440,8 +440,8 @@ class CloudSaveSettingsModal {
 
     renderAgeRestricted(panelX, panelWidth, y, ageGroup) {
         const message = ['age_under_13', 'age_13_15'].includes(ageGroup)
-            ? 'Cloud Save is unavailable for under-16 profiles in this release. Progress continues to save locally on this device.'
-            : 'Complete the age confirmation before using Cloud Save. Local saving remains active.';
+            ? 'Cloud Save is unavailable for under-16 profiles in this release. No account is needed to play.'
+            : 'Complete the age confirmation before using online backup. No account is needed to play.';
         this.addText(panelX + 24, y, message, {
             fontSize: '14px',
             color: '#FFD39C',
@@ -455,8 +455,8 @@ class CloudSaveSettingsModal {
         if (!this.consentChecked || this.busy) return;
         await this.runAction(
             () => this.getManager().enable({ consentConfirmed: true }),
-            'Cloud Save is on.',
-            'Cloud Save could not connect. Your local save is safe.'
+            'Online backup is on.',
+            'Backup could not connect. You can try again later.'
         );
     }
 
@@ -464,8 +464,8 @@ class CloudSaveSettingsModal {
         if (this.busy) return;
         await this.runAction(
             () => this.getManager().synchronize(),
-            'Progress synced.',
-            'Sync could not finish. Your local save is safe.'
+            'Backup finished.',
+            'Backup could not finish. You can try again later.'
         );
     }
 
@@ -498,7 +498,9 @@ class CloudSaveSettingsModal {
         try {
             const result = await action();
             if (result?.status === 'conflict') {
-                this.notice = 'Another device saved newer progress. Your progress on this device is still safe.';
+                this.notice = 'The online copy is different. We paused syncing so you can keep playing this adventure.';
+            } else if (result?.status === 'save_protected') {
+                this.notice = 'This adventure needs recovery. You can start a separate one from Your adventures.';
             } else if (result?.status === 'error') {
                 this.notice = failureMessage;
             } else {
@@ -514,41 +516,49 @@ class CloudSaveSettingsModal {
     }
 
     getStatusInfo(status) {
+        if (status.saveProtected) {
+            return { label: 'This adventure needs recovery', color: '#FFD39C', background: 0x3C3022 };
+        }
+        if (this.getGameState()?.storageMode === 'memory') {
+            return { label: 'Progress is not being saved', color: '#FFD39C', background: 0x3C3022 };
+        }
         if (!status.configured) {
-            return { label: 'Unavailable - local save active', color: '#FFD39C', background: 0x3C3022 };
+            return { label: 'Online backup unavailable', color: '#FFD39C', background: 0x3C3022 };
         }
         if (this.busy || status.status === 'syncing' || status.status === 'connecting') {
             return { label: 'Connecting securely...', color: '#BFEAFF', background: 0x203846 };
         }
         if (status.status === 'conflict') {
-            return { label: 'Newer progress found on another device', color: '#FFE0A3', background: 0x493A24 };
+            return { label: 'Online copy differs', color: '#FFE0A3', background: 0x493A24 };
         }
         if (status.status === 'error') {
-            return { label: 'Needs attention - local save active', color: '#FFB3B3', background: 0x47272D };
+            return { label: 'Backup could not finish', color: '#FFB3B3', background: 0x47272D };
         }
         if (!status.ageEligible || status.status === 'restricted') {
-            return { label: 'Local save only', color: '#FFD39C', background: 0x3C3022 };
+            return { label: 'Saving in this browser', color: '#FFD39C', background: 0x3C3022 };
         }
         if (status.enabled) {
-            return { label: 'On - progress synced', color: '#A9F1D5', background: 0x1F4137 };
+            return { label: 'Online backup is on', color: '#A9F1D5', background: 0x1F4137 };
         }
-        return { label: 'Off - saving on this device', color: '#CFD7E2', background: 0x293442 };
+        return { label: 'Online backup is off', color: '#CFD7E2', background: 0x293442 };
     }
 
     getSummary(status) {
+        if (status.saveProtected) return 'This adventure is paused while its saved progress is checked. You can start a separate adventure from Your adventures.';
+        if (this.getGameState()?.storageMode === 'memory') return 'This browser cannot save progress right now. Check that it has space and allows this site to save data.';
         if (!status.enabled) {
-            return 'Cloud Save is optional. The game continues to save locally when it is off or the network is unavailable.';
+            return 'Your adventure saves in this browser as you play. An online backup is optional.';
         }
         if (status.status === 'conflict') {
-            return 'Another device saved newer progress while this game was open. Progress on this device has been kept and nothing was overwritten.';
+            return 'The online copy differs from this adventure. Syncing is paused; nothing was overwritten by this sync attempt.';
         }
         if (status.lastSyncDirection === 'restored') {
-            return 'Cloud progress was restored to this browser. Your local save is now the primary working copy.';
+            return 'Cloud progress was restored to this browser. You can carry on from here.';
         }
         if (status.lastSyncDirection === 'uploaded') {
-            return 'Your latest local progress is backed up privately in Cloud Save.';
+            return 'A copy of this adventure was backed up online. See the time of the last backup below.';
         }
-        return 'A private copy of your progress is linked to this browser. Your local save remains the primary copy.';
+        return 'Backup is on for this adventure. You can keep playing if the connection drops.';
     }
 
     createButton(x, y, label, onClick, options = {}) {

@@ -819,7 +819,7 @@ class HatchingScene extends Phaser.Scene {
             console.log('  creatureHatched:', state.get('creature.hatched'));
             
             // Check what's actually in localStorage
-            const savedData = localStorage.getItem('mythical-creature-save');
+            const savedData = localStorage.getItem(state.saveKey);
             if (savedData) {
                 const parsed = JSON.parse(savedData);
                 console.log('💾 localStorage verification:');
