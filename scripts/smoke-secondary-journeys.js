@@ -13318,6 +13318,42 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             `Achievement toast was not a mobile-safe dismiss target: ${JSON.stringify(achievementToast)}`
         );
     }
+    // Reproduce the phone report: a collectible story arrives over an achievement
+    // while the Sanctuary camera is zoomed. The DOM dialog must own the screen,
+    // then return the existing achievement and controls without losing rewards.
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const lore = window.CollectibleManager.collectibleTypes.lore.nebula[0];
+        window.CollectibleManager.showLorePopup(scene, lore);
+        return true;
+    })()`);
+    const loreDialog = await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const panel = document.querySelector('.lore-fragment-panel');
+        const button = document.querySelector('.lore-fragment-continue');
+        if (!panel || !button || !scene.isLoreModalOpen) return null;
+        const b = button.getBoundingClientRect();
+        return { title: panel.querySelector('h2')?.textContent, x: b.x, y: b.y,
+            width: b.width, height: b.height, right: b.right, bottom: b.bottom,
+            inputEnabled: scene.input.enabled, physicsPaused: scene.physics.world.isPaused,
+            controlsSuspended: scene.mobileControls.isSuspended,
+            achievementVisible: scene.achievementNotification.isVisible };
+    })()`), { timeoutMs: 5000, message: 'lore owns the screen over an achievement' });
+    if (loreDialog.title !== 'The Crash' || loreDialog.inputEnabled ||
+        !loreDialog.physicsPaused || !loreDialog.controlsSuspended || loreDialog.achievementVisible ||
+        loreDialog.width < 44 || loreDialog.height < 44 || loreDialog.x < 0 || loreDialog.y < 0 ||
+        loreDialog.right > SMOKE_VIEWPORT_WIDTH || loreDialog.bottom > SMOKE_VIEWPORT_HEIGHT) {
+        throw new Error('Lore dialog did not provide safe mobile dismissal: ' + JSON.stringify(loreDialog));
+    }
+    if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'lore-dialog-over-achievement.png');
+    await touchDomButton(session, '.lore-fragment-continue');
+    await waitFor(() => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        return !document.querySelector('.lore-fragment-overlay') && !scene.isLoreModalOpen &&
+            scene.input.enabled && !scene.physics.world.isPaused && !scene.mobileControls.isSuspended &&
+            scene.achievementNotification.currentNotification?.id === 'smoke_mobile_dismiss';
+    })()`), { timeoutMs: 5000, message: 'lore returns control and the queued achievement' });
+
     // Let Phaser register the newly-created interactive child and complete the
     // short entrance tween before exercising the same touch a player makes.
     await delay(400);

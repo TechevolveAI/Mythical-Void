@@ -6,13 +6,13 @@ const source = fs.readFileSync(path.join(__dirname, '../systems/AudioManager.js'
 const declaration = parse(source, { sourceType: 'module' }).program.body
     .find(node => node.type === 'ClassDeclaration' && node.id.name === 'AudioManager');
 
-function fixture() {
+function fixture(navigator = {}) {
     const document = new EventTarget();
     document.hidden = false; document.visibilityState = 'visible';
     jest.spyOn(document, 'addEventListener'); jest.spyOn(document, 'removeEventListener');
     const timers = [];
     const Manager = vm.runInNewContext(`(${source.slice(declaration.start, declaration.end)})`, {
-        document, window: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
+        document, navigator, window: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
         console: { log() {}, warn() {} }, setTimeout: callback => timers.push(callback), clearInterval: jest.fn()
     });
     const manager = new Manager();
@@ -33,6 +33,35 @@ function heldResume(context) {
     return { succeed() { context.state = 'running'; resolve(); },
         fail() { reject(Error('SYNTHETIC_RESUME_FAILURE')); } };
 }
+
+test('an unmuted audio request selects media playback when the browser supports it', async () => {
+    const audioSession = { type: 'auto' };
+    const { manager, context } = fixture({ audioSession });
+    context.state = 'suspended';
+    expect(await manager.resume()).toBe(true);
+    expect(audioSession.type).toBe('playback');
+    expect(context.resume).toHaveBeenCalledTimes(1);
+    manager.destroy();
+});
+
+test('muted and hidden sessions never change the device audio category', async () => {
+    const audioSession = { type: 'auto' };
+    const f = fixture({ audioSession });
+    f.manager.muted = true;
+    expect(await f.manager.resume()).toBe(false);
+    f.manager.muted = false;
+    f.document.hidden = true;
+    expect(await f.manager.resume()).toBe(false);
+    expect(audioSession.type).toBe('auto');
+    f.manager.destroy();
+});
+
+test('an unsupported audio-session setter cannot prevent gesture recovery', async () => {
+    const audioSession = { get type() { return 'auto'; }, set type(_) { throw Error('Unsupported'); } };
+    const { manager } = fixture({ audioSession });
+    expect(await manager.resume()).toBe(true);
+    manager.destroy();
+});
 
 describe('audio recovery belongs to the binding that requested it', () => {
     test('an old recovery cannot unlock a replacement Phaser sound manager', async () => {

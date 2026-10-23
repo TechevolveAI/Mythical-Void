@@ -5152,6 +5152,7 @@ class GameScene extends Phaser.Scene {
             window.OnboardingManager?.isProcessing ||
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
+            this.isLoreModalOpen ||
             this.greetingElements?.length ||
             this.creatureVideoReadyNotice ||
             this.livingSignalMomentElements?.length ||
@@ -5462,6 +5463,7 @@ class GameScene extends Phaser.Scene {
             window.OnboardingManager?.isProcessing ||
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
+            this.isLoreModalOpen ||
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
@@ -7729,7 +7731,7 @@ class GameScene extends Phaser.Scene {
     isSanctuaryCareBlocked() {
         return Boolean(this._isShuttingDown || this.sanctuaryOnboardingPending ||
             window.OnboardingManager?.isProcessing || this.greetingElements?.length ||
-            this.controlsTutorial?.isVisible || this.storyModalElements?.length ||
+            this.controlsTutorial?.isVisible || this.storyModalElements?.length || this.isLoreModalOpen ||
             this.villageArrivalRevealActive || this.rescuedResidentArrivalActive ||
             this.guardianExchangeOpen || this.guardianCareActivityOpen || this.residentExchangeOpen || this.fendListeningOpen ||
             this.isFieldKitModalOpen || this.fusionDiscoveryModalOpen ||
@@ -13721,7 +13723,7 @@ class GameScene extends Phaser.Scene {
     }
 
     showShipMemories(onComplete = null) {
-        if (this.storyModalElements?.length) {
+        if (this.storyModalElements?.length || this.isLoreModalOpen) {
             return;
         }
         console.log('[GameScene] Showing ship memories');
@@ -14202,7 +14204,7 @@ class GameScene extends Phaser.Scene {
         personalityCoreOverride = null
     ) {
         if (this._isShuttingDown || this.greetingElements?.length) return;
-        if (this.carePanelManager?.panelVisible || this.creatureRadialMenu?.isVisible ||
+        if (this.isLoreModalOpen || this.carePanelManager?.panelVisible || this.creatureRadialMenu?.isVisible ||
             this.hamburgerMenu?.isOpen || this.chatOverlay?.getIsVisible?.() ||
             this.isFieldKitModalOpen || this.fusionDiscoveryModalOpen || this.villageCommandPanel?.domElement) {
             this.greetingRetryTimer?.remove?.();
@@ -14960,6 +14962,7 @@ class GameScene extends Phaser.Scene {
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
             this.greetingElements?.length ||
+            this.isLoreModalOpen ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
             this.achievementNotification?.blocksStory === true ||
@@ -15508,6 +15511,7 @@ class GameScene extends Phaser.Scene {
         console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearFendResidentId:', this.nearFendResidentId, 'nearCurrentVeilAnchorId:', this.nearCurrentVeilAnchorId, 'nearSignalGarden:', this.nearSignalGarden, 'nearVillageHeart:', this.nearVillageHeart, 'nearFusionPod:', this.nearFusionPod, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
 
         if (
+            this.isLoreModalOpen ||
             this.isFieldKitModalOpen ||
             this.residentExchangeOpen ||
             this.guardianExchangeOpen ||
@@ -15943,7 +15947,7 @@ class GameScene extends Phaser.Scene {
         if (this._isShuttingDown || !this.player?.active || !this.player.body?.enable) {
             return;
         }
-        if (this.greetingElements?.length) {
+        if (this.greetingElements?.length || this.isLoreModalOpen) {
             this.player.body.setVelocity(0, 0);
             this.input.keyboard?.resetKeys?.();
             return;
@@ -17040,6 +17044,7 @@ class GameScene extends Phaser.Scene {
             window.OnboardingManager?.isProcessing ||
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
+            this.isLoreModalOpen ||
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||

@@ -197,7 +197,7 @@ test('the scene guard blocks check-in and menu modals but allows the radial Care
         { sanctuaryOnboardingPending: true }, { greetingElements: [{}] },
         { hamburgerMenu: { settingsModal: { isVisible: true } } },
         { hamburgerMenu: { cloudSaveModal: { isVisible: true } } },
-        { guardianCareActivityOpen: true }, { isFieldKitModalOpen: true },
+        { guardianCareActivityOpen: true }, { isFieldKitModalOpen: true }, { isLoreModalOpen: true },
         { _isShuttingDown: true }
     ]) expect(blocked.call(scene)).toBe(true);
     sceneWindow.OnboardingManager.isProcessing = true;

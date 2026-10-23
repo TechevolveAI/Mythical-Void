@@ -1,0 +1,35 @@
+.lore-fragment-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483001;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+        max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: rgb(4 13 18 / 82%);
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    font: 16px/1.6 Arial, sans-serif;
+    color: #eef7f3;
+}
+.lore-fragment-panel {
+    position: relative;
+    box-sizing: border-box;
+    width: min(100%, 440px);
+    max-height: calc(100dvh - 48px);
+    overflow: auto;
+    padding: 28px 24px 24px;
+    border: 2px solid #88c9ba;
+    border-radius: 24px;
+    background: #142c30;
+    box-shadow: 0 16px 60px #0008;
+}
+.lore-fragment-eyebrow { margin: 12px 40px 8px 0; color: #b3d9ca; font-size: 13px; }
+.lore-fragment-panel h2 { margin: 0 0 18px; font-size: 26px; line-height: 1.2; color: #ffe0a3; }
+.lore-fragment-story { margin: 0 0 24px; }
+.lore-fragment-panel button { min-width: 44px; min-height: 48px; cursor: pointer; touch-action: manipulation; font: inherit; }
+.lore-fragment-close { position: absolute; right: 10px; top: 8px; border: 0; border-radius: 14px; background: transparent; color: #eef7f3; font-size: 28px !important; }
+.lore-fragment-continue { width: 100%; padding: 10px 16px; border: 0; border-radius: 16px; background: #b4e5c8; color: #12302a; font-weight: bold !important; }
+.lore-fragment-panel button:focus-visible { outline: 3px solid #ffe0a3; outline-offset: 3px; }
