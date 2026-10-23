@@ -113,6 +113,27 @@ describe('Creature Profile asynchronous portrait ownership', () => {
         expect(h.service.generate).not.toHaveBeenCalled();
     });
 
+    test('a profile opened during Phaser create waits until the scene becomes active', async () => {
+        const record = portraitFor(first);
+        const h = harness(record);
+        h.scene.scene.isActive.mockReturnValue(false);
+        h.open();
+        expect(h.media.resolvePortrait).not.toHaveBeenCalled();
+        h.scene.scene.isActive.mockReturnValue(true);
+        await flush();
+        expect(h.scene.add.image).toHaveBeenCalledWith(120, 160, record.identityKey);
+        expect(h.media.recordAppearance).toHaveBeenCalledWith('companion_profile', record, 'motion_still');
+    });
+
+    test('closing a profile before its first request leaves no portrait work behind', async () => {
+        const h = harness();
+        h.open();
+        h.scene.add.graphics.mock.results[0].value.destroy();
+        await flush();
+        expect(h.media.resolvePortrait).not.toHaveBeenCalled();
+        expect(h.scene.add.image).not.toHaveBeenCalled();
+    });
+
     test('a ready event for another creature cannot steal the pending frame', async () => {
         const record = portraitFor(first);
         const wrong = portraitFor(second, '2');
