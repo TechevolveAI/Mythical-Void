@@ -14,4 +14,21 @@ function smokePageSnapshot(scope) {
     };
 }
 
-module.exports = { smokePageSnapshot };
+// Read the real Continue control. Never substitute Start new or mutate a save.
+function smokeAdventureContinuePoint(scope) {
+    if (scope.__mythicalSmokeLeavingDocument || scope.document?.readyState !== 'complete') return null;
+    const dialog = scope.document.querySelector?.('.adventure-menu[role="dialog"]');
+    if (!dialog) return null;
+    const buttons = [...dialog.querySelectorAll('button')].filter(button =>
+        /^Continue(?: adventure$| with )/.test(button.textContent.trim()) && !button.disabled);
+    if (buttons.length !== 1) throw new Error('Saved adventure has no unambiguous Continue action');
+    const bounds = buttons[0].getBoundingClientRect();
+    const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
+    if (bounds.width <= 0 || bounds.height <= 0 || x < 0 || y < 0 ||
+        x >= scope.innerWidth || y >= scope.innerHeight) {
+        throw new Error('Saved adventure Continue action is not visible');
+    }
+    return { x, y };
+}
+
+module.exports = { smokePageSnapshot, smokeAdventureContinuePoint };
