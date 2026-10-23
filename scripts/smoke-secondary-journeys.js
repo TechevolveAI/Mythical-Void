@@ -3645,6 +3645,10 @@ async function smokeForestForwardHandoffs(session) {
                 scene.player.body.blocked.down = true;
                 scene.player.body.touching.down = true;
                 scene.isGrounded = true;
+                if (scene.__smokeHandoffClock) scene.physics.world.off('worldstep', scene.__smokeHandoffClock);
+                scene.__smokeHandoffElapsed = 0;
+                scene.__smokeHandoffClock = delta => { scene.__smokeHandoffElapsed += delta * 1000; };
+                scene.physics.world.on('worldstep', scene.__smokeHandoffClock);
                 return {
                     startId: start.traversalId,
                     startRight: Math.round(start.body.right),
@@ -3695,14 +3699,18 @@ async function smokeForestForwardHandoffs(session) {
                     const target = scene.platforms.getChildren().find(
                         item => item.traversalId === ${JSON.stringify(transition.targetId)}
                     );
-                    return target?.body && scene.player?.body?.center?.x >=
-                        target.body.left + 28;
+                    const reached = target?.body && scene.player?.body?.center?.x >= target.body.left + 28;
+                    if (!reached && scene.__smokeHandoffElapsed > 2400) {
+                        throw Error('Forest handoff exceeded its 2400ms physics budget');
+                    }
+                    return reached;
                 })()`),
-                { timeoutMs: 2400, message: `${transition.id} approach` }
+                { timeoutMs: 15000, message: `${transition.id} approach` }
             );
             await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
                 scene?.player?.setVelocityX?.(0);
+                scene.__smokeHandoffElapsed = 0;
                 return true;
             })()`);
             await setKeyboardKey(session, 'keyUp', {
@@ -3721,6 +3729,9 @@ async function smokeForestForwardHandoffs(session) {
                         body.left < target.body.right - 5 &&
                         Math.abs(body.bottom - target.body.top) <= 7 &&
                         (body.blocked.down || scene.isGrounded);
+                    if (!onTarget && scene.__smokeHandoffElapsed > 3000) {
+                        throw Error('Forest handoff exceeded its 3000ms landing physics budget');
+                    }
                     return onTarget ? {
                         transitionId: ${JSON.stringify(transition.id)},
                         targetId: target.traversalId,
@@ -3729,7 +3740,7 @@ async function smokeForestForwardHandoffs(session) {
                         targetTop: Math.round(target.body.top)
                     } : null;
                 })()`),
-                { timeoutMs: 3000, message: `${transition.id} grounded landing` }
+                { timeoutMs: 18000, message: `${transition.id} grounded landing` }
             );
             landings.push({ staged, launch, landing });
         }
@@ -3746,6 +3757,9 @@ async function smokeForestForwardHandoffs(session) {
                 if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
             });
             scene.isInvincible = false;
+            if (scene.__smokeHandoffClock) scene.physics.world.off('worldstep', scene.__smokeHandoffClock);
+            delete scene.__smokeHandoffClock;
+            delete scene.__smokeHandoffElapsed;
             scene.player.body.reset(300, scene.levelHeight - 130);
             scene.player.setVelocity(0, 0);
             return true;
@@ -5325,11 +5339,38 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         throw new Error(`${sceneName} has no usable mobile joystick: ${JSON.stringify(joystick)}`);
     }
 
+    // The interaction audit above leaves the world running. Start this isolated
+    // input probe on the authored first support, clear of enemies and edges.
+    // Do not manufacture grounded flags: real physics must settle it below.
+    if (route === 'mythicalForest') {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const support = scene.getTraversalSupport('forest-ground-1');
+            if (!support?.body || !scene.player?.body || scene.isPlayerDead) {
+                throw Error('Forest input fixture has no living player and start support');
+            }
+            scene.releaseAllPlatformerActionButtons?.();
+            scene.resetJoystick?.();
+            scene.input.keyboard?.resetKeys?.();
+            const x = support.body.left + 120;
+            scene.player.body.reset(x, scene.player.y);
+            scene.player.body.updateFromGameObject();
+            const y = scene.player.y + support.body.top - scene.player.body.bottom - 1;
+            scene.player.body.reset(x, y);
+            scene.player.body.updateFromGameObject();
+            scene.player.setVelocity(0, 0);
+            scene.isGrounded = false;
+            return true;
+        })()`);
+    }
     const jumpControl = await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const target = scene?.mobileControlTargets?.jump;
-            if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+            if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y) ||
+                !target.zone?.input?.enabled || !target.zone.visible || scene.isPlayerDead ||
+                scene.isRespawning || scene.rootwakeSequenceActive ||
+                scene.physics.world.isPaused || scene.input.enabled === false) {
                 return null;
             }
             return { x: target.x, y: target.y };
@@ -5340,14 +5381,19 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         await waitFor(
             () => evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                const supported = Boolean(
-                    scene?.isGrounded || scene?.player?.body?.blocked?.down
-                );
+                const body = scene?.player?.body;
+                const supported = Boolean(body &&
+                    (body.blocked.down || body.touching.down) &&
+                    scene.platforms.getChildren().some(platform => platform.body?.enable &&
+                        body.right > platform.body.left + 2 && body.left < platform.body.right - 2 &&
+                        Math.abs(body.bottom - platform.body.top) <= 2));
                 const velocityY = scene?.player?.body?.velocity?.y;
                 const inputReady = scene?.canJump !== false &&
                     (Number(scene?.recoveryInputLockedUntil) || 0) <= scene.time.now;
                 return supported && inputReady &&
-                    Number.isFinite(velocityY) && velocityY >= -1;
+                    scene.mobileControlTargets?.jump?.zone?.input?.enabled &&
+                    !scene.isPlayerDead && !scene.isRespawning &&
+                    Number.isFinite(velocityY) && Math.abs(velocityY) <= 1;
             })()`),
             { timeoutMs: 5000, message: `${sceneName} jump-ready support` }
         );
