@@ -2005,7 +2005,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         grove.zone = null;
         this.drawWoundedCrystalGrove(grove.visual, grove.x, grove.groundY, true);
         grove.label.setText('LIVING PULSE RESTORED').setColor('#8FE3CF');
-        this.setCheckpoint(grove.x, this.levelHeight - 150);
+        // This full-height story trigger can run just after a beacon activates.
+        // Keep that authored checkpoint and its persisted identity intact.
+        if (!Number.isInteger(this.checkpointPosition?.index)) {
+            const checkpoint = this.getTraversalSupportCheckpoint('caves-grove-rejoin', grove.x);
+            this.setCheckpoint(checkpoint.x, checkpoint.y);
+        }
 
         this.showFloatingText(
             `${companionName}: ${powerProfile.affinityPower.name}`,
