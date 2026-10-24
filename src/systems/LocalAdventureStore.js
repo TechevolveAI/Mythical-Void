@@ -90,6 +90,31 @@ export default class LocalAdventureStore {
         this.writeVerified(ACTIVE_KEY, key);
     }
 
+    importSnapshot(gameState, snapshot, beforeSelect = () => {}) {
+        const prepared = gameState.prepareSaveCandidate(snapshot);
+        const key = PREFIX + this.newId();
+        if (!isAdventureKey(key) || !this.storage || this.storage.getItem(key) !== null) {
+            throw Error('A separate adventure could not be created.');
+        }
+        const state = prepared.state;
+        // Guardian controls belong to this device, not to a downloaded adventure.
+        let local = gameState.state;
+        if (!gameState.initialized) {
+            try {
+                const raw = this.storage.getItem(this.activeKey());
+                if (raw) local = gameState.prepareSaveCandidate(raw).state;
+            } catch { /* Keep the unreadable local copy; use the current device controls. */ }
+        }
+        state.safety = JSON.parse(JSON.stringify(local.safety || gameState.createInitialState().safety));
+        state.game = { ...state.game, cloudSavePausedForNewGame: true };
+        const portable = gameState.createSaveSnapshot({ state });
+        gameState.validateSaveDataStructure(portable, { requireCoreState: true });
+        this.writeVerified(key, JSON.stringify(portable));
+        beforeSelect(key);
+        this.writeVerified(ACTIVE_KEY, key);
+        return key;
+    }
+
     cloudOptions(key) {
         if (key === ORIGINAL_KEY) return {};
         if (!isAdventureKey(key)) throw Error('Unknown adventure.');

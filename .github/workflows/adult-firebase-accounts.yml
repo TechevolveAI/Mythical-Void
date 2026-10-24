@@ -1,0 +1,49 @@
+name: Optional Firebase adult accounts
+on:
+  pull_request:
+    paths:
+      - 'cloudrun/adult-accounts/**'
+      - 'src/systems/*Account*'
+      - 'src/systems/FirebaseAdultClient.js'
+      - 'src/systems/LocalAdventureStore.js'
+      - 'src/ui/*Account*'
+      - 'src/__tests__/*Account*'
+      - 'src/__tests__/FirebaseAdultClient.test.js'
+      - 'src/test-support/adultAccountFixture.js'
+      - 'netlify/lib/*'
+      - 'scripts/review/*adult*'
+      - 'package*.json'
+      - '.github/workflows/adult-firebase-accounts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: adult-firebase-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-accounts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --ignore-scripts
+      - run: npm ci --ignore-scripts --prefix cloudrun/adult-accounts
+      - run: npm run test:adult-accounts
+      - run: npm run test:firebase-accounts
+      - run: npm --prefix cloudrun/adult-accounts run test:browser
+        env:
+          MYTHICAL_BROWSER_CHANNEL: chrome
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adult-firebase-phone-review
+          path: .visual-review/adult-firebase/
+          include-hidden-files: true

@@ -221,15 +221,18 @@
     "test:social-identity": "node scripts/company/test-social-identity-reservation.cjs",
     "validate:social-first-week": "node scripts/company/validate-social-first-week-pack.cjs",
     "test:social-first-week": "node scripts/company/test-social-first-week-pack.cjs",
-    "test:baseline:isolated": "node scripts/review/test-release-baseline-isolated.cjs"
+    "test:baseline:isolated": "node scripts/review/test-release-baseline-isolated.cjs",
+    "test:adult-accounts": "jest --runInBand src/__tests__/AdultAccountStartup.test.js src/__tests__/AdultAccountManager.test.js src/__tests__/AdultAccountMedia.test.js src/__tests__/FirebaseAdultClient.test.js",
+    "test:firebase-accounts": "npm --prefix cloudrun/adult-accounts run test:emulators"
   },
   "dependencies": {
-    "@noble/hashes": "1.8.0",
     "@google/genai": "^2.16.0",
+    "@noble/hashes": "1.8.0",
     "@supabase/supabase-js": "^2.110.8",
+    "firebase": "13.1.0",
+    "lucide": "1.47.0",
     "phaser": "^3.90.0",
-    "ws": "^8.18.0",
-    "lucide": "1.47.0"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

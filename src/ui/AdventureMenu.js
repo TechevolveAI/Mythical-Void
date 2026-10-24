@@ -11,6 +11,7 @@ export default class AdventureMenu {
         this.reload = options.reload || (() => window.location.reload());
         this.isCurrent = options.isCurrent || (() => true);
         this.getGame = options.getGame || (() => window.mythicalGame);
+        this.openAccount = options.openAccount || null;
         try { this.sessionStorage = options.sessionStorage || window.sessionStorage; } catch { this.sessionStorage = null; }
         this.pausedScenes = [];
     }
@@ -130,6 +131,7 @@ export default class AdventureMenu {
         if (current) action(panel, current.name === 'Your adventure' ? 'Continue adventure' : `Continue with ${current.name}`,
             () => this.choose(current.key), true);
         action(panel, 'Start a new adventure', () => this.startNew(), !current);
+        if (this.openAccount) action(panel, 'Save across devices (18+)', () => this.openAccount(this.element));
         const keep = doc.createElement('p');
         keep.className = 'adventure-hint';
         keep.textContent = 'A new egg, a fresh start. Your other adventures stay here.';
@@ -155,7 +157,9 @@ export default class AdventureMenu {
         const summary = doc.createElement('summary');
         summary.textContent = 'About saving';
         const explanation = doc.createElement('p');
-        explanation.textContent = 'Clearing this site’s data or using private browsing can remove your adventures. An optional online backup is available in the game menu. It currently belongs to this browser and cannot bring your creature to another device.';
+        explanation.textContent = this.openAccount
+            ? 'Clearing this site’s data or using private browsing can remove local adventures. Adults aged 18 or over can optionally add adventures to an email account and continue on another device.'
+            : 'Clearing this site’s data or using private browsing can remove your adventures. An optional online backup is available in the game menu. It currently belongs to this browser and cannot bring your creature to another device.';
         detail.append(summary, explanation);
         panel.append(help, detail);
         if (this.onBackup) action(panel, 'Online backup (optional)', () => {

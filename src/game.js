@@ -21,6 +21,7 @@ import VictoryScene from './scenes/VictoryScene.js';
 import CloudSaveSettingsModal from './ui/CloudSaveSettingsModal.js';
 import SaveRecoveryGate from './ui/SaveRecoveryGate.js';
 import AdventureMenu from './ui/AdventureMenu.js';
+import setupAdultAccounts from './systems/setupAdultAccounts.js';
 import SharedFusionModal from './ui/SharedFusionModal.js';
 import PageVisibilityController from './utils/PageVisibilityController.js';
 import GameTabSession from './utils/GameTabSession.js';
@@ -562,15 +563,19 @@ async function initializeGame() {
 
         // A duplicate tab must wait before loading, migrating, auto-saving or
         // starting cloud services. On handover it reads the latest saved game.
+        let adultAccounts = null;
         const tabSession = new GameTabSession({ onRetired: () => {
             if (GameState?.initialized) GameState.save();
             cloudSaveManager?.destroy();
+            adultAccounts?.destroy();
             GameState?.holdSaveAdmission({ code: 'game_tab_retired' }, 'browser_tab');
         } });
         if (!await tabSession.waitUntilReady()) return;
 
         const adventures = new AdventureMenu(GameState, { isCurrent: () => tabSession.owned });
         window.Adventures = adventures;
+        try { adultAccounts = await setupAdultAccounts(GameState, adventures, () => tabSession.owned); }
+        catch { /* Optional account setup must never prevent local play. */ }
         const adventureKey = await adventures.chooseAtStartup();
         if (!tabSession.owned) return;
         GameState.selectLocalAdventure(adventureKey);
@@ -2727,6 +2732,7 @@ async function initializeGame() {
                 cloudSaveManager?.flush().catch(() => {
                     // The local save has already completed; retry cloud sync next launch.
                 });
+                window.AdultAccounts?.flush().catch(() => {});
             } catch (saveError) {
                 console.error('💾❌ Final save failed:', saveError);
             }
@@ -2767,6 +2773,7 @@ async function initializeGame() {
                 cloudSaveManager?.flush().catch((error) => {
                     console.warn('[CloudSave] Background sync deferred:', error);
                 });
+                window.AdultAccounts?.flush().catch(() => {});
             }
         });
         pageVisibilityController.attach();

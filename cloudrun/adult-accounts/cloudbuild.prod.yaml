@@ -1,0 +1,9 @@
+steps:
+  - name: gcr.io/cloud-builders/docker@sha256:0aca0f95e1ba8f9107263d3e9782d5ce99a5b60d35b3f8985e4534b65552636f
+    args: ['build', '--platform=linux/amd64', '-t', '${_IMAGE}', '.']
+images: ['${_IMAGE}']
+serviceAccount: projects/mythical-void-prod/serviceAccounts/adult-accounts-build@mythical-void-prod.iam.gserviceaccount.com
+logsBucket: gs://mythical-void-prod-account-logs/adult-accounts
+options:
+  logging: GCS_ONLY
+timeout: 600s

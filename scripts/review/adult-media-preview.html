@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Private account media transfer check</title>
+<style>body{background:#171c31;color:#f5f3ff;font:16px system-ui;margin:20px}img,video{display:block;width:100%;max-width:350px;border-radius:16px;margin:16px auto}p{line-height:1.5}</style></head>
+<body><p>Private synthetic media transfer check. No email is sent.</p><img id="portrait" alt="Synthetic test creature"><video id="film" muted playsinline controls></video>
+<script type="module">
+import '/src/systems/GameState.js';
+import Store from '/src/systems/LocalAdventureStore.js';
+import Manager from '/src/systems/AdultAccountManager.js';
+import { createFirebaseAdultClient } from '/src/systems/FirebaseAdultClient.js';
+import { getApp } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { LivingPortraitService } from '/src/systems/LivingPortraitService.js';
+import { CompanionMediaService } from '/src/systems/CompanionMediaService.js';
+if (!import.meta.env.DEV || location.hostname !== '127.0.0.1') throw Error('Loopback review only');
+const state = window.GameState, store = new Store();
+state.initialized = true; state.state.creature.name = 'Synthetic Transfer Fern'; state.state.creature.hatched = true;
+state.state.creature.genes = { id: 'synthetic-transfer-fern' }; state.state.session.gameStarted = true;
+state.state.settings.audioMuted = true;
+localStorage.setItem('mythical-creature-save', JSON.stringify(state.createSaveSnapshot()));
+const portraitService = new LivingPortraitService(), videoService = new CompanionMediaService();
+let manager, anonymousToken;
+window.mediaReview = {
+    async login({ config, email, password, legacySession }) {
+        if (config.projectId !== 'mythical-void-dev-eu' || !email.endsWith('@example.test')) throw Error('Synthetic development identity required');
+        anonymousToken = legacySession.access_token;
+        const client = createFirebaseAdultClient(config);
+        manager = new Manager({ client, gameState: state, store, endpoint: '/v1/adventures',
+            mediaClient: () => ({ auth: { getSession: async () => ({ data: { session: legacySession } }) } }) });
+        window.AdultAccounts = manager; manager.declareAge(true);
+        await client.auth.getSession();
+        const auth = getAuth(getApp('mythical-adult-' + config.projectId));
+        await signInWithEmailAndPassword(auth, email, password);
+        manager.user = (await client.auth.getSession()).data.session.user;
+        await manager.finishSetup();
+    },
+    async save(refs) {
+        state.state.creature.portraits = { byStage: { baby: { status: 'ready', stage: 'baby',
+            identityKey: 'synthetic-transfer-fern', assetRef: refs.portrait,
+            imageUrl: 'https://example.test/expired-image', expiresAt: 1 } } };
+        state.state.story.companionMedia.videos.synthetic = { status: 'succeeded', assetRef: refs.video,
+            videoUrl: 'https://example.test/expired-film', expiresAt: 1 };
+        localStorage.setItem(store.activeKey(), JSON.stringify(state.createSaveSnapshot()));
+        await manager.saveAsSeparateAdventure();
+        return manager.binding().id;
+    },
+    async open(id) {
+        await manager.openAdventure(id);
+        const copy = JSON.parse(localStorage.getItem(store.activeKey()));
+        return { localCopies: store.list().length, portrait: copy.creature.portraits.byStage.baby,
+            video: copy.story.companionMedia.videos.synthetic };
+    },
+    async resolve(kind, assetRef) {
+        const url = '/.netlify/functions/' + (kind === 'portrait' ? 'generate-ai-art' : 'generate-companion-video') + '?assetRef=' + encodeURIComponent(assetRef);
+        const options = { headers: { Authorization: 'Bearer ' + anonymousToken } };
+        const response = kind === 'portrait'
+            ? await portraitService.requestJson(url, options, { timeoutMs: 30000, timeoutCode: 'timeout', timeoutMessage: 'Media check timed out' })
+            : await videoService.requestVideoJson(url, options);
+        if (!response) return { status: 0 };
+        if (response.response.ok) {
+            const element = document.querySelector(kind === 'portrait' ? '#portrait' : '#film');
+            if (kind === 'video') { element.muted = true; element.defaultMuted = true; }
+            element.src = response.result[kind === 'portrait' ? 'imageUrl' : 'videoUrl'];
+        }
+        return { status: response.response.status, assetRef: response.result.assetRef, expiresAt: response.result.expiresAt };
+    },
+    async direct(kind, assetRef, id, method = 'GET', tokenOverride = null) {
+        const token = tokenOverride || (await manager.session()).access_token;
+        const r = await fetch('/.netlify/functions/' + (kind === 'portrait' ? 'generate-ai-art' : 'generate-companion-video') +
+            '?assetRef=' + encodeURIComponent(assetRef) + '&accountAdventure=' + id,
+        { method, headers: { Authorization: 'Bearer ' + token }, ...(method === 'POST' ? { body: '{}' } : {}) });
+        return r.status;
+    },
+    async signOut() { await manager.signOut(); },
+    savedBytes() { return store.list().map(row => localStorage.getItem(row.key)).join(''); }
+};
+</script></body></html>

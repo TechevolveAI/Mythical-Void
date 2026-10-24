@@ -73,6 +73,21 @@
 .save-recovery-gate :focus-visible { outline: 3px solid #f5d582; outline-offset: 4px; }
 .adventure-menu [role="status"],
 .save-recovery-gate [role="status"] { color: #ffdda6; }
+.account-menu label { display: block; margin: 16px 0; color: #e5e7f7; }
+.account-menu input:not([type="checkbox"]) {
+    display: block; width: 100%; box-sizing: border-box; min-height: 50px; margin-top: 8px;
+    border: 1px solid #8f96bf; border-radius: 12px; padding: 12px;
+    background: #141a2f; color: #fff; font: inherit; font-size: 16px;
+}
+.account-menu .account-consent { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; }
+.account-menu input[type="checkbox"] { flex: 0 0 22px; width: 22px; height: 22px; margin-top: 4px; accent-color: #e9d399; }
+.account-menu button:disabled { opacity: .6; cursor: wait; }
+.account-adventure { border-top: 1px solid #49516f; margin-top: 20px; padding-top: 4px; }
+.account-entry-button {
+    position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+    z-index: 20000; max-width: 180px; min-height: 44px; border: 1px solid #8f96bf;
+    border-radius: 14px; padding: 8px 14px; background: #20263e; color: #f5f3ff; font: 14px system-ui, sans-serif;
+}
 @media (max-height: 500px) {
     .adventure-menu section, .save-recovery-gate section { margin: 0 auto; }
     .adventure-egg { width: 30px; height: 38px; }
