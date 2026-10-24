@@ -57,7 +57,10 @@
             });
         });
         navigator.serviceWorker.addEventListener('controllerchange', function () {
-            reloadForCurrentRelease();
+            // Activation reports the worker's release separately. Reload only
+            // when that release differs, preserving an in-progress email link
+            // when offline support first takes control of a current document.
+            checkForCurrentRelease();
         });
         window.addEventListener('load', function () {
             navigator.serviceWorker.register('/sw.js', {
