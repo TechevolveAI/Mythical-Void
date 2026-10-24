@@ -48,6 +48,13 @@ export default class AdultAccountMenu {
         this.element?.remove();
         const doc = this.document, manager = this.manager;
         const overlay = doc.createElement('div'); overlay.className = 'adventure-menu account-menu';
+        // Phaser also listens on window. A fresh game may finish starting
+        // behind this dialog, so keep form interactions inside the dialog.
+        for (const type of ['pointerdown', 'pointerup', 'pointermove', 'pointercancel',
+            'mousedown', 'mouseup', 'mousemove', 'touchstart', 'touchend', 'touchmove', 'touchcancel',
+            'click', 'dblclick', 'wheel', 'keyup', 'keypress']) {
+            overlay.addEventListener(type, event => event.stopPropagation());
+        }
         overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-labelledby', 'adult-account-title');
         const panel = doc.createElement('section');
@@ -157,6 +164,7 @@ export default class AdultAccountMenu {
         const close = button('Keep playing', () => this.close()); close.disabled = false;
         overlay.append(panel);
         overlay.addEventListener('keydown', event => {
+            event.stopPropagation();
             if (event.key === 'Escape') { event.preventDefault(); this.close(); return; }
             if (event.key !== 'Tab') return;
             const controls = [...panel.querySelectorAll('input, button, summary')].filter(el => !el.disabled &&

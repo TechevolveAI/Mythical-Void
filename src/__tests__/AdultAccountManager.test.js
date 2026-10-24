@@ -43,6 +43,27 @@ describe('optional adult accounts across devices', () => {
         jest.restoreAllMocks(); jest.useRealTimers(); document.body.replaceChildren();
         delete process.env.ENABLE_ADULT_ACCOUNTS;
     });
+    test('account form input cannot reach game listeners on window', () => {
+        const { manager } = device({ signedIn: false });
+        const menu = new Menu(manager); menu.open();
+        const reachedGame = jest.fn();
+        const types = ['mousedown', 'mouseup', 'touchstart', 'touchend', 'pointerdown', 'pointerup', 'keydown', 'keyup', 'click'];
+        for (const type of types) window.addEventListener(type, reachedGame);
+        try {
+            const email = document.querySelector('[type=email]');
+            for (const type of types) {
+                const event = new Event(type, { bubbles: true, cancelable: true });
+                email.dispatchEvent(event);
+                expect(event.defaultPrevented).toBe(false);
+            }
+            [...document.querySelectorAll('button')].find(button => button.textContent === 'Keep playing').click();
+            expect(menu.opened).toBe(false);
+            expect(reachedGame).not.toHaveBeenCalled();
+        } finally {
+            for (const type of types) window.removeEventListener(type, reachedGame);
+            menu.close();
+        }
+    });
     test('under-18 players never see an email field or make auth requests', async () => {
         const { manager, client, storage } = device({ signedIn: false, age: null });
         const menu = new Menu(manager); menu.open();

@@ -66,6 +66,19 @@ function createClient({ documentRelease = '', controlled = false } = {}) {
 }
 
 describe('game document release handshake', () => {
+    test.each([false, true])('preserves an in-progress sign-in on a current document when control changes (already controlled: %s)', controlled => {
+        const client = createClient({ documentRelease: 'release-23', controlled });
+
+        client.listeners.controllerchange();
+        client.sendRelease('release-23');
+
+        expect(client.reload).not.toHaveBeenCalled();
+        expect(client.posted).toEqual([{
+            type: 'MYTHICAL_VOID_RELEASE_ACK',
+            version: 'release-23'
+        }]);
+    });
+
     test('acknowledges only the worker that matches the loaded game document', () => {
         const client = createClient({ documentRelease: 'release-23' });
 
