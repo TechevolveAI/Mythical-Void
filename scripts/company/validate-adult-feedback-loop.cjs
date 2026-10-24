@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const isCurrentPrivacyDate = require('./is-current-privacy-date.cjs');
 
 const root = path.resolve(__dirname, '..', '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -49,7 +50,7 @@ requireValue(studio.includes('This is not a request for praise.') && studio.incl
 requireValue(netlify.includes('from = "/feedback"') && netlify.includes('from = "/feedback/"'), 'feedback redirects are missing');
 
 const privacyText = JSON.stringify(legal.privacyPolicy);
-requireValue(legal.privacyPolicy?.lastUpdated === '2026-09-08', 'privacy policy date is stale');
+requireValue(isCurrentPrivacyDate(legal.privacyPolicy?.lastUpdated), 'privacy policy date is missing, invalid, stale or in the future');
 requireValue(/adult feedback pulse/i.test(privacyText), 'privacy policy does not describe adult feedback');
 requireValue(/fixed-choice/i.test(privacyText) && /180 days/i.test(privacyText), 'privacy policy is missing feedback fields or retention');
 requireValue(/does not ask for a name, email address, free-text answer, exact age or child details/i.test(privacyText), 'privacy policy does not state the feedback exclusion boundary');
