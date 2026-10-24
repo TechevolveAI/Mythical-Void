@@ -245,7 +245,7 @@
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://mkcmdbzcihjgidjuypqe.supabase.co https://www.google-analytics.com;
       media-src 'self' blob: https://mkcmdbzcihjgidjuypqe.supabase.co;
-      connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://mythical-void-adult-accounts-dev-wihawqqnka-ew.a.run.app https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov https://www.google-analytics.com https://region1.google-analytics.com;
+      connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://mythical-void-adult-accounts-dev-wihawqqnka-ew.a.run.app https://mythical-void-adult-accounts-prod-585326384593.europe-west1.run.app https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov https://www.google-analytics.com https://region1.google-analytics.com;
       font-src 'self';
       object-src 'none';
       base-uri 'self';
