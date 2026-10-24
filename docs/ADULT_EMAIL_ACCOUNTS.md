@@ -68,6 +68,10 @@ The account API accepts HTTP connections but requires Firebase verification for 
 
 ## Release preparation on 24/10/2026
 
+Kevin subsequently confirmed that email sign-in and switching devices worked on his phone and explicitly authorised production Firebase configuration, push, merge and deployment. The acceptance gate described below is now complete. The production setup uses only `mythical-void-prod`, linked to the existing Mythical Void billing account. Its new default Firestore database is native Firestore in `europe-west1`, with deletion protection and browser rules that deny all direct access. Its separate production web app uses `mythical-void-prod.firebaseapp.com` and authorises `mythicalvoid.com`; email links and email enumeration protection are enabled.
+
+`cloudbuild.prod.yaml` builds the same seven backend runtime files with a pinned Google Docker builder and a ten-minute timeout. The dedicated production runtime has only the two Auth user permissions and database-scoped Firestore access. The separate build identity can read its source bucket, write build logs and publish to its own image repository. Both build buckets are private and located in Belgium. Production service checks, required CI and publication verification are recorded in the release evidence; configuration alone does not establish a completed release.
+
 Remote `main` still pointed to gameplay baseline `00241ae955a37b34ac60275378a41575b203f622` at the release check. The live Netlify deployment was `6adb8e10ce691a181f55c60f`. The account candidate has not been pushed, merged or published. Kevin is testing real email delivery and device switching; his confirmation is the release gate.
 
 The refreshed IAP preview uses the unchanged `7b9243d2` game payload. Its 240 delivery files were verified; IAP, IAM and instance limits were preserved. The window ends at **04:11 Dublin time on 24/10/2026**. This is a time-limited test address, not the production release.
